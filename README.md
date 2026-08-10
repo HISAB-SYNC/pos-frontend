@@ -1,45 +1,76 @@
-🧾 HISAB-SYNC POS Frontend
-This is the frontend for Andalus POS, built with Next.js, Shadcn/UI, Zustand, and Axios.
-It provides a modern, modular, and scalable point-of-sale system UI with authentication, state management, and reusable components.
+# MiniShop Frontend
 
-🚀 Tech Stack
-Framework: Next.js
-UI Components: Shadcn/UI
-Styling: Tailwind CSS
-State Management: Zustand
-Animations: Framer Motion
-API Calls: Axios
-Validation: Zod
-📦 Installation & Setup
-1️⃣ Clone the repository
-git clone https://github.com/HISAB-SYNC/pos-frontend
-cd pos-front
-2️⃣ Install dependencies
+MiniShop is the frontend foundation for a SaaS POS and shop-management platform. This repository is set up as a modular Next.js App Router application with a feature-based structure, shadcn/ui primitives, and shared infrastructure for auth, RBAC, forms, tables, state, and API access.
 
-Use pnpm for package management:
+## Tech Stack
 
-pnpm install
+- Next.js App Router
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Zustand
+- React Hook Form
+- TanStack Table
+- Framer Motion
+- Nuqs
+- next-themes
 
-3️⃣ Configure environment variables
+## Installation
 
-Create a .env.local file in the root directory and add:
+```bash
+npm install
+```
 
-NEXT_PUBLIC_API_URL=https://your-api-url.com
+## Development Commands
 
-4️⃣ Run the development server
-pnpm dev
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
+```
 
+## Environment Variables
 
-The app will be available at http://localhost:3000
+Copy `.env.example` to `.env.local` and set:
 
-## 📄 License
+```bash
+NEXT_PUBLIC_API_URL=
+```
 
-This project is licensed under the MIT License.
+## Folder Structure
 
-## 💡 Notes
+- `src/app/` contains routing and page composition.
+- `src/components/ui/` contains shadcn/ui primitives.
+- `src/components/shared/` contains reusable application-level components.
+- `src/components/layout/` contains dashboard shell composition.
+- `src/features/` contains domain-specific business modules.
+- `src/lib/` contains API, auth, RBAC, validations, utilities, and constants.
+- `src/stores/` contains Zustand state slices.
+- `src/types/` contains shared type definitions.
+- `src/config/` contains application configuration.
+- `src/styles/` contains global styling and design tokens.
 
-Make sure .env.local contains valid API URLs.
+## shadcn/ui Rules
 
-All merges to main must go through Pull Requests.
+- Keep shadcn primitives in `src/components/ui/`.
+- Prefer composition over rewriting primitive internals.
+- Reuse `cn()` from `src/lib/utils.ts` for class merging.
+- Keep the design system token-driven through CSS variables.
 
-Force pushes and direct commits to main are disabled.
+## Architecture Rules
+
+- Keep feature code inside `src/features/<feature>/`.
+- Put reusable UI in `src/components/shared/` only when it is genuinely cross-feature.
+- Keep URL state in Nuqs, not Zustand.
+- Keep global state small and domain-specific.
+- Keep API access behind `src/lib/api/`.
+- Keep role and permission checks centralized in `src/lib/permissions/`.
+
+## Git Workflow
+
+- Work on feature branches.
+- Keep commits focused and small.
+- Do not mix foundation setup with business features.
+- Run `npm run lint`, `npm run typecheck`, and `npm run build` before pushing.

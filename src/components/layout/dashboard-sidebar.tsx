@@ -14,7 +14,7 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <nav className="space-y-1 text-sm">
-          <Link className="block rounded-md px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" href="/dashboard/dashboard">Dashboard</Link>
+          <Link className="block rounded-md px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" href="/dashboard">Dashboard</Link>
           <Link className="block rounded-md px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" href="/pos">POS</Link>
           <Link className="block rounded-md px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" href="/products">Products</Link>
         </nav>

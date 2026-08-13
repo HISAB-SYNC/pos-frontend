@@ -1,3 +1,11 @@
-export const ROLES = ["SYSTEM_ADMIN", "OWNER", "SHOP_ADMIN", "SHOP_SALES"] as const;
+export const ROLES = ["SYSTEM_ADMIN", "OWNER", "ADMIN", "SALES"] as const;
 
 export type Role = (typeof ROLES)[number];
+
+export const BACKEND_ROLES = ["OWNER", "ADMIN", "SALES"] as const;
+
+export type BackendRole = (typeof BACKEND_ROLES)[number];
+
+export function isBackendRole(role: string): role is BackendRole {
+  return BACKEND_ROLES.includes(role as BackendRole);
+}

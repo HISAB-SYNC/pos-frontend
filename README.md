@@ -36,7 +36,7 @@ npm run build
 Copy `.env.example` to `.env.local` and set:
 
 ```bash
-NEXT_PUBLIC_API_URL=
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 ```
 
 ## Folder Structure

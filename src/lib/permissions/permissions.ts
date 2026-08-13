@@ -33,7 +33,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     PERMISSIONS.MANAGE_SUBSCRIPTION,
     PERMISSIONS.USE_POS,
   ],
-  SHOP_ADMIN: [
+  ADMIN: [
     PERMISSIONS.MANAGE_PRODUCTS,
     PERMISSIONS.MANAGE_INVENTORY,
     PERMISSIONS.MANAGE_CUSTOMERS,
@@ -41,12 +41,37 @@ const rolePermissions: Record<Role, Permission[]> = {
     PERMISSIONS.MANAGE_SUPPLIERS,
     PERMISSIONS.MANAGE_EXPENSES,
     PERMISSIONS.VIEW_REPORTS,
-    PERMISSIONS.MANAGE_SETTINGS,
     PERMISSIONS.USE_POS,
   ],
-  SHOP_SALES: [PERMISSIONS.MANAGE_CUSTOMERS, PERMISSIONS.MANAGE_DEBTS, PERMISSIONS.USE_POS],
+  SALES: [
+    PERMISSIONS.MANAGE_PRODUCTS,
+    PERMISSIONS.MANAGE_INVENTORY,
+    PERMISSIONS.MANAGE_CUSTOMERS,
+    PERMISSIONS.MANAGE_DEBTS,
+    PERMISSIONS.USE_POS,
+  ],
 };
 
 export function getPermissionsForRole(role: Role | null | undefined) {
-  return role ? rolePermissions[role] ?? [] : [];
+  return role ? (rolePermissions[role] ?? []) : [];
+}
+
+export function canDeleteProducts(role: Role | null | undefined) {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+export function canManageCategories(role: Role | null | undefined) {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+export function canManageSuppliers(role: Role | null | undefined) {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+export function canManageStaff(role: Role | null | undefined) {
+  return role === "OWNER" || role === "ADMIN";
+}
+
+export function canManageShopSettings(role: Role | null | undefined) {
+  return role === "OWNER";
 }

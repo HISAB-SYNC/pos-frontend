@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import type { Role } from "@/lib/permissions/roles";
 
 export type AuthUser = {

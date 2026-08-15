@@ -33,11 +33,24 @@ npm run build
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and set:
+Copy `.env.example` to `.env.local`:
 
 ```bash
+NEXT_PUBLIC_USE_MOCK_API=true
 NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
 ```
+
+Set `NEXT_PUBLIC_USE_MOCK_API=true` to run the app with in-memory mock data (no backend required). Set it to `false` when the backend is ready.
+
+### Demo credentials (mock mode)
+
+| Role  | Email            | Password  |
+|-------|------------------|-----------|
+| Owner | owner@demo.com   | demo1234  |
+| Admin | admin@demo.com   | demo1234  |
+| Sales | sales@demo.com   | demo1234  |
+
+OTP code in mock mode: `123456`
 
 ## Folder Structure
 

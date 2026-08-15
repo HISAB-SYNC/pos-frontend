@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import { ThemeProvider } from "@/components/shared/theme-provider";
+import { ApiProvider } from "@/providers/api-provider";
 import "@/styles/globals.css";
 
 const geistSans = Geist({
@@ -15,10 +17,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "MiniShop",
-    template: "%s | MiniShop",
+    default: "Andalus",
+    template: "%s | Andalus",
   },
-  description: "MiniShop frontend foundation for POS and shop management.",
+  description: "Andalus shop management platform.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
+          <ApiProvider>{children}</ApiProvider>
         </ThemeProvider>
       </body>
     </html>

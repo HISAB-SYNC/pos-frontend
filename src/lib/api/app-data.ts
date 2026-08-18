@@ -6,6 +6,7 @@ import {
   mockGetExpenses,
 } from "@/lib/mock";
 
+
 export async function getCustomers(shopId: string) {
   if (isMockApiEnabled()) {
     return mockGetCustomers(shopId);

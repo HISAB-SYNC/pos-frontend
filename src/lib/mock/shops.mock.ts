@@ -1,4 +1,12 @@
-import type { Category, Product, Shop, Supplier } from "@/lib/api/types";
+import type {
+  Category,
+  Product,
+  ProductAdjustment,
+  ProductHistory,
+  ProductPurchase,
+  Shop,
+  Supplier,
+} from "@/lib/api/types";
 
 import { createMockId, getMockStore, mockDelay, mockError } from "./store";
 
@@ -186,6 +194,65 @@ export async function mockUpdateProduct(
   return product;
 }
 
+export async function mockGetProduct(shopId: string, productId: string): Promise<Product> {
+  await mockDelay();
+  const store = getMockStore();
+  const product = store.products.find(
+    (entry) => (entry.id === productId || entry.sku === productId) && entry.shopId === shopId,
+  );
+
+  if (!product) {
+    mockError("Product not found", 404);
+  }
+
+  return product;
+}
+
+export async function mockGetProductPurchases(productId: string): Promise<ProductPurchase[]> {
+  await mockDelay();
+  return getMockStore().productPurchases.filter((p) => p.productId === productId);
+}
+
+export async function mockCreateProductPurchase(
+  productId: string,
+  input: Omit<ProductPurchase, "id" | "productId">,
+): Promise<ProductPurchase> {
+  await mockDelay();
+  const store = getMockStore();
+  const purchase: ProductPurchase = {
+    id: createMockId("pur"),
+    productId,
+    ...input,
+  };
+  store.productPurchases.unshift(purchase);
+  return purchase;
+}
+
+export async function mockGetProductAdjustments(productId: string): Promise<ProductAdjustment[]> {
+  await mockDelay();
+  return getMockStore().productAdjustments.filter((a) => a.productId === productId);
+}
+
+export async function mockCreateProductAdjustment(
+  productId: string,
+  input: Omit<ProductAdjustment, "id" | "productId">,
+): Promise<ProductAdjustment> {
+  await mockDelay();
+  const store = getMockStore();
+  const adjustment: ProductAdjustment = {
+    id: createMockId("adj"),
+    productId,
+    ...input,
+  };
+  store.productAdjustments.unshift(adjustment);
+  return adjustment;
+}
+
+export async function mockGetProductHistory(productId: string): Promise<ProductHistory[]> {
+  await mockDelay();
+  return getMockStore().productHistory.filter((h) => h.productId === productId);
+}
+
 export async function mockDeleteProduct(shopId: string, productId: string) {
   await mockDelay();
 
@@ -201,3 +268,4 @@ export async function mockDeleteProduct(shopId: string, productId: string) {
   store.products.splice(index, 1);
   return { message: "Product deleted successfully" };
 }
+

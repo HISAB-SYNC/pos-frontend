@@ -76,5 +76,40 @@ export type Product = {
   supplierId?: string;
   attributes?: Record<string, unknown> | null;
   category?: Pick<Category, "id" | "name">;
-  supplier?: Pick<Supplier, "id" | "name">;
+  supplier?: Pick<Supplier, "id" | "name" | "contactInfo">;
 };
+
+export type ProductPurchase = {
+  id: string;
+  productId: string;
+  purchaseId: string;
+  supplier: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  date: string;
+  status: "completed" | "pending";
+};
+
+export type ProductAdjustment = {
+  id: string;
+  productId: string;
+  adjustmentId: string;
+  quantityChange: number;
+  reason: string;
+  store: string;
+  date: string;
+};
+
+export type ProductHistory = {
+  id: string;
+  productId: string;
+  transactionId: string;
+  type: "Purchase" | "Sale" | "Adjustment";
+  quantity: number;
+  store: string;
+  value: number;
+  date: string;
+  person: string;
+};
+

@@ -3,7 +3,15 @@ import * as mockShops from "@/lib/mock/shops.mock";
 
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { Category, Product, Shop, Supplier } from "./types";
+import type {
+  Category,
+  Product,
+  ProductAdjustment,
+  ProductHistory,
+  ProductPurchase,
+  Shop,
+  Supplier,
+} from "./types";
 
 export async function getOwnerShops() {
   if (isMockApiEnabled()) {
@@ -138,7 +146,7 @@ export async function createProduct(
 export async function updateProduct(
   shopId: string,
   productId: string,
-  input: Partial<Omit<Product, "id" | "shopId"> & { price: number }>,
+  input: Partial<Omit<Product, "id" | "shopId" | "price"> & { price: number }>,
 ) {
   if (isMockApiEnabled()) {
     return mockShops.mockUpdateProduct(shopId, productId, input);
@@ -150,6 +158,66 @@ export async function updateProduct(
   });
 }
 
+export async function getProduct(shopId: string, productId: string) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockGetProduct(shopId, productId);
+  }
+
+  return apiRequest<Product>(API_ENDPOINTS.shops.product(shopId, productId));
+}
+
+export async function getProductPurchases(productId: string) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockGetProductPurchases(productId);
+  }
+
+  return apiRequest<ProductPurchase[]>(`/products/${productId}/purchases`);
+}
+
+export async function createProductPurchase(
+  productId: string,
+  input: Omit<ProductPurchase, "id" | "productId">,
+) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockCreateProductPurchase(productId, input);
+  }
+
+  return apiRequest<ProductPurchase>(`/products/${productId}/purchases`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function getProductAdjustments(productId: string) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockGetProductAdjustments(productId);
+  }
+
+  return apiRequest<ProductAdjustment[]>(`/products/${productId}/adjustments`);
+}
+
+export async function createProductAdjustment(
+  productId: string,
+  input: Omit<ProductAdjustment, "id" | "productId">,
+) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockCreateProductAdjustment(productId, input);
+  }
+
+  return apiRequest<ProductAdjustment>(`/products/${productId}/adjustments`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function getProductHistory(productId: string) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockGetProductHistory(productId);
+  }
+
+  return apiRequest<ProductHistory[]>(`/products/${productId}/history`);
+}
+
 export async function deleteProduct(shopId: string, productId: string) {
   if (isMockApiEnabled()) {
     return mockShops.mockDeleteProduct(shopId, productId);
@@ -159,3 +227,4 @@ export async function deleteProduct(shopId: string, productId: string) {
     method: "DELETE",
   });
 }
+

@@ -1,10 +1,12 @@
 export const API_ENDPOINTS = {
   auth: {
     login: "/auth/login",
+    logout: "/auth/logout",
     registerOwner: "/auth/register/owner",
     registerStaff: "/auth/register/staff",
-    requestResetPassword: "/auth/request-reset-password",
-    resetPassword: "/auth/reset-password",
+    requestResetPassword: "/auth/reset-password/request",
+    verifyResetPassword: "/auth/reset-password/verify",
+    confirmResetPassword: "/auth/reset-password/confirm",
   },
   shops: {
     list: "/shops",
@@ -15,5 +17,12 @@ export const API_ENDPOINTS = {
     products: (shopId: string) => `/shops/${shopId}/products`,
     lowStockProducts: (shopId: string) => `/shops/${shopId}/products/low-stock`,
     product: (shopId: string, productId: string) => `/shops/${shopId}/products/${productId}`,
+    sales: (shopId: string) => `/shops/${shopId}/sales`,
+    saleDetail: (shopId: string, saleId: string) => `/shops/${shopId}/sales/${saleId}`,
+    customers: (shopId: string) => `/shops/${shopId}/customers`,
+    customerDetail: (shopId: string, customerId: string) => `/shops/${shopId}/customers/${customerId}`,
+    debts: (shopId: string) => `/shops/${shopId}/debts`,
+    debtPayments: (shopId: string, debtId: string) => `/shops/${shopId}/debts/${debtId}/payments`,
+    dashboard: (shopId: string) => `/shops/${shopId}/dashboard`,
   },
 } as const;

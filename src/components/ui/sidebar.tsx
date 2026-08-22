@@ -53,7 +53,7 @@ export function Sidebar({ className, children }: React.HTMLAttributes<HTMLDivEle
     <>
       <aside
         className={cn(
-          "hidden min-h-screen shrink-0 flex-col border-r bg-sidebar-background text-sidebar-foreground transition-[width] duration-200 ease-in-out lg:flex",
+          "sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r bg-sidebar-background text-sidebar-foreground transition-[width] duration-200 ease-in-out z-30 lg:flex",
           collapsed ? "w-[72px]" : "w-64",
           className,
         )}
@@ -63,7 +63,7 @@ export function Sidebar({ className, children }: React.HTMLAttributes<HTMLDivEle
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0 lg:hidden">
-          <div className="flex h-full flex-col">{children}</div>
+          <div className="flex h-full flex-col overflow-hidden">{children}</div>
         </SheetContent>
       </Sheet>
     </>
@@ -101,17 +101,27 @@ export function SidebarTrigger({ className, ...props }: React.ComponentProps<typ
 }
 
 export function SidebarHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div data-slot="sidebar-header" className={cn("border-b p-4", className)} {...props} />;
+  return <div data-slot="sidebar-header" className={cn("shrink-0 border-b p-4", className)} {...props} />;
 }
 
 export function SidebarContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div data-slot="sidebar-content" className={cn("flex-1 overflow-auto p-4", className)} {...props} />;
+  return (
+    <div
+      data-slot="sidebar-content"
+      className={cn(
+        "flex-1 overflow-y-auto overflow-x-hidden p-4 scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function SidebarFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div data-slot="sidebar-footer" className={cn("border-t p-4", className)} {...props} />;
+  return <div data-slot="sidebar-footer" className={cn("shrink-0 border-t p-4", className)} {...props} />;
 }
 
 export function SidebarInset({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div data-slot="sidebar-inset" className={cn("flex min-h-screen flex-1 flex-col", className)} {...props} />;
 }
+

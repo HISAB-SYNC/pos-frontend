@@ -96,7 +96,14 @@ export async function mockGetSuppliers(shopId: string): Promise<Supplier[]> {
 
 export async function mockCreateSupplier(
   shopId: string,
-  input: { name: string; contactInfo?: string },
+  input: {
+    name: string;
+    contactInfo?: string;
+    product?: string;
+    email?: string;
+    type?: "Taking Return" | "Not Taking Return";
+    onTheWay?: string | number;
+  },
 ): Promise<Supplier> {
   await mockDelay();
 
@@ -105,11 +112,16 @@ export async function mockCreateSupplier(
     shopId,
     name: input.name,
     contactInfo: input.contactInfo,
+    product: input.product,
+    email: input.email,
+    type: input.type || "Taking Return",
+    onTheWay: input.onTheWay ?? "-",
   };
 
-  getMockStore().suppliers.push(supplier);
+  getMockStore().suppliers.unshift(supplier);
   return supplier;
 }
+
 
 export async function mockGetProducts(
   shopId: string,

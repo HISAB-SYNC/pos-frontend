@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  HandCoins,
   LayoutDashboard,
   LogOut,
   Package,
   Settings,
   ShoppingCart,
+  Store,
   Truck,
   UserCog,
   Users,
@@ -30,14 +32,18 @@ import { useUiStore } from "@/stores/ui-store";
 
 const mainNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "POS Checkout", href: "/pos", icon: Store },
   { label: "Products", href: "/products", icon: Package },
   { label: "Reports", href: "/reports", icon: BarChart3 },
   { label: "Suppliers", href: "/suppliers", icon: Truck },
-  { label: "Orders", href: "/pos", icon: ShoppingCart },
+  { label: "Orders", href: "/orders", icon: ShoppingCart },
   { label: "Customers", href: "/customers", icon: Users },
+  { label: "Debts / Credit", href: "/debts", icon: HandCoins },
   { label: "Expenses", href: "/expenses", icon: Wallet },
-  { label: "Manage User", href: "/settings", icon: UserCog },
+  { label: "Manage User", href: "/users", icon: UserCog },
 ];
+
+
 
 const footerNav = [{ label: "Settings", href: "/settings", icon: Settings }];
 
@@ -97,18 +103,19 @@ export function DashboardSidebar() {
     <Sidebar className="border-r border-[#e5e7eb] bg-white">
       <SidebarHeader
         className={cn(
-          "border-b border-[#e5e7eb] py-5",
+          "border-b border-[#e5e7eb] py-4",
           collapsed ? "flex justify-center px-2" : "px-5",
         )}
       >
-        <Link href="/dashboard" onClick={closeMobileSidebar}>
+        <Link href="/dashboard" onClick={closeMobileSidebar} className="flex items-center">
           {collapsed ? (
-            <AndalusLogo variant="icon" className="size-9" />
+            <AndalusLogo variant="icon" className="size-10" />
           ) : (
             <AndalusLogo variant="compact" />
           )}
         </Link>
       </SidebarHeader>
+
 
       <SidebarContent className={cn("py-4", collapsed ? "px-2" : "px-3")}>
         <nav className="space-y-1">

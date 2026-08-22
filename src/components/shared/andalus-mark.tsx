@@ -11,49 +11,57 @@ type AndalusLogoProps = {
 export function AndalusLogo({ variant = "full", className, size }: AndalusLogoProps) {
   if (variant === "compact") {
     return (
-      <div className={cn("flex items-center gap-2.5", className)}>
-        <div className="relative h-9 w-9 shrink-0 overflow-hidden">
+      <div className={cn("flex items-center gap-3.5", className)}>
+        <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden">
           <Image
             src="/andalus-logo.png"
-            alt=""
-            width={120}
-            height={120}
-            className="absolute left-1/2 top-0 h-[120px] w-[120px] max-w-none -translate-x-1/2 object-cover object-top"
-            aria-hidden
+            alt="Andalus"
+            width={52}
+            height={52}
+            className="size-full scale-[1.7] -translate-y-0.5 object-cover object-top"
+            priority
           />
         </div>
-        <span className="text-lg font-semibold tracking-tight text-[#111827]">Andalus</span>
+        <span className="text-xl font-bold tracking-tight text-[#111827]">Andalus</span>
       </div>
     );
   }
 
   if (variant === "icon") {
-    const dimension = size ?? 120;
+    const dimension = size ?? 44;
 
     return (
-      <Image
-        src="/andalus-logo.png"
-        alt="Andalus"
-        width={dimension}
-        height={dimension}
-        className={cn("object-contain", className)}
-        style={size ? { width: size, height: size } : undefined}
-        priority
-      />
+      <div className={cn("relative flex size-10 items-center justify-center overflow-hidden", className)}>
+        <Image
+          src="/andalus-logo.png"
+          alt="Andalus"
+          width={dimension}
+          height={dimension}
+          className="size-full scale-[1.7] -translate-y-0.5 object-cover object-top"
+          priority
+        />
+      </div>
     );
   }
 
+
   return (
-    <Image
-      src="/andalus-logo.png"
-      alt="Andalus"
-      width={160}
-      height={160}
-      className={cn("h-auto w-[140px] object-contain", className)}
-      priority
-    />
+    <div className={cn("flex items-center gap-3", className)}>
+      <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden">
+        <Image
+          src="/andalus-logo.png"
+          alt="Andalus"
+          width={52}
+          height={52}
+          className="size-full scale-[1.55] -translate-y-0.5 object-cover object-top"
+          priority
+        />
+      </div>
+      <span className="text-2xl font-bold tracking-tight text-[#111827]">Andalus</span>
+    </div>
   );
 }
+
 
 /** @deprecated Use AndalusLogo instead */
 export function AndalusMark(props: { size?: number; className?: string }) {

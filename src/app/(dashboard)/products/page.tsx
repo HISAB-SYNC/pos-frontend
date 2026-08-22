@@ -42,7 +42,7 @@ export function ProductAvatar({ name, className }: { name: string; className?: s
   if (emoji) {
     return (
       <div
-        className={`flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 text-xl shadow-sm ${
+        className={`flex size-10 items-center justify-center rounded-lg border border-[#e5e7eb] bg-slate-50 text-xl shadow-none ${
           className ?? ""
         }`}
       >
@@ -53,14 +53,13 @@ export function ProductAvatar({ name, className }: { name: string; className?: s
 
   return (
     <div
-      className={`flex size-10 items-center justify-center rounded-lg bg-[#f3f4f6] text-xs font-bold text-[#6b7280] ${
+      className={`size-10 rounded-lg border border-[#e2e8f0] bg-[#e5e7eb] ${
         className ?? ""
       }`}
-    >
-      {name.slice(0, 2).toUpperCase()}
-    </div>
+    />
   );
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Add Product Modal (Matching Screenshot 1)                             */
@@ -155,23 +154,14 @@ function AddProductModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-lg rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#111827]">New Product</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#111827]"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]">
+      <div className="w-full max-w-[480px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <h2 className="mb-4 text-base font-semibold text-[#111827]">New Product</h2>
 
         {/* Drag image area */}
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="mb-5 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d1d5db] py-5 text-center transition-colors hover:bg-slate-50"
+          className="mb-5 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#d1d5db] py-5 text-center transition-colors hover:bg-slate-50"
         >
           <input
             ref={fileInputRef}
@@ -182,12 +172,12 @@ function AddProductModal({
           />
           {imagePreview ? (
             <div className="flex flex-col items-center gap-1">
-              <img src={imagePreview} alt="Preview" className="size-16 rounded-lg object-contain" />
+              <img src={imagePreview} alt="Preview" className="size-14 rounded-lg object-contain" />
               <span className="text-xs text-[#2563eb]">Change Image</span>
             </div>
           ) : (
             <>
-              <p className="text-xs text-[#4b5563]">Drag image here</p>
+              <p className="text-xs text-[#6b7280]">Drag image here</p>
               <p className="my-0.5 text-xs text-[#9ca3af]">or</p>
               <span className="text-xs font-medium text-[#2563eb] hover:underline">
                 Browse Image
@@ -196,47 +186,47 @@ function AddProductModal({
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-2.5">
           {/* Product Name */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Product Name</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Product Name</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               required
               placeholder="Enter product name"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Product ID */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Product ID</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Product ID</label>
             <input
               name="productId"
               value={form.productId}
               onChange={handleChange}
               placeholder="Enter product ID"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Category */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Category</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Category</label>
             <input
               name="category"
               value={form.category}
               onChange={handleChange}
               placeholder="Enter Category"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Buying Price */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Buying Price</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Buying Price</label>
             <input
               name="buyingPrice"
               type="number"
@@ -245,13 +235,13 @@ function AddProductModal({
               value={form.buyingPrice}
               onChange={handleChange}
               placeholder="Enter buying Price"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Saling Price */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Saling Price</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Saling Price</label>
             <input
               name="salingPrice"
               type="number"
@@ -261,13 +251,13 @@ function AddProductModal({
               onChange={handleChange}
               required
               placeholder="Enter saling Price"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Quantity */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Quantity</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Quantity</label>
             <input
               name="quantity"
               type="number"
@@ -276,47 +266,47 @@ function AddProductModal({
               onChange={handleChange}
               required
               placeholder="Enter Quantity"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Location */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Location</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Location</label>
             <input
               name="location"
               value={form.location}
               onChange={handleChange}
               placeholder="Enter Store Location"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Expiry Date */}
-          <div className="grid grid-cols-3 items-center gap-3">
-            <label className="text-xs font-medium text-[#374151]">Expiry Date</label>
+          <div className="flex items-center gap-3">
+            <label className="w-28 shrink-0 text-xs font-medium text-[#374151]">Expiry Date</label>
             <input
               name="expiryDate"
               value={form.expiryDate}
               onChange={handleChange}
               placeholder="Enter Expiry date"
-              className="col-span-2 h-9 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+              className="h-9 flex-1 rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
             />
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-center gap-4 pt-4">
+          <div className="flex justify-center gap-3.5 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="min-w-[100px] rounded-lg border border-[#d1d5db] bg-white px-5 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+              className="min-w-[95px] rounded-lg border border-[#111827] bg-white px-5 py-2 text-xs font-medium text-[#111827] transition-colors hover:bg-slate-50"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="min-w-[110px] rounded-lg bg-[#111827] px-5 py-2 text-xs font-medium text-white transition-colors hover:bg-[#1f2937] disabled:opacity-50"
+              className="min-w-[105px] rounded-lg bg-[#111827] px-5 py-2 text-xs font-medium text-white transition-colors hover:bg-[#1f2937] disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Product"}
             </button>
@@ -325,6 +315,7 @@ function AddProductModal({
       </div>
     </div>
   );
+
 }
 
 /* ------------------------------------------------------------------ */

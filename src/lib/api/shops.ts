@@ -87,7 +87,17 @@ export async function getSuppliers(shopId: string) {
   return apiRequest<Supplier[]>(API_ENDPOINTS.shops.suppliers(shopId));
 }
 
-export async function createSupplier(shopId: string, input: { name: string; contactInfo?: string }) {
+export async function createSupplier(
+  shopId: string,
+  input: {
+    name: string;
+    contactInfo?: string;
+    product?: string;
+    email?: string;
+    type?: "Taking Return" | "Not Taking Return";
+    onTheWay?: string | number;
+  },
+) {
   if (isMockApiEnabled()) {
     return mockShops.mockCreateSupplier(shopId, input);
   }
@@ -97,6 +107,7 @@ export async function createSupplier(shopId: string, input: { name: string; cont
     body: input,
   });
 }
+
 
 export async function getProducts(
   shopId: string,

@@ -1,5 +1,5 @@
 import { getMockStore, mockDelay } from "./store";
-import { seedDashboardMetrics } from "./data";
+import { seedDashboardMetrics, seedReportMetrics } from "./data";
 
 export async function mockGetCustomers(shopId: string) {
   await mockDelay();
@@ -21,15 +21,27 @@ export async function mockGetDashboardMetrics(_shopId: string) {
   return seedDashboardMetrics;
 }
 
+export async function mockGetReportMetrics(_shopId: string) {
+  await mockDelay();
+  return seedReportMetrics;
+}
+
 export {
   seedCustomers,
   seedDebts,
   seedExpenses,
+  seedExpensesSummary,
   seedDashboardMetrics,
-  type Customer,
-  type Debt,
-  type Expense,
+  seedReportMetrics,
+  seedOrders,
+  seedOverallOrders,
   type DashboardMetrics,
+  type ReportMetrics,
 } from "./data";
 
+export type { Customer, Debt, Expense, ExpensesSummary, OrderRecord, OverallOrdersSummary } from "@/lib/api/types";
+
 export { getMockStore, resetMockStore } from "./store";
+
+
+

@@ -14,6 +14,11 @@ type MessageResult = {
   message: string;
 };
 
+type VerifyOtpResult = {
+  resetToken: string;
+  message: string;
+};
+
 export async function login(email: string, password: string) {
   if (isMockApiEnabled()) {
     return mockAuth.mockLogin(email, password);
@@ -24,6 +29,21 @@ export async function login(email: string, password: string) {
     body: { email, password },
     auth: false,
   });
+}
+
+export async function logout() {
+  if (isMockApiEnabled()) {
+    return { message: "Logged out successfully" };
+  }
+
+  try {
+    return await apiRequest<MessageResult>(API_ENDPOINTS.auth.logout, {
+      method: "POST",
+      auth: false,
+    });
+  } catch {
+    return { message: "Logged out successfully" };
+  }
 }
 
 export async function registerOwner(input: { email: string; password: string; name: string }) {
@@ -67,14 +87,37 @@ export async function requestPasswordReset(email: string) {
   });
 }
 
-export async function resetPassword(input: { email: string; token: string; newPassword: string }) {
+export async function verifyPasswordResetOtp(input: { email: string; otp: string }) {
   if (isMockApiEnabled()) {
-    return mockAuth.mockResetPassword(input);
+    return {
+      resetToken: "mock-reset-token",
+      message: "OTP verified successfully",
+    } as VerifyOtpResult;
   }
 
-  return apiRequest<MessageResult>(API_ENDPOINTS.auth.resetPassword, {
+  return apiRequest<VerifyOtpResult>(API_ENDPOINTS.auth.verifyResetPassword, {
     method: "POST",
     body: input,
     auth: false,
   });
 }
+
+export async function confirmPasswordReset(input: { resetToken: string; newPassword: string }) {
+  if (isMockApiEnabled()) {
+    return { message: "Password has been reset successfully" } as MessageResult;
+  }
+
+  return apiRequest<MessageResult>(API_ENDPOINTS.auth.confirmResetPassword, {
+    method: "POST",
+    body: input,
+    auth: false,
+  });
+}
+
+export async function resetPassword(input: { email?: string; token?: string; resetToken?: string; newPassword: string }) {
+  return confirmPasswordReset({
+    resetToken: input.resetToken || input.token || "",
+    newPassword: input.newPassword,
+  });
+}
+

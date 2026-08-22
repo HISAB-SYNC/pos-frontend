@@ -60,7 +60,12 @@ export type Supplier = {
   shopId: string;
   name: string;
   contactInfo?: string;
+  product?: string;
+  email?: string;
+  type?: "Taking Return" | "Not Taking Return";
+  onTheWay?: string | number;
 };
+
 
 export type Product = {
   id: string;
@@ -112,4 +117,214 @@ export type ProductHistory = {
   date: string;
   person: string;
 };
+
+export type DebtTransaction = {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  saleId?: string;
+  type: "Debt Sale" | "Debt Payment" | "DEBT_SALE" | "DEBT_PAYMENT";
+  reference: string;
+  amount: number;
+  remainingBalance: number;
+  date: string;
+  paymentMethod?: string;
+  notes?: string;
+};
+
+export type DebtSummary = {
+  totalOutstandingDebt: number;
+  totalDebtors: number;
+  collectedThisMonth: number;
+  overdueCount: number;
+};
+
+export type Customer = {
+  id: string;
+  shopId?: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  debtBalance?: string;
+  creditLimit?: number | string;
+  daysOverdue?: number | string;
+  status?: "Active" | "Overdue" | "Inactive";
+  date?: string;
+  customerId?: string;
+  isRecurring?: boolean;
+  loyaltyPoints?: number;
+  totalCreditPurchases?: number | string;
+  totalPaid?: number | string;
+  lastTransactionDate?: string;
+  sales?: Sale[];
+  debts?: Debt[];
+  debtHistory?: DebtTransaction[];
+  recentTransactions?: Array<{
+    type: string;
+    date: string;
+    amount: number | string;
+    status: "Unpaid" | "Paid" | "Partial";
+  }>;
+};
+
+
+export type SaleItem = {
+  id?: string;
+  productId: string;
+  quantity: number;
+  unitPrice?: string;
+  subtotal?: string;
+  product?: {
+    id: string;
+    name: string;
+    sku: string;
+    price?: string;
+  };
+};
+
+export type Sale = {
+  id: string;
+  shopId: string;
+  userId?: string;
+  customerId?: string | null;
+  subtotal?: string;
+  taxAmount?: string;
+  discountAmount?: string;
+  totalAmount: string;
+  paymentMethod: "CASH" | "CARD" | "BANK_TRANSFER" | "MOBILE" | "DEBT" | "CREDIT" | "SPLIT" | string;
+  splitDetails?: {
+    cashAmount?: number;
+    debtAmount?: number;
+    paymentMethod?: string;
+  };
+  status: "COMPLETED" | "CANCELLED" | "PENDING" | string;
+  createdAt: string;
+  items?: SaleItem[];
+  customer?: Customer | null;
+  notes?: string;
+};
+
+export type DebtPayment = {
+  id: string;
+  debtId?: string;
+  customerId?: string;
+  amount: string;
+  paymentMethod?: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
+  reference?: string;
+  notes?: string;
+  paidAt: string;
+};
+
+export type Debt = {
+  id: string;
+  shopId?: string;
+  customerId: string;
+  customerName?: string;
+  customerPhone?: string;
+  saleId?: string;
+  amount: string;
+  paidAmount?: string;
+  dueDate?: string;
+  status: "PENDING" | "PARTIAL" | "PAID" | "pending" | "partial" | "paid" | "OVERDUE" | "overdue";
+  notes?: string;
+  payments?: DebtPayment[];
+  transactions?: DebtTransaction[];
+  createdAt?: string;
+};
+
+
+export type BackendDashboardMetrics = {
+  todaysSales: {
+    count: number;
+    totalAmount: number;
+  };
+  lowStockCount: number;
+  outstandingDebts: {
+    count: number;
+    totalAmount: number;
+  };
+};
+
+export type OrderRecord = {
+  id: string;
+  shopId?: string;
+  product: string;
+  price: number | string;
+  quantity: string;
+  orderId: string;
+  expectedDelivery: string;
+  status: "Delayed" | "Confirmed" | "Returned" | "Out for delivery";
+};
+
+export type OverallOrdersSummary = {
+  totalOrders: {
+    count: number;
+    subtext: string;
+  };
+  totalReceived: {
+    count: number;
+    subtext: string;
+    revenue: number;
+    revenueLabel: string;
+  };
+  totalReturned: {
+    count: number;
+    subtext: string;
+    cost: number;
+    costLabel: string;
+  };
+  onTheWay: {
+    orderedCount: number;
+    orderedLabel: string;
+    cost: number;
+    costLabel: string;
+  };
+};
+
+export type Expense = {
+  id: string;
+  shopId?: string;
+  date: string;
+  description: string;
+  category: string;
+  amount: number | string;
+  paymentMethod: "Bank Transfer" | "Credit Card" | "Digital Pyment" | "Cash" | string;
+  status: "Paid" | "Pending" | "Overdue" | string;
+  notes?: string;
+  isRecurring?: boolean;
+};
+
+export type ExpensesSummary = {
+  totalExpenses: {
+    amount: number;
+    changeText: string;
+  };
+  thisWeek: {
+    amount: number;
+  };
+  pendingPayment: {
+    amount: number;
+  };
+};
+
+export type TeamMember = {
+  id: string;
+  shopId?: string;
+  name: string;
+  email: string;
+  role: "Shop Admin" | "Shop Sale" | "Owner" | string;
+  joinedDate: string;
+  lastLogin: string;
+};
+
+export type TeamSummary = {
+  totalTeamMembers: number;
+  shopAdminCount: number;
+  shopSalesCount: number;
+};
+
+
+
+
 

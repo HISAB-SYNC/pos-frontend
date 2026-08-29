@@ -25,4 +25,14 @@ export const API_ENDPOINTS = {
     debtPayments: (shopId: string, debtId: string) => `/shops/${shopId}/debts/${debtId}/payments`,
     dashboard: (shopId: string) => `/shops/${shopId}/dashboard`,
   },
+  admin: {
+    stats: "/admin/stats",
+    shops: "/admin/shops",
+    suspendShop: (shopId: string) => `/admin/shops/${shopId}/suspend`,
+    activateShop: (shopId: string) => `/admin/shops/${shopId}/activate`,
+    users: "/admin/users",
+    suspendUser: (userId: string) => `/admin/users/${userId}/suspend`,
+    activateUser: (userId: string) => `/admin/users/${userId}/activate`,
+  },
 } as const;
+

@@ -3,11 +3,7 @@ import {
   type DashboardMetrics,
   mockGetCustomers,
   mockGetDashboardMetrics,
-  mockGetDebts,
-  mockGetExpenses,
-  mockGetReportMetrics,
 } from "@/lib/mock";
-
 
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
@@ -30,6 +26,7 @@ import type {
 /* ------------------------------------------------------------------ */
 /* Customers API                                                       */
 /* ------------------------------------------------------------------ */
+
 
 
 export async function getCustomers(shopId: string, params?: { search?: string }) {
@@ -549,19 +546,16 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
 }
 
 
-export async function getReportMetrics(shopId: string) {
-  if (isMockApiEnabled()) {
-    return mockGetReportMetrics(shopId);
-  }
-
-  return mockGetReportMetrics(shopId);
+export async function getReportMetrics(_shopId: string) {
+  const { seedReportMetrics } = await import("@/lib/mock/data");
+  return seedReportMetrics;
 }
 
 export async function getOverallOrdersSummary(_shopId: string) {
-
   const { seedOverallOrders } = await import("@/lib/mock/data");
   return seedOverallOrders;
 }
+
 
 export async function getOrders(_shopId: string) {
   const { seedOrders } = await import("@/lib/mock/data");

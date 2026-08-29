@@ -52,6 +52,12 @@ export default function LoginPage() {
         token,
       );
 
+      if (user.role === "SUPER_ADMIN" || user.role === "SYSTEM_ADMIN") {
+        setActiveShop(null);
+        router.push("/admin/dashboard");
+        return;
+      }
+
       if (user.role === "OWNER") {
         const shops = await getOwnerShops();
 
@@ -70,6 +76,7 @@ export default function LoginPage() {
       }
 
       router.push("/dashboard");
+
     } catch (error) {
       const apiError = error as ApiError;
       setErrorMessage(apiError.message ?? "Invalid email or password.");

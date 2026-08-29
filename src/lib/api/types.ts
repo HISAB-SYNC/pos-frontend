@@ -324,7 +324,64 @@ export type TeamSummary = {
   shopSalesCount: number;
 };
 
+/* ------------------------------------------------------------------ */
+/* SuperAdmin Types                                                    */
+/* ------------------------------------------------------------------ */
+export type AdminStats = {
+  totalShops: number;
+  totalActiveShops: number;
+  suspendedShops: number;
+  suspendedUsers: number;
+  totalSuspendedAccounts: number;
+  totalUsersByRole: {
+    SUPER_ADMIN: number;
+    OWNER: number;
+    ADMIN: number;
+    SALES: number;
+  };
+};
 
+export type AdminShop = {
+  id: string;
+  name: string;
+  businessType: string;
+  ownerId: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  memberCount?: number;
+};
 
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  shopId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  phone?: string;
+  shopName?: string;
+};
 
+export type AdminUsersResponse = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  users: AdminUser[];
+};
 
+export type RegisterOwnerInput = {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  shopName: string;
+  businessType?: string;
+  address?: string;
+  currency?: string;
+};

@@ -9,27 +9,9 @@ type AndalusLogoProps = {
 };
 
 export function AndalusLogo({ variant = "full", className, size }: AndalusLogoProps) {
-  if (variant === "compact") {
-    return (
-      <div className={cn("flex items-center gap-3.5", className)}>
-        <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden">
-          <Image
-            src="/andalus-logo.png"
-            alt="Andalus"
-            width={52}
-            height={52}
-            className="size-full scale-[1.7] -translate-y-0.5 object-cover object-top"
-            priority
-          />
-        </div>
-        <span className="text-xl font-bold tracking-tight text-[#111827]">Andalus</span>
-      </div>
-    );
-  }
+  const dimension = size ?? (variant === "full" ? 52 : 44);
 
   if (variant === "icon") {
-    const dimension = size ?? 44;
-
     return (
       <div className={cn("relative flex size-10 items-center justify-center overflow-hidden", className)}>
         <Image
@@ -44,26 +26,36 @@ export function AndalusLogo({ variant = "full", className, size }: AndalusLogoPr
     );
   }
 
-
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div
+      className={cn(
+        "flex items-center",
+        variant === "compact" ? "gap-3.5" : "gap-3",
+        className,
+      )}
+    >
       <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden">
         <Image
           src="/andalus-logo.png"
           alt="Andalus"
-          width={52}
-          height={52}
-          className="size-full scale-[1.55] -translate-y-0.5 object-cover object-top"
+          width={dimension}
+          height={dimension}
+          className="size-full scale-[1.7] -translate-y-0.5 object-cover object-top"
           priority
         />
       </div>
-      <span className="text-2xl font-bold tracking-tight text-[#111827]">Andalus</span>
+      <span
+        className={cn(
+          "font-bold tracking-tight text-[#111827]",
+          variant === "compact" ? "text-xl" : "text-2xl",
+        )}
+      >
+        Andalus
+      </span>
     </div>
   );
 }
 
-
-/** @deprecated Use AndalusLogo instead */
 export function AndalusMark(props: { size?: number; className?: string }) {
   return <AndalusLogo variant="icon" size={props.size} className={props.className} />;
 }

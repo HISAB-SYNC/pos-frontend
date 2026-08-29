@@ -18,8 +18,10 @@ export const PERMISSIONS = {
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 const rolePermissions: Record<Role, Permission[]> = {
+  SUPER_ADMIN: Object.values(PERMISSIONS),
   SYSTEM_ADMIN: Object.values(PERMISSIONS),
   OWNER: [
+
     PERMISSIONS.MANAGE_USERS,
     PERMISSIONS.MANAGE_SHOPS,
     PERMISSIONS.MANAGE_PRODUCTS,

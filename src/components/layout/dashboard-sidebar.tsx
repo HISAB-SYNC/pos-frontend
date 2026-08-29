@@ -3,16 +3,20 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   BarChart3,
+  Building2,
   HandCoins,
   LayoutDashboard,
   LogOut,
   Package,
   Settings,
+  ShieldCheck,
   ShoppingCart,
   Store,
   Truck,
   UserCog,
+  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -43,9 +47,17 @@ const mainNav = [
   { label: "Manage User", href: "/users", icon: UserCog },
 ];
 
-
+const adminNav = [
+  { label: "Overview", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "Owner Registration", href: "/admin/requests", icon: UserPlus },
+  { label: "All Shops", href: "/admin/shops", icon: Building2 },
+  { label: "All Users", href: "/admin/users", icon: Users },
+  { label: "Monitoring", href: "/admin/monitoring", icon: Activity },
+];
 
 const footerNav = [{ label: "Settings", href: "/settings", icon: Settings }];
+
+
 
 function NavLink({
   href,
@@ -88,6 +100,11 @@ export function DashboardSidebar() {
   const setMobileSidebarOpen = useUiStore((state) => state.setMobileSidebarOpen);
   const clearSession = useAuthStore((state) => state.clearSession);
   const setActiveShop = useShopStore((state) => state.setActiveShop);
+  const user = useAuthStore((state) => state.user);
+
+  const isSuperAdmin = user?.role === "SUPER_ADMIN" || user?.role === "SYSTEM_ADMIN" || pathname.startsWith("/admin");
+  const navItems = isSuperAdmin ? adminNav : mainNav;
+  const brandHref = isSuperAdmin ? "/admin/dashboard" : "/dashboard";
 
   function handleLogout() {
     clearSession();
@@ -107,7 +124,7 @@ export function DashboardSidebar() {
           collapsed ? "flex justify-center px-2" : "px-5",
         )}
       >
-        <Link href="/dashboard" onClick={closeMobileSidebar} className="flex items-center">
+        <Link href={brandHref} onClick={closeMobileSidebar} className="flex items-center">
           {collapsed ? (
             <AndalusLogo variant="icon" className="size-10" />
           ) : (
@@ -116,10 +133,9 @@ export function DashboardSidebar() {
         </Link>
       </SidebarHeader>
 
-
       <SidebarContent className={cn("py-4", collapsed ? "px-2" : "px-3")}>
         <nav className="space-y-1">
-          {mainNav.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.href}
               href={item.href}
@@ -127,10 +143,11 @@ export function DashboardSidebar() {
               icon={item.icon}
               collapsed={collapsed}
               onNavigate={closeMobileSidebar}
-              active={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+              active={pathname === item.href || (item.href !== "/admin/dashboard" && item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`))}
             />
           ))}
         </nav>
+
       </SidebarContent>
 
       <SidebarFooter className={cn("space-y-1 border-t border-[#e5e7eb] py-4", collapsed ? "px-2" : "px-3")}>

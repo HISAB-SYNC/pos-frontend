@@ -75,7 +75,13 @@ export default function LoginPage() {
         setActiveShop({ id: user.shopId, name: "Shop" });
       }
 
+      if (user.role === "SALES") {
+        router.push("/pos");
+        return;
+      }
+
       router.push("/dashboard");
+
 
     } catch (error) {
       const apiError = error as ApiError;

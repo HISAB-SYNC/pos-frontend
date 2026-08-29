@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
     requestResetPassword: "/auth/reset-password/request",
     verifyResetPassword: "/auth/reset-password/verify",
     confirmResetPassword: "/auth/reset-password/confirm",
+    profile: "/auth/profile",
   },
   shops: {
     list: "/shops",
@@ -24,7 +25,9 @@ export const API_ENDPOINTS = {
     debts: (shopId: string) => `/shops/${shopId}/debts`,
     debtPayments: (shopId: string, debtId: string) => `/shops/${shopId}/debts/${debtId}/payments`,
     dashboard: (shopId: string) => `/shops/${shopId}/dashboard`,
+    analytics: (shopId: string) => `/shops/${shopId}/analytics`,
   },
+
   admin: {
     stats: "/admin/stats",
     shops: "/admin/shops",

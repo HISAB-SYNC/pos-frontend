@@ -77,3 +77,6 @@ export function canManageStaff(role: Role | null | undefined) {
 export function canManageShopSettings(role: Role | null | undefined) {
   return role === "OWNER";
 }
+
+export * from "./rbac";
+

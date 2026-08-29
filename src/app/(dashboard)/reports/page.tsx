@@ -1,13 +1,40 @@
 "use client";
 
-import { Calendar, ChevronDown } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  Calendar,
+  ChevronDown,
+  Coins,
+  CreditCard,
+  Crown,
+  DollarSign,
+  Download,
+  HandCoins,
+  Package,
+  PieChart as PieChartIcon,
+  Printer,
+  RefreshCw,
+  ShoppingBag,
+  ShoppingCart,
+  TrendingUp,
+  UserCheck,
+  UserPlus,
+  Users,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
   CartesianGrid,
+  Cell,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,314 +42,459 @@ import {
 } from "recharts";
 
 import { LoadingState } from "@/components/shared/loading-state";
-import { getReportMetrics } from "@/lib/api/app-data";
-import type { ReportMetrics } from "@/lib/api/app-data";
+import { RouteGuard } from "@/components/shared/route-guard";
+import { getShopAnalytics } from "@/lib/api/app-data";
+
+import type {
+  AnalyticsPeriod,
+  ShopAnalyticsReport,
+} from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useShopStore } from "@/stores/shop-store";
 
-/* ------------------------------------------------------------------ */
-/* Custom Chart Tooltip (Matching Screenshot)                         */
-/* ------------------------------------------------------------------ */
-function CustomChartTooltip({ active, payload, label }: any) {
-  if (active && payload && payload.length) {
-    const revenueItem = payload.find((p: any) => p.dataKey === "revenue");
-    const val = revenueItem?.value || payload[0]?.value || 0;
+const PAYMENT_METHOD_COLORS: Record<string, string> = {
+  CASH: "#10b981",
+  CARD: "#3b82f6",
+  MOBILE: "#8b5cf6",
+  BANK_TRANSFER: "#f59e0b",
+  DEBT: "#ef4444",
+};
 
-    return (
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white px-5 py-3 text-center shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-        <p className="text-[11px] font-normal text-[#9ca3af]">This Month</p>
-        <p className="my-0.5 text-base font-extrabold text-[#111827]">
-          {Number(val).toLocaleString()}
-        </p>
-        <p className="text-[11px] font-normal text-[#9ca3af]">{label}</p>
-      </div>
-    );
-  }
-  return null;
-}
-
-/* ------------------------------------------------------------------ */
-/* Profit & Revenue Chart Component                                   */
-/* ------------------------------------------------------------------ */
-function ProfitRevenueChart({ data }: { data: ReportMetrics["profitAndRevenue"] }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <div className="h-[280px] w-full animate-pulse rounded-xl bg-slate-50" />;
-  }
-
-  return (
-    <div className="w-full">
-      <ResponsiveContainer width="100%" height={280}>
-        <AreaChart
-          data={data}
-          margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
-        >
-          <defs>
-            <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="gradProf" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#fdba74" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#fdba74" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-
-          <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="0" />
-
-          <XAxis
-            dataKey="month"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: "#9ca3af", fontSize: 12 }}
-            dy={10}
-          />
-
-          <YAxis
-            axisLine={false}
-            tickLine={false}
-            domain={[20000, 80000]}
-            ticks={[20000, 40000, 60000, 80000]}
-            tick={{ fill: "#9ca3af", fontSize: 12 }}
-            tickFormatter={(val) => `${val.toLocaleString()}`}
-          />
-
-          <Tooltip
-            content={<CustomChartTooltip />}
-            cursor={{ stroke: "#3b82f6", strokeWidth: 1.5, strokeDasharray: "4 4" }}
-          />
-
-          <Legend
-            verticalAlign="bottom"
-            align="center"
-            iconType="circle"
-            iconSize={7}
-            wrapperStyle={{ fontSize: 12, paddingTop: 18, color: "#6b7280" }}
-            formatter={(value) => <span className="mx-2 text-xs text-[#6b7280]">{value}</span>}
-          />
-
-          {/* Revenue Curve */}
-          <Area
-            type="monotone"
-            dataKey="revenue"
-            name="Revenue"
-            stroke="#3b82f6"
-            strokeWidth={2.5}
-            fill="url(#gradRev)"
-            dot={false}
-            activeDot={{
-              r: 6,
-              fill: "#2563eb",
-              stroke: "#ffffff",
-              strokeWidth: 2.5,
-            }}
-          />
-
-          {/* Profit Curve */}
-          <Area
-            type="monotone"
-            dataKey="profit"
-            name="Profit"
-            stroke="#fed7aa"
-            strokeWidth={2.5}
-            fill="url(#gradProf)"
-            dot={false}
-            activeDot={{
-              r: 6,
-              fill: "#f97316",
-              stroke: "#ffffff",
-              strokeWidth: 2.5,
-            }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Main Reports Page Component                                         */
-/* ------------------------------------------------------------------ */
 export default function ReportsPage() {
-  const activeShopId = useShopStore((state) => state.activeShopId);
-  const shopId = activeShopId ?? MOCK_IDS.shop;
+  const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
-  const [metrics, setMetrics] = useState<ReportMetrics | null>(null);
-  const [timeRange, setTimeRange] = useState<"Weekly" | "Monthly" | "Yearly">("Weekly");
-  const [isLoading, setIsLoading] = useState(true);
+  const [period, setPeriod] = useState<AnalyticsPeriod>("weekly");
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd] = useState<string>("");
+  const [analytics, setAnalytics] = useState<ShopAnalyticsReport | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await getReportMetrics(shopId);
-      setMetrics(data);
-    } catch (err) {
-      console.error(err);
+      const data = await getShopAnalytics(activeShopId, {
+        period,
+        startDate: period === "custom" && customStart ? customStart : undefined,
+        endDate: period === "custom" && customEnd ? customEnd : undefined,
+      });
+      setAnalytics(data);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [shopId]);
+  }, [activeShopId, period, customStart, customEnd]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadAnalytics();
+  }, [loadAnalytics]);
 
-  if (isLoading || !metrics) {
-    return (
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-        <LoadingState />
-      </div>
-    );
+  // Payment Breakdown Chart Data
+  const paymentChartData = useMemo(() => {
+    if (!analytics?.salesAnalytics.paymentMethodBreakdown) return [];
+    const breakdown = analytics.salesAnalytics.paymentMethodBreakdown;
+    const items: Array<{ name: string; value: number; color: string }> = [];
+
+    if (breakdown.CASH?.totalAmount) {
+      items.push({ name: "Cash", value: breakdown.CASH.totalAmount, color: PAYMENT_METHOD_COLORS.CASH });
+    }
+    if (breakdown.CARD?.totalAmount) {
+      items.push({ name: "Card", value: breakdown.CARD.totalAmount, color: PAYMENT_METHOD_COLORS.CARD });
+    }
+    if (breakdown.MOBILE?.totalAmount) {
+      items.push({ name: "Mobile", value: breakdown.MOBILE.totalAmount, color: PAYMENT_METHOD_COLORS.MOBILE });
+    }
+    if (breakdown.BANK_TRANSFER?.totalAmount) {
+      items.push({ name: "Bank Transfer", value: breakdown.BANK_TRANSFER.totalAmount, color: PAYMENT_METHOD_COLORS.BANK_TRANSFER });
+    }
+    if (breakdown.DEBT?.totalAmount) {
+      items.push({ name: "Debt / Credit", value: breakdown.DEBT.totalAmount, color: PAYMENT_METHOD_COLORS.DEBT });
+    }
+    return items;
+  }, [analytics]);
+
+  if (loading && !analytics) {
+    return <LoadingState />;
   }
 
+  const sales = analytics?.salesAnalytics;
+  const products = analytics?.productAnalytics;
+  const customers = analytics?.customerAnalytics;
+
   return (
-    <div className="space-y-4">
-      {/* ------------------------------------------------------------------ */}
-      {/* 1. TOP ROW: Overview (ETB) & Best selling category                 */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-        <h1 className="mb-4 text-base font-semibold text-[#111827]">Reports</h1>
+    <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
+      <div className="space-y-6">
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-          {/* Overview (ETB) */}
-          <div className="md:col-span-5 lg:col-span-5">
-            <h2 className="mb-4 text-sm font-semibold text-[#111827]">Overview(ETB)</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {/* Total Profit */}
-              <div>
-                <p className="text-lg font-bold text-[#111827]">
-                  {metrics.overview.totalProfit.toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs text-[#6b7280]">Total Profit</p>
-              </div>
 
-              {/* Revenue */}
-              <div>
-                <p className="text-lg font-bold text-[#f59e0b]">
-                  {metrics.overview.revenue.toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs text-[#f59e0b]">Revenue</p>
-              </div>
-
-              {/* Sales */}
-              <div>
-                <p className="text-lg font-bold text-[#8b5cf6]">
-                  {metrics.overview.sales.toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs text-[#8b5cf6]">Sales</p>
-              </div>
-            </div>
+      {/* ================================================================= */}
+      {/* 1. Header Toolbar & Period Toggle                                 */}
+      {/* ================================================================= */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+              <BarChart3 className="size-4" />
+            </span>
+            <h1 className="text-xl font-bold text-[#111827]">Shop Analytics &amp; Reports</h1>
           </div>
+          <p className="text-xs text-[#6b7280]">
+            Performance metrics, sales revenue trends, product leaderboards, and customer insights
+          </p>
+        </div>
 
-          {/* Best selling category */}
-          <div className="md:col-span-7 lg:col-span-7">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#111827]">Best selling category</h2>
-              <Link
-                href="/products"
-                className="text-xs font-medium text-[#2563eb] hover:underline"
+        {/* Period Selector Tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center rounded-xl border border-[#e5e7eb] bg-white p-1 shadow-sm">
+            {[
+              { id: "daily", label: "Today" },
+              { id: "weekly", label: "Past 7 Days" },
+              { id: "monthly", label: "Past 30 Days" },
+              { id: "custom", label: "Custom" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setPeriod(tab.id as AnalyticsPeriod)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  period === tab.id
+                    ? "bg-[#111827] text-white shadow-sm"
+                    : "text-[#4b5563] hover:bg-[#f9fafb]"
+                }`}
               >
-                See All
-              </Link>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-[#9ca3af]">
-                    <th className="pb-2 font-medium">Category</th>
-                    <th className="pb-2 font-medium">Turn Over(ETB)</th>
-                    <th className="pb-2 font-medium">Increase By</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#f9fafb]">
-                  {metrics.bestSellingCategories.map((item) => (
-                    <tr key={item.category} className="transition-colors hover:bg-slate-50/60">
-                      <td className="py-2.5 font-normal text-[#374151]">{item.category}</td>
-                      <td className="py-2.5 font-medium text-[#111827]">
-                        {item.turnOver.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 font-medium text-[#16a34a]">{item.increaseBy}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                {tab.label}
+              </button>
+            ))}
           </div>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
+          >
+            <Printer className="size-3.5 text-[#6b7280]" />
+            Print Report
+          </button>
         </div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* 2. MIDDLE ROW: Profit & Revenue Chart                              */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-[#111827]">Profit & Revenue</h2>
-
-          {/* Time Selector Dropdown */}
-          <div className="relative">
+      {/* Custom Date Range Inputs */}
+      {period === "custom" && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 text-xs shadow-sm">
+          <span className="font-semibold text-[#374151]">Custom Date Range:</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-[#2563eb] focus:outline-none"
+            />
+            <span className="text-[#9ca3af]">to</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-[#2563eb] focus:outline-none"
+            />
             <button
               type="button"
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+              onClick={loadAnalytics}
+              className="rounded-lg bg-[#111827] px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800"
             >
-              <Calendar className="size-3.5 text-[#6b7280]" />
-              <span>{timeRange}</span>
-              <ChevronDown className="size-3 text-[#9ca3af]" />
+              Apply Filter
             </button>
           </div>
         </div>
+      )}
 
-        <ProfitRevenueChart data={metrics.profitAndRevenue} />
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 3. BOTTOM ROW: Best selling product Table                          */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#111827]">Best selling product</h2>
-          <Link
-            href="/products"
-            className="text-xs font-medium text-[#2563eb] hover:underline"
-          >
-            See All
-          </Link>
+      {/* ================================================================= */}
+      {/* 2. KPI Summary Metric Cards                                       */}
+      {/* ================================================================= */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Gross Revenue */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#6b7280]">Total Revenue</span>
+            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <DollarSign className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold text-[#111827]">
+              {(sales?.totalRevenue || 0).toLocaleString()}
+            </span>
+            <span className="text-xs font-medium text-[#6b7280]">ETB</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-[#6b7280]">
+            <span>Tax: {(sales?.totalTaxCollected || 0).toLocaleString()} ETB</span>
+            <span className="text-emerald-600 font-medium">Completed Sales</span>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-xs">
-            <thead>
-              <tr className="border-b border-[#f3f4f6] text-left text-[#9ca3af]">
-                <th className="pb-3 font-medium">Product</th>
-                <th className="pb-3 font-medium">Product ID</th>
-                <th className="pb-3 font-medium">Category</th>
-                <th className="pb-3 font-medium">Remaining Quantity</th>
-                <th className="pb-3 font-medium">Turn Over(ETB)</th>
-                <th className="pb-3 font-medium">Increase By</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f9fafb]">
-              {metrics.bestSellingProducts.map((item, idx) => (
-                <tr key={`${item.name}-${idx}`} className="transition-colors hover:bg-[#f9fafb]">
-                  <td className="py-3 font-medium text-[#111827]">{item.name}</td>
-                  <td className="py-3 text-[#6b7280]">{item.productId}</td>
-                  <td className="py-3 text-[#6b7280]">{item.category}</td>
-                  <td className="py-3 text-[#6b7280]">{item.remainingQuantity}</td>
-                  <td className="py-3 font-medium text-[#111827]">
-                    {item.turnOver.toLocaleString()}
-                  </td>
-                  <td className="py-3 font-medium text-[#16a34a]">{item.increaseBy}</td>
+        {/* Total Completed Orders */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#6b7280]">Total Sales Count</span>
+            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <ShoppingCart className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold text-[#111827]">{sales?.totalSalesCount || 0}</span>
+            <span className="text-xs text-[#6b7280]">Orders</span>
+          </div>
+          <div className="mt-2 text-[11px] text-[#6b7280]">
+            Avg Order: {(sales?.averageOrderValue || 0).toLocaleString()} ETB / sale
+          </div>
+        </div>
+
+        {/* Active Customer Spenders */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#6b7280]">Customer Base</span>
+            <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+              <Users className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold text-[#111827]">{customers?.totalCustomers || 0}</span>
+            <span className="text-xs text-purple-600 font-medium">
+              +{customers?.newCustomersInPeriod || 0} New
+            </span>
+          </div>
+          <div className="mt-2 text-[11px] text-[#6b7280]">
+            Catalog: {products?.totalProductsCount || 0} Active Products
+          </div>
+        </div>
+
+        {/* Outstanding Customer Debt */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#6b7280]">Outstanding Credit Debt</span>
+            <div className="flex size-8 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <HandCoins className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold text-[#dc2626]">
+              {(customers?.outstandingDebt.totalAmount || 0).toLocaleString()}
+            </span>
+            <span className="text-xs text-[#dc2626]">ETB</span>
+          </div>
+          <div className="mt-2 text-[11px] text-[#6b7280]">
+            {customers?.outstandingDebt.count || 0} Open debtor accounts
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* 3. Charts Row: Sales Revenue Trend & Payment Method Distribution  */}
+      {/* ================================================================= */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {/* Sales Revenue Trend Chart */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-[#111827]">Sales &amp; Revenue Trend</h2>
+              <p className="text-xs text-[#6b7280]">Chronological sales performance over the selected period</p>
+            </div>
+          </div>
+
+          <div className="mt-4 h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={sales?.salesTrend || []}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={{ stroke: "#e5e7eb" }}
+                  tick={{ fill: "#6b7280", fontSize: 11 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={{ stroke: "#e5e7eb" }}
+                  tick={{ fill: "#6b7280", fontSize: 11 }}
+                  tickFormatter={(val) => `${val.toLocaleString()}`}
+                />
+                <Tooltip
+                  formatter={(val: any) => [`${Number(val).toLocaleString()} ETB`, "Revenue"]}
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    borderRadius: "8px",
+                    color: "#fff",
+                    fontSize: "12px",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="totalRevenue"
+                  stroke="#2563eb"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Payment Method Distribution */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm lg:col-span-1">
+          <h2 className="text-sm font-bold text-[#111827]">Payment Methods Breakdown</h2>
+          <p className="text-xs text-[#6b7280]">Distribution of completed sales by payment channel</p>
+
+          <div className="mt-2 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={paymentChartData}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={45}
+                  outerRadius={70}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {paymentChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(val: any, name: any) => [`${Number(val).toLocaleString()} ETB`, String(name)]}
+                  contentStyle={{
+                    backgroundColor: "#111827",
+                    borderRadius: "8px",
+                    color: "#fff",
+                    fontSize: "12px",
+                  }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: "11px", paddingTop: "4px" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* 4. Tables Row: Top Selling Products & Top Customers Leaderboards  */}
+      {/* ================================================================= */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Top Selling Products */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-[#111827]">Top Performing Products</h2>
+              <p className="text-xs text-[#6b7280]">Highest quantity sold during this period</p>
+            </div>
+            <Link
+              href="/products"
+              className="text-xs font-semibold text-[#2563eb] hover:underline"
+            >
+              View Catalog
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-[#f3f4f6] text-[11px] font-semibold text-[#6b7280]">
+                <tr>
+                  <th className="pb-2.5">Rank</th>
+                  <th className="pb-2.5">Product</th>
+                  <th className="pb-2.5">SKU</th>
+                  <th className="pb-2.5 text-center">Qty Sold</th>
+                  <th className="pb-2.5 text-right">Revenue</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#f3f4f6]">
+                {products?.topSellingProducts && products.topSellingProducts.length > 0 ? (
+                  products.topSellingProducts.map((p, idx) => (
+                    <tr key={p.productId} className="hover:bg-[#f9fafb]">
+                      <td className="py-2.5 font-bold text-[#6b7280]">#{idx + 1}</td>
+                      <td className="py-2.5 font-bold text-[#111827]">{p.name}</td>
+                      <td className="py-2.5 font-mono text-[#6b7280]">{p.sku}</td>
+                      <td className="py-2.5 text-center font-bold text-[#2563eb]">
+                        {p.totalQuantitySold} pcs
+                      </td>
+                      <td className="py-2.5 text-right font-bold text-[#111827]">
+                        {p.totalRevenue.toLocaleString()} ETB
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-xs text-[#9ca3af]">
+                      No product sales recorded in this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Top Spending Customers */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-[#111827]">Top Customer Spenders</h2>
+              <p className="text-xs text-[#6b7280]">Highest purchasing customers in this timeframe</p>
+            </div>
+            <Link
+              href="/customers"
+              className="text-xs font-semibold text-[#2563eb] hover:underline"
+            >
+              All Customers
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-[#f3f4f6] text-[11px] font-semibold text-[#6b7280]">
+                <tr>
+                  <th className="pb-2.5">Customer Name</th>
+                  <th className="pb-2.5">Contact</th>
+                  <th className="pb-2.5 text-center">Orders</th>
+                  <th className="pb-2.5 text-right">Total Spent</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f3f4f6]">
+                {customers?.topCustomers && customers.topCustomers.length > 0 ? (
+                  customers.topCustomers.map((c) => (
+                    <tr key={c.customerId} className="hover:bg-[#f9fafb]">
+                      <td className="py-2.5 font-bold text-[#111827]">{c.name}</td>
+                      <td className="py-2.5 text-[#6b7280]">{c.phone || c.email || "-"}</td>
+                      <td className="py-2.5 text-center font-semibold text-[#374151]">
+                        {c.salesCount}
+                      </td>
+                      <td className="py-2.5 text-right font-bold text-[#16a34a]">
+                        {c.totalSpent.toLocaleString()} ETB
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-xs text-[#9ca3af]">
+                      No customer transactions found in this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
+    </RouteGuard>
   );
 }
+

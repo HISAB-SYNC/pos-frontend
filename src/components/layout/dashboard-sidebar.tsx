@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useMemo } from "react";
+
 import {
   Activity,
   BarChart3,
@@ -103,8 +105,41 @@ export function DashboardSidebar() {
   const user = useAuthStore((state) => state.user);
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN" || user?.role === "SYSTEM_ADMIN" || pathname.startsWith("/admin");
-  const navItems = isSuperAdmin ? adminNav : mainNav;
-  const brandHref = isSuperAdmin ? "/admin/dashboard" : "/dashboard";
+  
+  // RBAC Navigation Filtering
+  const permittedNav = useMemo(() => {
+    if (isSuperAdmin) return adminNav;
+    
+    if (user?.role === "SALES") {
+      return [
+        { label: "POS Checkout", href: "/pos", icon: Store },
+        { label: "Orders", href: "/orders", icon: ShoppingCart },
+        { label: "Customers", href: "/customers", icon: Users },
+        { label: "Debts / Credit", href: "/debts", icon: HandCoins },
+      ];
+    }
+
+    if (user?.role === "ADMIN") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "POS Checkout", href: "/pos", icon: Store },
+        { label: "Products", href: "/products", icon: Package },
+        { label: "Suppliers", href: "/suppliers", icon: Truck },
+        { label: "Orders", href: "/orders", icon: ShoppingCart },
+        { label: "Customers", href: "/customers", icon: Users },
+        { label: "Debts / Credit", href: "/debts", icon: HandCoins },
+        { label: "Reports", href: "/reports", icon: BarChart3 },
+        { label: "Manage Sellers", href: "/users", icon: UserCog },
+      ];
+    }
+
+    // Owner gets full operational suite
+    return mainNav;
+  }, [isSuperAdmin, user?.role]);
+
+  const navItems = permittedNav;
+  const brandHref = isSuperAdmin ? "/admin/dashboard" : user?.role === "SALES" ? "/pos" : "/dashboard";
+
 
   function handleLogout() {
     clearSession();

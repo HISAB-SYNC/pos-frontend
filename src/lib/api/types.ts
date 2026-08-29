@@ -66,7 +66,6 @@ export type Supplier = {
   onTheWay?: string | number;
 };
 
-
 export type Product = {
   id: string;
   shopId: string;
@@ -168,7 +167,6 @@ export type Customer = {
   }>;
 };
 
-
 export type SaleItem = {
   id?: string;
   productId: string;
@@ -232,7 +230,6 @@ export type Debt = {
   transactions?: DebtTransaction[];
   createdAt?: string;
 };
-
 
 export type BackendDashboardMetrics = {
   todaysSales: {
@@ -313,15 +310,33 @@ export type TeamMember = {
   shopId?: string;
   name: string;
   email: string;
-  role: "Shop Admin" | "Shop Sale" | "Owner" | string;
+  role: "Shop Admin" | "Shop Sale" | "Owner" | "ADMIN" | "SALES" | "OWNER" | string;
+  status?: "Active" | "Suspended" | "Inactive";
   joinedDate: string;
   lastLogin: string;
+  phone?: string;
+  permissions?: string[];
 };
 
 export type TeamSummary = {
   totalTeamMembers: number;
   shopAdminCount: number;
   shopSalesCount: number;
+};
+
+export type AuditLogRecord = {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  timestamp: string;
+  details?: string;
+  previousValue?: string;
+  newValue?: string;
+  ipAddress?: string;
 };
 
 /* ------------------------------------------------------------------ */
@@ -384,4 +399,111 @@ export type RegisterOwnerInput = {
   businessType?: string;
   address?: string;
   currency?: string;
+};
+
+/* ------------------------------------------------------------------ */
+/* Shop Analytics & Reports Types                                      */
+/* ------------------------------------------------------------------ */
+export type AnalyticsPeriod = "daily" | "weekly" | "monthly" | "custom";
+
+export type SalesTrendPoint = {
+  date: string;
+  salesCount: number;
+  totalRevenue: number;
+};
+
+export type PaymentMethodStat = {
+  count: number;
+  totalAmount: number;
+};
+
+export type TopSellingProductStat = {
+  productId: string;
+  name: string;
+  sku: string;
+  totalQuantitySold: number;
+  totalRevenue: number;
+};
+
+export type TopCustomerStat = {
+  customerId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  salesCount: number;
+  totalSpent: number;
+};
+
+export type ShopAnalyticsReport = {
+  period: AnalyticsPeriod;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
+  salesAnalytics: {
+    totalSalesCount: number;
+    totalRevenue: number;
+    totalTaxCollected: number;
+    totalDiscountsGiven: number;
+    averageOrderValue: number;
+    paymentMethodBreakdown: {
+      CASH?: PaymentMethodStat;
+      CARD?: PaymentMethodStat;
+      MOBILE?: PaymentMethodStat;
+      BANK_TRANSFER?: PaymentMethodStat;
+      DEBT?: PaymentMethodStat;
+      [key: string]: PaymentMethodStat | undefined;
+    };
+    salesTrend: SalesTrendPoint[];
+  };
+  productAnalytics: {
+    topSellingProducts: TopSellingProductStat[];
+    lowStockCount: number;
+    totalProductsCount: number;
+  };
+  customerAnalytics: {
+    totalCustomers: number;
+    newCustomersInPeriod: number;
+    topCustomers: TopCustomerStat[];
+    outstandingDebt: {
+      count: number;
+      totalAmount: number;
+    };
+  };
+};
+
+/* ------------------------------------------------------------------ */
+/* User Profile Types                                                  */
+/* ------------------------------------------------------------------ */
+export type UserProfile = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  shopId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  ownedShops?: Array<{
+    id: string;
+    name: string;
+    businessType?: string;
+    currency?: string;
+    taxRate?: string;
+    isActive: boolean;
+  }>;
+  shop?: {
+    id: string;
+    name: string;
+    businessType?: string;
+    currency?: string;
+    isActive: boolean;
+  } | null;
+};
+
+export type UpdateProfileInput = {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
 };

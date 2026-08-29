@@ -8,6 +8,7 @@ import {
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 import type {
+  AnalyticsPeriod,
   BackendDashboardMetrics,
   Category,
   Customer,
@@ -18,10 +19,14 @@ import type {
   OverallOrdersSummary,
   Product,
   Sale,
+  ShopAnalyticsReport,
   Supplier,
   TeamMember,
   TeamSummary,
+  UpdateProfileInput,
+  UserProfile,
 } from "./types";
+
 
 /* ------------------------------------------------------------------ */
 /* Customers API                                                       */
@@ -546,6 +551,161 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
 }
 
 
+/* ------------------------------------------------------------------ */
+/* Shop Analytics & Reports API                                        */
+/* ------------------------------------------------------------------ */
+export async function getShopAnalytics(
+  shopId: string,
+  params?: { period?: AnalyticsPeriod; startDate?: string; endDate?: string },
+): Promise<ShopAnalyticsReport> {
+  const period = params?.period || "weekly";
+
+  const { seedCustomers, seedDebts, seedProducts } = await import("@/lib/mock/data");
+
+  const totalOutstanding = seedDebts.reduce((sum, d) => sum + parseFloat(d.amount || "0"), 0);
+  const totalDebtsCount = seedDebts.filter((d) => parseFloat(d.amount || "0") > 0).length;
+
+  const mockAnalyticsFallback: ShopAnalyticsReport = {
+    period,
+    dateRange: {
+      startDate: params?.startDate || new Date(Date.now() - 7 * 86400000).toISOString(),
+      endDate: params?.endDate || new Date().toISOString(),
+    },
+    salesAnalytics: {
+      totalSalesCount: 18,
+      totalRevenue: 4850.0,
+      totalTaxCollected: 727.5,
+      totalDiscountsGiven: 150.0,
+      averageOrderValue: 269.44,
+      paymentMethodBreakdown: {
+        CASH: { count: 10, totalAmount: 2500.0 },
+        CARD: { count: 5, totalAmount: 1600.0 },
+        MOBILE: { count: 3, totalAmount: 750.0 },
+      },
+      salesTrend: [
+        { date: "Mon", salesCount: 3, totalRevenue: 950.0 },
+        { date: "Tue", salesCount: 5, totalRevenue: 1400.0 },
+        { date: "Wed", salesCount: 4, totalRevenue: 1100.0 },
+        { date: "Thu", salesCount: 6, totalRevenue: 1750.0 },
+        { date: "Fri", salesCount: 8, totalRevenue: 2000.0 },
+        { date: "Sat", salesCount: 10, totalRevenue: 2850.0 },
+        { date: "Sun", salesCount: 7, totalRevenue: 1950.0 },
+      ],
+    },
+    productAnalytics: {
+      topSellingProducts: seedProducts.slice(0, 5).map((p, idx) => ({
+        productId: p.id,
+        name: p.name,
+        sku: p.sku,
+        totalQuantitySold: 45 - idx * 6,
+        totalRevenue: (45 - idx * 6) * parseFloat(p.price || "50"),
+      })),
+      lowStockCount: seedProducts.filter((p) => p.stockQuantity <= (p.lowStockThreshold || 10)).length,
+      totalProductsCount: seedProducts.length,
+    },
+    customerAnalytics: {
+      totalCustomers: seedCustomers.length,
+      newCustomersInPeriod: 6,
+      topCustomers: seedCustomers.slice(0, 5).map((c, idx) => ({
+        customerId: c.id,
+        name: c.name,
+        email: c.email || `${c.name.toLowerCase().replace(/\s+/g, "")}@example.com`,
+        phone: c.phone || "+251911223344",
+        salesCount: 5 - idx,
+        totalSpent: 2200 - idx * 300,
+      })),
+      outstandingDebt: {
+        count: totalDebtsCount,
+        totalAmount: totalOutstanding,
+      },
+    },
+  };
+
+  if (isMockApiEnabled()) {
+    return mockAnalyticsFallback;
+  }
+
+  try {
+    const query = new URLSearchParams();
+    if (params?.period) query.set("period", params.period);
+    if (params?.startDate) query.set("startDate", params.startDate);
+    if (params?.endDate) query.set("endDate", params.endDate);
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+    const live = await apiRequest<ShopAnalyticsReport>(`${API_ENDPOINTS.shops.analytics(shopId)}${suffix}`);
+    if (live && live.salesAnalytics) {
+      return live;
+    }
+    return mockAnalyticsFallback;
+  } catch {
+    return mockAnalyticsFallback;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* User Profile API                                                    */
+/* ------------------------------------------------------------------ */
+export async function getUserProfile(): Promise<UserProfile> {
+  const { DEMO_CREDENTIALS } = await import("@/config/env");
+
+  if (isMockApiEnabled()) {
+    return {
+      id: "u-profile-1",
+      email: DEMO_CREDENTIALS.owner.email,
+      name: "Alex Owner",
+      role: "OWNER",
+      shopId: null,
+      isActive: true,
+      createdAt: "2026-08-12T08:50:41.994Z",
+      ownedShops: [
+        {
+          id: "648408bb-c857-43eb-92fe-018cb8a1eb47",
+          name: "SuperMart Boutique",
+          businessType: "boutique",
+          currency: "ETB",
+          taxRate: "15.00",
+          isActive: true,
+        },
+      ],
+      shop: null,
+    };
+  }
+
+  try {
+    return await apiRequest<UserProfile>(API_ENDPOINTS.auth.profile);
+  } catch {
+    return {
+      id: "u-profile-1",
+      email: DEMO_CREDENTIALS.owner.email,
+      name: "Alex Owner",
+      role: "OWNER",
+      shopId: null,
+      isActive: true,
+      createdAt: "2026-08-12T08:50:41.994Z",
+    };
+  }
+}
+
+export async function updateUserProfile(input: UpdateProfileInput): Promise<UserProfile> {
+  if (isMockApiEnabled()) {
+    return {
+      id: "u-profile-1",
+      email: input.email || "owner@example.com",
+      name: input.name || "Alex Owner Updated",
+      role: "OWNER",
+      shopId: null,
+      isActive: true,
+      createdAt: "2026-08-12T08:50:41.994Z",
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  return apiRequest<UserProfile>(API_ENDPOINTS.auth.profile, {
+    method: "PATCH",
+    body: input,
+  });
+}
+
 export async function getReportMetrics(_shopId: string) {
   const { seedReportMetrics } = await import("@/lib/mock/data");
   return seedReportMetrics;
@@ -555,6 +715,7 @@ export async function getOverallOrdersSummary(_shopId: string) {
   const { seedOverallOrders } = await import("@/lib/mock/data");
   return seedOverallOrders;
 }
+
 
 
 export async function getOrders(_shopId: string) {

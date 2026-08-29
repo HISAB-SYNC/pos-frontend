@@ -4,7 +4,9 @@ import { Download, Edit2, Plus, SlidersHorizontal, Trash2, TrendingUp, X } from 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { RouteGuard } from "@/components/shared/route-guard";
 import { createExpense, getExpenses, getExpensesSummary } from "@/lib/api/app-data";
+
 import type { Expense, ExpensesSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useShopStore } from "@/stores/shop-store";
@@ -260,7 +262,7 @@ export default function ExpensesPage() {
   }
 
   return (
-    <>
+    <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
       <AddExpenseModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -269,6 +271,7 @@ export default function ExpensesPage() {
       />
 
       <div className="space-y-4">
+
         {/* ------------------------------------------------------------------ */}
         {/* 1. TOP CARD: Expenses Metrics Overview                             */}
         {/* ------------------------------------------------------------------ */}
@@ -466,6 +469,7 @@ export default function ExpensesPage() {
           </div>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }
+

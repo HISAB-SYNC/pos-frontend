@@ -11,13 +11,16 @@ import {
   YAxis,
 } from "recharts";
 
-import type { DashboardMetrics } from "@/lib/mock/data";
-
 type OrderSummaryChartProps = {
-  data: DashboardMetrics["orderSummary"];
+  data?: Array<{
+    month: string;
+    ordered: number;
+    delivered: number;
+  }>;
 };
 
-export function OrderSummaryChart({ data }: OrderSummaryChartProps) {
+export function OrderSummaryChart({ data = [] }: OrderSummaryChartProps) {
+
   return (
     <div className="space-y-2">
       <ResponsiveContainer width="100%" height={220}>

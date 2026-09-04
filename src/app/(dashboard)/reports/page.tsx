@@ -50,14 +50,13 @@ import type {
   ShopAnalyticsReport,
 } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
 
 const PAYMENT_METHOD_COLORS: Record<string, string> = {
   CASH: "#10b981",
-  CARD: "#3b82f6",
-  MOBILE: "#8b5cf6",
-  BANK_TRANSFER: "#f59e0b",
-  DEBT: "#ef4444",
+  BANK: "#3b82f6",
+  TELEBIRR: "#8b5cf6",
 };
 
 export default function ReportsPage() {
@@ -87,7 +86,7 @@ export default function ReportsPage() {
     loadAnalytics();
   }, [loadAnalytics]);
 
-  // Payment Breakdown Chart Data
+  // Payment Breakdown Chart Data (Cash, Bank, Telebirr)
   const paymentChartData = useMemo(() => {
     if (!analytics?.salesAnalytics.paymentMethodBreakdown) return [];
     const breakdown = analytics.salesAnalytics.paymentMethodBreakdown;
@@ -96,20 +95,15 @@ export default function ReportsPage() {
     if (breakdown.CASH?.totalAmount) {
       items.push({ name: "Cash", value: breakdown.CASH.totalAmount, color: PAYMENT_METHOD_COLORS.CASH });
     }
-    if (breakdown.CARD?.totalAmount) {
-      items.push({ name: "Card", value: breakdown.CARD.totalAmount, color: PAYMENT_METHOD_COLORS.CARD });
+    if (breakdown.BANK?.totalAmount) {
+      items.push({ name: "Bank", value: breakdown.BANK.totalAmount, color: PAYMENT_METHOD_COLORS.BANK });
     }
-    if (breakdown.MOBILE?.totalAmount) {
-      items.push({ name: "Mobile", value: breakdown.MOBILE.totalAmount, color: PAYMENT_METHOD_COLORS.MOBILE });
-    }
-    if (breakdown.BANK_TRANSFER?.totalAmount) {
-      items.push({ name: "Bank Transfer", value: breakdown.BANK_TRANSFER.totalAmount, color: PAYMENT_METHOD_COLORS.BANK_TRANSFER });
-    }
-    if (breakdown.DEBT?.totalAmount) {
-      items.push({ name: "Debt / Credit", value: breakdown.DEBT.totalAmount, color: PAYMENT_METHOD_COLORS.DEBT });
+    if (breakdown.TELEBIRR?.totalAmount) {
+      items.push({ name: "Telebirr", value: breakdown.TELEBIRR.totalAmount, color: PAYMENT_METHOD_COLORS.TELEBIRR });
     }
     return items;
   }, [analytics]);
+
 
   if (loading && !analytics) {
     return <LoadingState />;
@@ -118,6 +112,32 @@ export default function ReportsPage() {
   const sales = analytics?.salesAnalytics;
   const products = analytics?.productAnalytics;
   const customers = analytics?.customerAnalytics;
+
+  function handleExportReportCsv() {
+    if (!analytics) return;
+    const topProd = analytics.productAnalytics?.topSellingProducts || [];
+    exportToCsv(`analytics-report-${period}`, topProd, [
+      { header: "Top Product Name", key: "name" },
+      { header: "Quantity Sold", key: "totalQuantitySold" },
+      {
+        header: "Revenue Generated (ETB)",
+        formatter: (item) => (item.totalRevenue || 0).toFixed(2),
+      },
+      {
+        header: "Period",
+        formatter: () => period,
+      },
+      {
+        header: "Total Store Revenue (ETB)",
+        formatter: () => (analytics.salesAnalytics?.totalRevenue || 0).toFixed(2),
+      },
+      {
+        header: "Total Transactions",
+        formatter: () => analytics.salesAnalytics?.totalSalesCount || 0,
+      },
+    ]);
+
+  }
 
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
@@ -166,6 +186,14 @@ export default function ReportsPage() {
 
           <button
             type="button"
+            onClick={handleExportReportCsv}
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-semibold text-[#374151] hover:bg-[#f9fafb]"
+          >
+            <Download className="size-3.5 text-[#6b7280]" />
+            Export CSV
+          </button>
+          <button
+            type="button"
             onClick={() => window.print()}
             className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
           >
@@ -174,6 +202,7 @@ export default function ReportsPage() {
           </button>
         </div>
       </div>
+
 
       {/* Custom Date Range Inputs */}
       {period === "custom" && (

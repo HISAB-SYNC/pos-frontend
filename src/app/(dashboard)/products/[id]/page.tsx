@@ -20,6 +20,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import {
   createProductAdjustment,
   createProductPurchase,
+  deleteProduct,
   getProduct,
   getProductAdjustments,
   getProductHistory,
@@ -33,7 +34,9 @@ import type {
   ProductPurchase,
 } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
+
 
 /* ------------------------------------------------------------------ */
 /* Tabs Configuration                                                 */
@@ -482,10 +485,11 @@ export default function ProductDetailPage() {
       const prod = await getProduct(shopId, rawId);
       setProduct(prod);
 
+      const targetId = prod?.id || rawId;
       const [pur, adj, hist] = await Promise.all([
-        getProductPurchases(prod.id),
-        getProductAdjustments(prod.id),
-        getProductHistory(prod.id),
+        getProductPurchases(targetId),
+        getProductAdjustments(targetId),
+        getProductHistory(targetId),
       ]);
       setPurchases(pur ?? []);
       setAdjustments(adj ?? []);
@@ -495,6 +499,7 @@ export default function ProductDetailPage() {
     } finally {
       setIsLoading(false);
     }
+
   }, [shopId, rawId]);
 
   useEffect(() => {
@@ -554,6 +559,78 @@ export default function ProductDetailPage() {
     );
   }, [history, historySearch]);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+
+  // Row Delete State for Tabs
+  const [itemToDelete, setItemToDelete] = useState<{ type: "purchase" | "adjustment" | "history"; id: string; label: string } | null>(null);
+
+  async function handleDeleteProduct() {
+    if (!product) return;
+    setIsDeletingProduct(true);
+    try {
+      await deleteProduct(shopId, product.id);
+      router.push("/products");
+    } catch {
+      router.push("/products");
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  }
+
+  function handleDownloadOverview() {
+    if (!product) return;
+    exportToCsv(`${product.name.toLowerCase().replace(/\s+/g, "-")}-details`, [product], [
+      { header: "Product Name", key: "name" },
+      { header: "SKU", key: "sku" },
+      { header: "Category", formatter: () => categoryDisplay },
+      { header: "Stock Quantity", key: "stockQuantity" },
+      { header: "Selling Price (ETB)", key: "price" },
+      { header: "Threshold Value", formatter: () => thresholdValue },
+      { header: "Supplier Name", formatter: () => supplierNameDisplay },
+      { header: "Supplier Contact", formatter: () => contactNumberDisplay },
+      { header: "Expiry Date", formatter: () => expiryDateDisplay },
+    ]);
+  }
+
+  function handleDownloadPurchases() {
+    if (!product) return;
+    exportToCsv(`${product.name.toLowerCase().replace(/\s+/g, "-")}-purchases`, filteredPurchases, [
+      { header: "Purchase ID", key: "purchaseId" },
+      { header: "Supplier", key: "supplier" },
+      { header: "Quantity", key: "quantity" },
+      { header: "Unit Cost (ETB)", key: "unitCost" },
+      { header: "Total Cost (ETB)", key: "totalCost" },
+      { header: "Date", key: "date" },
+      { header: "Status", key: "status" },
+    ]);
+  }
+
+  function handleDownloadAdjustments() {
+    if (!product) return;
+    exportToCsv(`${product.name.toLowerCase().replace(/\s+/g, "-")}-adjustments`, filteredAdjustments, [
+      { header: "Adjustment ID", key: "adjustmentId" },
+      { header: "Quantity Change", key: "quantityChange" },
+      { header: "Reason", key: "reason" },
+      { header: "Store", key: "store" },
+      { header: "Date", key: "date" },
+    ]);
+  }
+
+  function handleDownloadHistory() {
+    if (!product) return;
+    exportToCsv(`${product.name.toLowerCase().replace(/\s+/g, "-")}-history`, filteredHistory, [
+      { header: "Transaction ID", key: "transactionId" },
+      { header: "Type", key: "type" },
+      { header: "Quantity", key: "quantity" },
+      { header: "Store", key: "store" },
+      { header: "Value (ETB)", key: "value" },
+      { header: "Date", key: "date" },
+      { header: "Person", key: "person" },
+    ]);
+  }
+
+
   if (isLoading || !product) {
     return (
       <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
@@ -586,8 +663,80 @@ export default function ProductDetailPage() {
         onCreated={loadData}
       />
 
+      {/* Delete Product Dialog */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <Trash2 className="size-5" />
+            </div>
+            <h3 className="text-base font-bold text-[#111827]">Delete Product</h3>
+            <p className="mt-1 text-xs text-[#6b7280]">
+              Are you sure you want to delete <span className="font-semibold text-[#111827]">{product.name}</span>? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingProduct}
+                onClick={handleDeleteProduct}
+                className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeletingProduct ? "Deleting..." : "Delete Permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Tab Row Item Dialog */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <Trash2 className="size-5" />
+            </div>
+            <h3 className="text-base font-bold text-[#111827]">Delete Record</h3>
+            <p className="mt-1 text-xs text-[#6b7280]">
+              Are you sure you want to remove <span className="font-semibold text-[#111827]">{itemToDelete.label}</span>?
+            </p>
+            <div className="mt-5 flex justify-end gap-2.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (itemToDelete.type === "purchase") {
+                    setPurchases((prev) => prev.filter((x) => x.id !== itemToDelete.id));
+                  } else if (itemToDelete.type === "adjustment") {
+                    setAdjustments((prev) => prev.filter((x) => x.id !== itemToDelete.id));
+                  } else if (itemToDelete.type === "history") {
+                    setHistory((prev) => prev.filter((x) => x.id !== itemToDelete.id));
+                  }
+                  setItemToDelete(null);
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-        {/* Header with Title and Action buttons (Edit, Download) */}
+        {/* Header with Title and Action buttons (Edit, Download, Delete) */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link
@@ -611,10 +760,19 @@ export default function ProductDetailPage() {
             </button>
             <button
               type="button"
+              onClick={handleDownloadOverview}
               className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3.5 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
             >
               <Download className="size-3.5" />
               Download
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50/50 px-3.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
+            >
+              <Trash2 className="size-3.5" />
+              Delete
             </button>
           </div>
         </div>
@@ -623,6 +781,7 @@ export default function ProductDetailPage() {
         <div className="mb-6 flex border-b border-[#e5e7eb]">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
+
             return (
               <button
                 key={tab.key}
@@ -774,13 +933,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
-                >
-                  <Filter className="size-3.5" />
-                  Filters
-                </button>
-                <button
-                  type="button"
+                  onClick={handleDownloadPurchases}
                   className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
                 >
                   <Download className="size-3.5" />
@@ -844,14 +997,14 @@ export default function ProductDetailPage() {
                           <div className="flex items-center justify-center gap-3 text-[#9ca3af]">
                             <button
                               type="button"
-                              className="hover:text-[#2563eb]"
-                              title="Edit purchase"
-                            >
-                              <Pencil className="size-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              className="hover:text-red-500"
+                              onClick={() => {
+                                setItemToDelete({
+                                  type: "purchase",
+                                  id: item.id,
+                                  label: `Purchase #${item.purchaseId} (${item.supplier})`,
+                                });
+                              }}
+                              className="hover:text-red-500 transition-colors"
                               title="Delete purchase"
                             >
                               <Trash2 className="size-3.5" />
@@ -887,13 +1040,7 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
-                >
-                  <Filter className="size-3.5" />
-                  Filters
-                </button>
-                <button
-                  type="button"
+                  onClick={handleDownloadAdjustments}
                   className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
                 >
                   <Download className="size-3.5" />
@@ -948,14 +1095,14 @@ export default function ProductDetailPage() {
                           <div className="flex items-center justify-center gap-3 text-[#9ca3af]">
                             <button
                               type="button"
-                              className="hover:text-[#2563eb]"
-                              title="Edit adjustment"
-                            >
-                              <Pencil className="size-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              className="hover:text-red-500"
+                              onClick={() => {
+                                setItemToDelete({
+                                  type: "adjustment",
+                                  id: item.id,
+                                  label: `Adjustment #${item.adjustmentId} (${item.reason})`,
+                                });
+                              }}
+                              className="hover:text-red-500 transition-colors"
                               title="Delete adjustment"
                             >
                               <Trash2 className="size-3.5" />
@@ -991,15 +1138,10 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
-                >
-                  <Filter className="size-3.5" />
-                  Filters
-                </button>
-                <button
-                  type="button"
+                  onClick={handleDownloadHistory}
                   className="flex h-9 items-center gap-1.5 rounded-lg bg-[#111827] px-4 text-xs font-medium text-white transition-colors hover:bg-[#1f2937]"
                 >
+                  <Download className="size-3.5" />
                   Download
                 </button>
               </div>
@@ -1049,14 +1191,14 @@ export default function ProductDetailPage() {
                           <div className="flex items-center justify-center gap-3 text-[#9ca3af]">
                             <button
                               type="button"
-                              className="hover:text-[#2563eb]"
-                              title="Edit transaction"
-                            >
-                              <Pencil className="size-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              className="hover:text-red-500"
+                              onClick={() => {
+                                setItemToDelete({
+                                  type: "history",
+                                  id: item.id,
+                                  label: `Transaction #${item.transactionId} (${item.type})`,
+                                });
+                              }}
+                              className="hover:text-red-500 transition-colors"
                               title="Delete transaction"
                             >
                               <Trash2 className="size-3.5" />
@@ -1075,3 +1217,4 @@ export default function ProductDetailPage() {
     </>
   );
 }
+

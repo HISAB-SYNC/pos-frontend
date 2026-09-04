@@ -32,11 +32,15 @@ import { AccessDenied } from "@/components/shared/access-denied";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   createTeamMember,
+  deleteTeamMember,
   getTeamMembers,
   getTeamSummary,
+  updateTeamMember,
 } from "@/lib/api/app-data";
 import type { AuditLogRecord, TeamMember, TeamSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { exportToCsv } from "@/lib/utils/export";
+
 import {
   type AppPermission,
   DEFAULT_ROLE_PERMISSIONS,
@@ -599,6 +603,228 @@ function ResetPasswordModal({
 }
 
 /* ------------------------------------------------------------------ */
+/* Modal: Edit Staff Member Details                                   */
+/* ------------------------------------------------------------------ */
+function EditMemberDetailsModal({
+  member,
+  onClose,
+  onUpdated,
+  shopId,
+}: {
+  member: TeamMember | null;
+  onClose: () => void;
+  onUpdated: (log: AuditLogRecord) => void;
+  shopId: string;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("Shop Sale");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (member) {
+      setName(member.name || "");
+      setEmail(member.email || "");
+      setPhone(member.phone || "");
+      setRole(member.role || "Shop Sale");
+    }
+  }, [member]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!member || !name.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      await updateTeamMember(shopId, member.id, {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        role,
+      });
+
+
+      const auditLog: AuditLogRecord = {
+        id: `aud-${Date.now()}`,
+        userId: "current-user",
+        userName: "You",
+        userRole: "ADMIN",
+        action: "ROLE_CHANGED",
+        resource: `TeamMember: ${name}`,
+        timestamp: new Date().toISOString(),
+        details: `Updated details for ${name} (${role})`,
+        previousValue: member.role,
+        newValue: role,
+      };
+
+      onUpdated(auditLog);
+      onClose();
+    } catch {
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (!member) return null;
+
+  return (
+
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
+
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
+          <h2 className="text-base font-bold text-[#111827]">Edit Employee Profile</h2>
+          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="my-4 space-y-3.5 text-xs">
+          <div>
+            <label className="mb-1 block font-semibold text-[#374151]">Full Name *</label>
+            <input
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 font-semibold text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-semibold text-[#374151]">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-semibold text-[#374151]">Phone Number</label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-semibold text-[#374151]">Assigned System Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            >
+              <option value="Shop Sale">Shop Sale (POS & Checkout)</option>
+              <option value="Shop Admin">Shop Admin (Management)</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-[#f3f4f6] pt-3.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-xl bg-[#2563eb] px-5 py-2 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Modal: Delete Staff Confirmation Dialog                            */
+/* ------------------------------------------------------------------ */
+function DeleteStaffDialog({
+  member,
+  onClose,
+  onDeleted,
+  shopId,
+}: {
+  member: TeamMember | null;
+  onClose: () => void;
+  onDeleted: (log: AuditLogRecord) => void;
+  shopId: string;
+}) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleConfirm() {
+    if (!member) return;
+    setIsDeleting(true);
+    try {
+      await deleteTeamMember(shopId, member.id);
+      const auditLog: AuditLogRecord = {
+        id: `aud-${Date.now()}`,
+        userId: "current-user",
+        userName: "You",
+        userRole: "ADMIN",
+        action: "USER_DEACTIVATED",
+        resource: `TeamMember: ${member.name}`,
+        timestamp: new Date().toISOString(),
+        details: `Employee account ${member.name} (${member.email}) was removed`,
+        previousValue: "Active",
+        newValue: "Deleted",
+      };
+      onDeleted(auditLog);
+      onClose();
+    } catch {
+      onClose();
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  if (!member) return null;
+
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+          <Trash2 className="size-5" />
+        </div>
+        <h3 className="text-base font-bold text-[#111827]">Remove Employee</h3>
+        <p className="mt-1 text-xs text-[#6b7280]">
+          Are you sure you want to remove <span className="font-semibold text-[#111827]">{member.name}</span> ({member.role})? Their store access will be permanently revoked.
+        </p>
+
+        <div className="mt-5 flex justify-end gap-2.5 text-xs">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={handleConfirm}
+            className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {isDeleting ? "Removing..." : "Remove Employee"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ------------------------------------------------------------------ */
 /* Main User Management & RBAC Page                                   */
 /* ------------------------------------------------------------------ */
 export default function UsersPage() {
@@ -611,13 +837,39 @@ export default function UsersPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>(INITIAL_AUDIT_LOGS);
   const [loading, setLoading] = useState(true);
 
-  // Filters & State
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [memberToEditDetails, setMemberToEditDetails] = useState<TeamMember | null>(null);
   const [memberToEditPermissions, setMemberToEditPermissions] = useState<TeamMember | null>(null);
   const [memberToResetPassword, setMemberToResetPassword] = useState<TeamMember | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+
+  function handleExportDirectory() {
+    exportToCsv("staff-directory", filteredMembers, [
+      { header: "Name", key: "name" },
+      { header: "Email", key: "email" },
+      { header: "Phone", key: "phone" },
+      { header: "Role", key: "role" },
+      { header: "Status", key: "status" },
+      { header: "Joined Date", key: "joinedDate" },
+      { header: "Last Login", key: "lastLogin" },
+    ]);
+  }
+
+  function handleExportAuditLogs() {
+    exportToCsv("rbac-audit-logs", auditLogs, [
+      { header: "Timestamp", key: "timestamp" },
+      { header: "Actor", key: "userName" },
+      { header: "Action", key: "action" },
+      { header: "Resource", key: "resource" },
+      { header: "Details", key: "details" },
+      { header: "Previous Value", key: "previousValue" },
+      { header: "New Value", key: "newValue" },
+    ]);
+  }
+
 
   const loadData = useCallback(async () => {
     try {
@@ -704,6 +956,70 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Modals */}
+      <AddTeamMemberModal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        currentUserRole={(authUser?.role as Role) || "ADMIN"}
+        onCreated={(newM, log) => {
+          setMembers((prev) => [newM, ...prev]);
+          setAuditLogs((prev) => [log, ...prev]);
+          setActionSuccessMsg(`Created employee account for ${newM.name}`);
+          setTimeout(() => setActionSuccessMsg(""), 3500);
+        }}
+        shopId={activeShopId}
+      />
+
+      <EditMemberDetailsModal
+        member={memberToEditDetails}
+        onClose={() => setMemberToEditDetails(null)}
+        onUpdated={(log) => {
+          loadData();
+          setAuditLogs((prev) => [log, ...prev]);
+          setActionSuccessMsg(`Updated profile details`);
+          setTimeout(() => setActionSuccessMsg(""), 3500);
+        }}
+        shopId={activeShopId}
+      />
+
+      {memberToEditPermissions && (
+        <EditPermissionsModal
+          member={memberToEditPermissions}
+          onClose={() => setMemberToEditPermissions(null)}
+          onSaved={(updatedM, log) => {
+            setMembers((prev) => prev.map((m) => (m.id === updatedM.id ? updatedM : m)));
+            setAuditLogs((prev) => [log, ...prev]);
+            setActionSuccessMsg(`Updated RBAC permissions for ${updatedM.name}`);
+            setTimeout(() => setActionSuccessMsg(""), 3500);
+          }}
+        />
+      )}
+
+
+      {memberToResetPassword && (
+        <ResetPasswordModal
+          member={memberToResetPassword}
+          onClose={() => setMemberToResetPassword(null)}
+          onReset={(log) => {
+            setAuditLogs((prev) => [log, ...prev]);
+            setActionSuccessMsg(`Reset password for ${memberToResetPassword.name}`);
+            setTimeout(() => setActionSuccessMsg(""), 3500);
+          }}
+        />
+      )}
+
+      <DeleteStaffDialog
+        member={memberToDelete}
+        onClose={() => setMemberToDelete(null)}
+        onDeleted={(log) => {
+          loadData();
+          setAuditLogs((prev) => [log, ...prev]);
+          setActionSuccessMsg(`Employee was removed`);
+          setTimeout(() => setActionSuccessMsg(""), 3500);
+        }}
+        shopId={activeShopId}
+      />
+
       {/* ================================================================= */}
       {/* 1. Header Toolbar & Action Trigger                                */}
       {/* ================================================================= */}
@@ -721,6 +1037,14 @@ export default function UsersPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={activeTab === "DIRECTORY" ? handleExportDirectory : handleExportAuditLogs}
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3.5 text-xs font-semibold text-[#374151] shadow-sm hover:bg-[#f9fafb]"
+          >
+            <Download className="size-3.5 text-[#6b7280]" />
+            {activeTab === "DIRECTORY" ? "Export Directory" : "Export Logs"}
+          </button>
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
@@ -924,6 +1248,14 @@ export default function UsersPage() {
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   type="button"
+                                  onClick={() => setMemberToEditDetails(m)}
+                                  title="Edit profile"
+                                  className="rounded-lg border border-[#e5e7eb] p-1 text-[#6b7280] hover:bg-slate-100 hover:text-[#111827]"
+                                >
+                                  <Edit2 className="size-3.5" />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => setMemberToResetPassword(m)}
                                   title="Reset password"
                                   className="rounded-lg border border-[#e5e7eb] p-1 text-[#6b7280] hover:bg-slate-100 hover:text-[#111827]"
@@ -940,6 +1272,14 @@ export default function UsersPage() {
                                   }`}
                                 >
                                   {isActive ? "Suspend" : "Activate"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setMemberToDelete(m)}
+                                  title="Delete employee"
+                                  className="rounded-lg border border-red-200 p-1 text-red-500 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  <Trash2 className="size-3.5" />
                                 </button>
                               </div>
                             ) : (
@@ -965,6 +1305,7 @@ export default function UsersPage() {
         )}
 
         {/* Tab 2: Activity & Audit Logs Table */}
+
         {activeTab === "AUDIT_LOGS" && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">

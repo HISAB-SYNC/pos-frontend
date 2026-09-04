@@ -139,7 +139,7 @@ function LowStockItem({
 }
 
 /* ------------------------------------------------------------------ */
-/* Page                                                                  */
+/* Page: Andalus POS Main Business Dashboard                           */
 /* ------------------------------------------------------------------ */
 
 export default function DashboardPage() {
@@ -172,90 +172,197 @@ export default function DashboardPage() {
 
   if (isLoading || !metrics) return <LoadingState />;
 
+  const totalCollected =
+    metrics.paymentBreakdown.cash +
+    metrics.paymentBreakdown.bank +
+    metrics.paymentBreakdown.telebirr;
+
+  const cashPct = totalCollected > 0 ? Math.round((metrics.paymentBreakdown.cash / totalCollected) * 100) : 0;
+  const bankPct = totalCollected > 0 ? Math.round((metrics.paymentBreakdown.bank / totalCollected) * 100) : 0;
+  const telebirrPct = totalCollected > 0 ? Math.round((metrics.paymentBreakdown.telebirr / totalCollected) * 100) : 0;
+
   return (
     <div className="relative space-y-5">
       {/* Notifications panel (floating) */}
       <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
 
-      {/* Row 1 – Sales Overview + Inventory Summary */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <DashboardCard title="Sales Overview" className="xl:col-span-2">
-          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-            <OverviewMetric label="Sales" value={metrics.salesOverview.sales} icon={ShoppingCart} tone="blue" />
-            <OverviewMetric label="Revenue" value={metrics.salesOverview.revenue} icon={TrendingUp} tone="purple" />
-            <OverviewMetric label="Profit" value={metrics.salesOverview.profit} icon={Wallet} tone="orange" />
-            <OverviewMetric label="Cost" value={metrics.salesOverview.cost} icon={CircleDollarSign} tone="green" />
+      {/* ================================================================= */}
+      {/* 1. Core Financial & Business KPI Cards (4 Balanced Cards)        */}
+      {/* ================================================================= */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Total Sales Revenue */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#6b7280]">Total Revenue</span>
+            <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <TrendingUp className="size-4" />
+            </div>
           </div>
-        </DashboardCard>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-[#111827]">
+              {metrics.salesOverview.revenue.toLocaleString()} <span className="text-sm font-semibold text-[#6b7280]">ETB</span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 font-medium text-blue-700">
+                {metrics.salesOverview.sales} Total Sales
+              </span>
+              <span>completed</span>
+            </div>
+          </div>
+        </div>
 
-        <DashboardCard title="Inventory Summary">
-          <div className="grid gap-6">
-            <OverviewMetric
-              label="Quantity in Hand"
-              value={metrics.inventorySummary.quantityInHand}
-              icon={Package}
-              tone="orange"
-            />
-            <OverviewMetric
-              label="To be received"
-              value={metrics.inventorySummary.toBeReceived}
-              icon={Truck}
-              tone="purple"
-            />
+        {/* Net Profit Card (Calculated: Revenue - COGS - Expenses) */}
+        <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/40 p-5 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Net Profit</span>
+              <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700">Live</span>
+            </div>
+            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-100/80 text-emerald-700 shadow-sm">
+              <Wallet className="size-4" />
+            </div>
           </div>
-        </DashboardCard>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-emerald-700">
+              {metrics.netProfit.toLocaleString()} <span className="text-sm font-semibold text-emerald-600">ETB</span>
+            </div>
+            <p className="mt-1 text-[11px] text-[#6b7280]">
+              Revenue - COGS ({metrics.cogs.toLocaleString()}) - Exp ({metrics.totalExpenses.toLocaleString()})
+            </p>
+          </div>
+        </div>
+
+        {/* Outstanding Customer Debt */}
+        <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-white via-white to-amber-50/40 p-5 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-800">Outstanding Debt</span>
+            <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <CircleDollarSign className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-red-600">
+              {metrics.outstandingDebt.toLocaleString()} <span className="text-sm font-semibold text-[#6b7280]">ETB</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-xs text-[#6b7280]">
+              <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">
+                {metrics.debtorsCount} Customers
+              </span>
+              <a href="/debts" className="font-semibold text-blue-600 hover:underline">
+                View Ledger →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Today's Sales */}
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#6b7280]">Today&apos;s Sales</span>
+            <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+              <ShoppingCart className="size-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold tracking-tight text-[#111827]">
+              {metrics.todayRevenue.toLocaleString()} <span className="text-sm font-semibold text-[#6b7280]">ETB</span>
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <span className="inline-flex items-center rounded-md bg-purple-50 px-1.5 py-0.5 font-medium text-purple-700">
+                {metrics.todaySalesCount} Sales Today
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Row 2 – Purchase Overview + Product Summary */}
+      {/* ================================================================= */}
+      {/* 2. Middle Row: Sales & Purchase Chart + Payment Breakdown         */}
+      {/* ================================================================= */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <DashboardCard title="Purchase Overview" className="xl:col-span-2">
-          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-            <OverviewMetric label="Purchase" value={metrics.purchaseOverview.purchase} icon={ShoppingBag} tone="blue" />
-            <OverviewMetric label="Cost" value={metrics.purchaseOverview.cost} icon={CircleDollarSign} tone="green" />
-            <OverviewMetric label="Cancel" value={metrics.purchaseOverview.cancel} icon={RotateCcw} tone="purple" />
-            <OverviewMetric label="Return" value={metrics.purchaseOverview.return} icon={RotateCcw} tone="orange" />
-          </div>
-        </DashboardCard>
-
-        <DashboardCard title="Product Summary">
-          <div className="grid gap-6">
-            <OverviewMetric
-              label="Number of Suppliers"
-              value={metrics.productSummary.suppliers}
-              icon={Truck}
-              tone="blue"
-            />
-            <OverviewMetric
-              label="Number of Categories"
-              value={metrics.productSummary.categories}
-              icon={Tags}
-              tone="purple"
-            />
-          </div>
-        </DashboardCard>
-      </div>
-
-      {/* Row 3 – Charts */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Sales & Purchase chart with Weekly selector */}
+        {/* Sales & Purchase Trend Chart */}
         <section className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm xl:col-span-2">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-[#111827]">Sales &amp; Purchase</h2>
+            <div>
+              <h2 className="text-base font-semibold text-[#111827]">Sales &amp; Purchase Trend</h2>
+              <p className="text-xs text-[#6b7280]">Comparative monthly performance</p>
+            </div>
             <select className="flex items-center gap-1 rounded-lg border border-[#e5e7eb] bg-white px-3 py-1.5 text-xs text-[#374151] shadow-sm focus:outline-none">
-              <option>Weekly</option>
               <option>Monthly</option>
+              <option>Weekly</option>
               <option>Yearly</option>
             </select>
           </div>
           <SalesPurchaseChart data={metrics.salesAndPurchase} />
         </section>
 
-        <DashboardCard title="Order Summary">
-          <OrderSummaryChart data={metrics.orderSummary} />
+        {/* Payment Method Breakdown (Cash, Bank, Telebirr) */}
+        <DashboardCard title="Payment Method Breakdown">
+          <div className="space-y-4 pt-1">
+            <p className="text-xs text-[#6b7280]">
+              Real transaction collections across simplified payment options:
+            </p>
+
+            {/* Cash */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-medium text-[#374151]">
+                  <span>💵</span> Cash
+                </span>
+                <span className="font-bold text-[#111827]">
+                  {metrics.paymentBreakdown.cash.toLocaleString()} ETB{" "}
+                  <span className="text-[11px] font-normal text-[#6b7280]">({cashPct}%)</span>
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[#f3f4f6]">
+                <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${cashPct}%` }} />
+              </div>
+            </div>
+
+            {/* Bank */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-medium text-[#374151]">
+                  <span>🏦</span> Bank
+                </span>
+                <span className="font-bold text-[#111827]">
+                  {metrics.paymentBreakdown.bank.toLocaleString()} ETB{" "}
+                  <span className="text-[11px] font-normal text-[#6b7280]">({bankPct}%)</span>
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[#f3f4f6]">
+                <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${bankPct}%` }} />
+              </div>
+            </div>
+
+            {/* Telebirr */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-medium text-[#374151]">
+                  <span>📱</span> Telebirr
+                </span>
+                <span className="font-bold text-[#111827]">
+                  {metrics.paymentBreakdown.telebirr.toLocaleString()} ETB{" "}
+                  <span className="text-[11px] font-normal text-[#6b7280]">({telebirrPct}%)</span>
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[#f3f4f6]">
+                <div className="h-full rounded-full bg-purple-500 transition-all duration-500" style={{ width: `${telebirrPct}%` }} />
+              </div>
+            </div>
+
+            {/* Total collected footer */}
+            <div className="mt-4 flex items-center justify-between border-t border-[#f3f4f6] pt-3 text-xs">
+              <span className="font-medium text-[#6b7280]">Total Collections:</span>
+              <span className="font-bold text-[#111827]">{totalCollected.toLocaleString()} ETB</span>
+            </div>
+          </div>
         </DashboardCard>
       </div>
 
-      {/* Row 4 – Tables */}
+      {/* ================================================================= */}
+      {/* 3. Bottom Row: Top Selling Stock & Low Quantity Stock Alerts     */}
+      {/* ================================================================= */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {/* Top Selling Stock */}
         <DashboardCard title="Top Selling Stock" action={<SeeAllLink href="/products" />}>
@@ -264,8 +371,8 @@ export default function DashboardPage() {
               <thead>
                 <tr className="border-b border-[#e5e7eb] text-[#6b7280]">
                   <th className="pb-3 font-medium">Name</th>
-                  <th className="pb-3 font-medium">Sold Quantity</th>
-                  <th className="pb-3 font-medium">Remaining Quantity</th>
+                  <th className="pb-3 font-medium">Sold Qty</th>
+                  <th className="pb-3 font-medium">Remaining</th>
                   <th className="pb-3 font-medium">Price</th>
                 </tr>
               </thead>
@@ -287,7 +394,7 @@ export default function DashboardPage() {
         </DashboardCard>
 
         {/* Low Quantity Stock */}
-        <DashboardCard title="Low Quantity Stock" action={<SeeAllLink href="/inventory" />}>
+        <DashboardCard title="Low Quantity Stock Alerts" action={<SeeAllLink href="/inventory" />}>
           <div className="space-y-1">
             {metrics.lowQuantityStock.map((item) => (
               <LowStockItem
@@ -303,3 +410,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

@@ -181,6 +181,8 @@ export type SaleItem = {
   };
 };
 
+export type PaymentMethodType = "CASH" | "BANK" | "TELEBIRR";
+
 export type Sale = {
   id: string;
   shopId: string;
@@ -190,7 +192,9 @@ export type Sale = {
   taxAmount?: string;
   discountAmount?: string;
   totalAmount: string;
-  paymentMethod: "CASH" | "CARD" | "BANK_TRANSFER" | "MOBILE" | "DEBT" | "CREDIT" | "SPLIT" | string;
+  amountPaid?: string | number;
+  debtAmount?: string | number;
+  paymentMethod: "CASH" | "BANK" | "TELEBIRR" | string;
   splitDetails?: {
     cashAmount?: number;
     debtAmount?: number;
@@ -208,11 +212,12 @@ export type DebtPayment = {
   debtId?: string;
   customerId?: string;
   amount: string;
-  paymentMethod?: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
+  paymentMethod?: "Cash" | "Bank" | "Telebirr" | string;
   reference?: string;
   notes?: string;
   paidAt: string;
 };
+
 
 export type Debt = {
   id: string;
@@ -294,16 +299,39 @@ export type Expense = {
 
 export type ExpensesSummary = {
   totalExpenses: {
-    amount: number;
-    changeText: string;
+    amount?: number;
+    changeText?: string;
+    count?: number;
+    subtext?: string;
+    cost?: number;
+    costLabel?: string;
   };
-  thisWeek: {
+  thisWeek?: {
     amount: number;
   };
-  pendingPayment: {
+  pendingPayment?: {
     amount: number;
+  };
+  totalPaid?: {
+    count: number;
+    subtext: string;
+    cost: number;
+    costLabel: string;
+  };
+  totalPending?: {
+    count: number;
+    subtext: string;
+    cost: number;
+    costLabel: string;
+  };
+  totalOverdue?: {
+    count: number;
+    subtext: string;
+    cost: number;
+    costLabel: string;
   };
 };
+
 
 export type TeamMember = {
   id: string;

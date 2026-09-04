@@ -256,7 +256,11 @@ function SaleReceiptModal({
   onClose: () => void;
   onNewSale: () => void;
 }) {
-  const isDebtSale = sale.paymentMethod === "DEBT" || sale.paymentMethod === "CREDIT" || sale.paymentMethod === "SPLIT";
+  const paid = sale.amountPaid !== undefined ? parseFloat(String(sale.amountPaid)) : (sale.splitDetails?.cashAmount ?? parseFloat(sale.totalAmount));
+  const debt = sale.debtAmount !== undefined ? parseFloat(String(sale.debtAmount)) : (sale.splitDetails?.debtAmount ?? Math.max(0, parseFloat(sale.totalAmount) - paid));
+  const isDebtSale = debt > 0;
+
+  const methodLabel = sale.paymentMethod === "BANK" ? "Bank" : sale.paymentMethod === "TELEBIRR" ? "Telebirr" : "Cash";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
@@ -286,13 +290,11 @@ function SaleReceiptModal({
             )}
             <div className="flex justify-between">
               <span className="text-[#6b7280]">Payment Method:</span>
-              <span className="font-semibold text-[#111827]">
-                {sale.paymentMethod === "DEBT"
-                  ? "Debt / Credit"
-                  : sale.paymentMethod === "SPLIT"
-                  ? "Partial Cash + Debt"
-                  : sale.paymentMethod}
-              </span>
+              <span className="font-semibold text-[#111827]">{methodLabel}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#6b7280]">Amount Paid Now:</span>
+              <span className="font-semibold text-emerald-700">{paid.toLocaleString()} ETB</span>
             </div>
           </div>
 
@@ -301,7 +303,7 @@ function SaleReceiptModal({
             {sale.items?.map((it, idx) => (
               <div key={idx} className="flex items-center justify-between">
                 <span className="text-[#374151]">
-                  {it.quantity}x Product #{it.productId.slice(0, 8)}
+                  {it.quantity}x {it.product?.name || `Product #${it.productId.slice(0, 8)}`}
                 </span>
                 <span className="font-semibold text-[#111827]">{it.subtotal} ETB</span>
               </div>
@@ -310,20 +312,14 @@ function SaleReceiptModal({
 
           {/* Debt Summary Banner if Credit */}
           {isDebtSale && sale.customer && (
-            <div className="rounded-xl border border-red-100 bg-red-50/70 p-3 text-xs space-y-1">
-              <div className="flex justify-between font-semibold text-red-800">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs space-y-1">
+              <div className="flex justify-between font-semibold text-amber-900">
                 <span>Added to Customer Debt:</span>
-                <span>
-                  +
-                  {sale.splitDetails?.debtAmount
-                    ? sale.splitDetails.debtAmount.toLocaleString()
-                    : parseFloat(sale.totalAmount).toLocaleString()}{" "}
-                  ETB
-                </span>
+                <span className="text-red-600 font-bold">+{debt.toLocaleString()} ETB</span>
               </div>
-              <div className="flex justify-between text-[11px] text-red-700">
-                <span>New Total Debt Balance:</span>
-                <span className="font-bold">
+              <div className="flex justify-between text-[11px] text-amber-800">
+                <span>New Total Customer Balance:</span>
+                <span className="font-bold text-red-700">
                   {parseFloat(sale.customer.debtBalance || "0").toLocaleString()} ETB
                 </span>
               </div>
@@ -332,10 +328,11 @@ function SaleReceiptModal({
 
           {/* Total */}
           <div className="flex items-center justify-between border-t border-[#e5e7eb] pt-2 text-sm font-bold">
-            <span className="text-[#111827]">Total Paid / Charged:</span>
+            <span className="text-[#111827]">Total Sale Amount:</span>
             <span className="text-base text-[#111827]">{parseFloat(sale.totalAmount).toLocaleString()} ETB</span>
           </div>
         </div>
+
 
         {/* Modal Buttons */}
         <div className="mt-5 flex items-center justify-between border-t border-[#f3f4f6] pt-4">
@@ -382,11 +379,10 @@ export default function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discountVal, setDiscountVal] = useState<number>(0);
 
-  // Customer & Payment State
+  // Customer & Payment State (Cash, Bank, Telebirr only)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("CASH");
-  const [isPartialSplit, setIsPartialSplit] = useState(false);
-  const [cashPaidPart, setCashPaidPart] = useState<string>("");
+  const [amountPaidInput, setAmountPaidInput] = useState<string>("");
 
   // Modals
   const [isAddCustModalOpen, setIsAddCustModalOpen] = useState(false);
@@ -448,27 +444,39 @@ export default function PosPage() {
     return Math.max(0, subtotal - discountVal);
   }, [subtotal, discountVal]);
 
-  // Debt Calculations
-  const currentCustomerDebt = selectedCustomer ? parseFloat(selectedCustomer.debtBalance || "0") : 0;
+  // Effective Amount Paid & Remaining Debt Calculations
+  const effectivePaid = useMemo(() => {
+    if (amountPaidInput.trim() === "") return total;
+    const val = parseFloat(amountPaidInput);
+    return isNaN(val) ? total : Math.max(0, val);
+  }, [amountPaidInput, total]);
 
   const debtAdditionAmount = useMemo(() => {
-    if (paymentMethod === "DEBT") return total;
-    if (isPartialSplit) {
-      const cash = parseFloat(cashPaidPart) || 0;
-      return Math.max(0, total - cash);
-    }
-    return 0;
-  }, [paymentMethod, isPartialSplit, cashPaidPart, total]);
+    return Math.max(0, total - effectivePaid);
+  }, [total, effectivePaid]);
 
+  const changeAmount = useMemo(() => {
+    if (paymentMethod !== "CASH") return 0;
+    return Math.max(0, effectivePaid - total);
+  }, [paymentMethod, effectivePaid, total]);
+
+  const currentCustomerDebt = selectedCustomer ? parseFloat(selectedCustomer.debtBalance || "0") : 0;
   const newProjectedDebt = currentCustomerDebt + debtAdditionAmount;
 
   // Cart Operations
   function addToCart(product: Product) {
-    if (product.stockQuantity <= 0) return;
+    setValidationError("");
+    if (product.stockQuantity <= 0) {
+      setValidationError(`${product.name} is currently out of stock.`);
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stockQuantity) return prev;
+        if (existing.quantity >= product.stockQuantity) {
+          setValidationError(`Cannot add more: max available stock (${product.stockQuantity} pcs) reached for ${product.name}.`);
+          return prev;
+        }
         return prev.map((item) =>
           item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
         );
@@ -478,13 +486,17 @@ export default function PosPage() {
   }
 
   function updateQuantity(productId: string, delta: number) {
+    setValidationError("");
     setCart((prev) => {
       return prev
         .map((item) => {
           if (item.product.id === productId) {
             const nextQty = item.quantity + delta;
             if (nextQty <= 0) return null;
-            if (nextQty > item.product.stockQuantity) return item;
+            if (nextQty > item.product.stockQuantity) {
+              setValidationError(`Cannot exceed available stock (${item.product.stockQuantity} pcs) for ${item.product.name}.`);
+              return item;
+            }
             return { ...item, quantity: nextQty };
           }
           return item;
@@ -494,14 +506,14 @@ export default function PosPage() {
   }
 
   function removeFromCart(productId: string) {
+    setValidationError("");
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
   }
 
   function clearCart() {
     setCart([]);
     setDiscountVal(0);
-    setIsPartialSplit(false);
-    setCashPaidPart("");
+    setAmountPaidInput("");
     setValidationError("");
   }
 
@@ -514,21 +526,26 @@ export default function PosPage() {
       return;
     }
 
-    const isDebt = paymentMethod === "DEBT" || (isPartialSplit && debtAdditionAmount > 0);
+    // Validate Stock for all cart items before proceeding
+    for (const it of cart) {
+      if (it.quantity > it.product.stockQuantity) {
+        setValidationError(`Insufficient stock for "${it.product.name}". Available: ${it.product.stockQuantity}, in cart: ${it.quantity}.`);
+        return;
+      }
+    }
 
-    // Rule: When Debt/Credit is selected, a customer MUST be selected.
-    if (isDebt && !selectedCustomer) {
-      setValidationError("Please select or register a customer to complete a Debt/Credit sale.");
+    // Debt & Customer Validation
+    if (debtAdditionAmount > 0 && !selectedCustomer) {
+      setValidationError(`Please select or register a customer for the outstanding debt of ${debtAdditionAmount.toLocaleString()} ETB.`);
       return;
     }
 
-    if (isDebt && selectedCustomer) {
-      // Show confirmation dialog before completing debt sale
+    if (debtAdditionAmount > 0 && selectedCustomer) {
       setIsDebtConfirmModalOpen(true);
       return;
     }
 
-    // Execute direct sale for Cash, Card, Bank, Mobile
+    // Direct sale execution
     executeSale();
   }
 
@@ -538,15 +555,6 @@ export default function PosPage() {
     setValidationError("");
 
     try {
-      const finalPaymentMethod = isPartialSplit ? "SPLIT" : paymentMethod;
-      const splitDetails = isPartialSplit
-        ? {
-            cashAmount: parseFloat(cashPaidPart) || 0,
-            debtAmount: debtAdditionAmount,
-            paymentMethod: "CASH_AND_DEBT",
-          }
-        : undefined;
-
       const sale = await createSale(activeShopId, {
         customerId: selectedCustomer?.id,
         items: cart.map((it) => ({
@@ -557,13 +565,11 @@ export default function PosPage() {
         })),
         discountAmount: discountVal,
         totalAmount: total,
-        paymentMethod: finalPaymentMethod,
-        splitDetails,
-        notes: isPartialSplit
-          ? `Split Sale: Cash (${cashPaidPart} ETB) + Debt (${debtAdditionAmount} ETB)`
-          : paymentMethod === "DEBT"
-          ? "Full Debt / Credit Sale"
-          : undefined,
+        amountPaid: effectivePaid,
+        paymentMethod,
+        notes: debtAdditionAmount > 0
+          ? `Sale with ${paymentMethod} paid (${effectivePaid} ETB) + Remaining Debt (${debtAdditionAmount} ETB)`
+          : `Full payment via ${paymentMethod}`,
       });
 
       // Reload products & customers state
@@ -579,6 +585,7 @@ export default function PosPage() {
       setIsProcessing(false);
     }
   }
+
 
   if (loading) {
     return <LoadingState />;
@@ -817,112 +824,124 @@ export default function PosPage() {
             )}
           </div>
 
-          {/* Payment Method Selector */}
-          <div className="space-y-2 border-t border-[#f3f4f6] pt-3 text-xs">
+          {/* Payment Method Selector (Cash, Bank, Telebirr) */}
+          <div className="space-y-2.5 border-t border-[#f3f4f6] pt-3 text-xs">
             <label className="font-semibold text-[#374151]">Payment Method</label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { id: "CASH", label: "Cash", icon: "💵" },
-                { id: "CARD", label: "Card", icon: "💳" },
-                { id: "MOBILE", label: "Mobile", icon: "📱" },
-                { id: "BANK_TRANSFER", label: "Bank Transfer", icon: "🏦" },
-                { id: "DEBT", label: "Debt / Credit", icon: "📑" },
+                { id: "BANK", label: "Bank", icon: "🏦" },
+                { id: "TELEBIRR", label: "Telebirr", icon: "📱" },
               ].map((m) => {
-                const isSelected = paymentMethod === m.id && !isPartialSplit;
-                const isDebt = m.id === "DEBT";
+                const isSelected = paymentMethod === m.id;
 
                 return (
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => {
-                      setPaymentMethod(m.id as PaymentMethodType);
-                      setIsPartialSplit(false);
-                    }}
-                    className={`flex flex-col items-center justify-center rounded-xl border p-2 text-center transition-all ${
+                    onClick={() => setPaymentMethod(m.id as PaymentMethodType)}
+                    className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
                       isSelected
-                        ? isDebt
-                          ? "border-[#dc2626] bg-red-50 text-red-700 shadow-sm ring-1 ring-red-500"
-                          : "border-[#111827] bg-[#111827] text-white shadow-sm"
+                        ? "border-[#111827] bg-[#111827] text-white shadow-sm ring-1 ring-[#111827]"
                         : "border-[#e5e7eb] bg-white text-[#374151] hover:bg-[#f9fafb]"
-                    } ${m.id === "DEBT" ? "col-span-2 font-bold" : ""}`}
+                    }`}
                   >
-                    <span className="text-base">{m.icon}</span>
-                    <span className="mt-0.5 text-[11px] font-medium">{m.label}</span>
+                    <span className="text-lg">{m.icon}</span>
+                    <span className="mt-1 text-xs font-semibold">{m.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Split / Partial Payment Toggle */}
-            <div className="mt-2 flex items-center justify-between rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-2.5">
-              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-[#374151]">
-                <input
-                  type="checkbox"
-                  checked={isPartialSplit}
-                  onChange={(e) => setIsPartialSplit(e.target.checked)}
-                  className="size-3.5 rounded border-[#d1d5db] text-[#111827]"
-                />
-                <span>Split / Partial Debt (Cash + Debt)</span>
-              </label>
-            </div>
-
-            {/* Partial Payment Input Field */}
-            {isPartialSplit && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-[#6b7280]">Total Sale:</span>
-                  <span className="font-bold text-[#111827]">{total.toLocaleString()} ETB</span>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-[#374151]">Cash Amount Paid:</label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={cashPaidPart}
-                      onChange={(e) => setCashPaidPart(e.target.value)}
-                      placeholder="e.g. 400"
-                      className="h-8 w-full rounded-lg border border-[#e5e7eb] bg-white px-2.5 text-xs font-semibold text-[#111827] focus:border-[#2563eb] focus:outline-none"
-                    />
-                    <span className="text-xs font-medium text-[#6b7280]">ETB</span>
-                  </div>
-                </div>
-                <div className="flex justify-between border-t border-amber-200 pt-1.5 font-semibold text-red-700">
-                  <span>Remaining Added to Debt:</span>
-                  <span>+{debtAdditionAmount.toLocaleString()} ETB</span>
-                </div>
+            {/* Amount Paid / Workflow Input */}
+            <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-3 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-[#374151]">Amount Paid by Customer:</label>
+                <span className="text-[11px] text-[#6b7280]">Total: {total.toLocaleString()} ETB</span>
               </div>
-            )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={amountPaidInput}
+                  onChange={(e) => setAmountPaidInput(e.target.value)}
+                  placeholder={String(total)}
+                  className="h-9 w-full rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-bold text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                />
+                <span className="text-xs font-semibold text-[#6b7280]">ETB</span>
+              </div>
+
+              {/* Quick shortcut pills */}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total))}
+                  className="rounded-md border border-[#e5e7eb] bg-white px-2 py-1 text-[10px] font-medium text-[#374151] hover:bg-[#f3f4f6]"
+                >
+                  Pay Full ({total} ETB)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(Math.round(total / 2)))}
+                  className="rounded-md border border-[#e5e7eb] bg-white px-2 py-1 text-[10px] font-medium text-[#374151] hover:bg-[#f3f4f6]"
+                >
+                  Half ({Math.round(total / 2)} ETB)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput("0")}
+                  className="rounded-md border border-red-200 bg-red-50/70 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-100"
+                >
+                  0 (Full Debt)
+                </button>
+              </div>
+
+              {/* Change calculation for Cash overpayment */}
+              {changeAmount > 0 && (
+                <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
+                  <span>Cash Change to Return:</span>
+                  <span>{changeAmount.toLocaleString()} ETB</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Real-time Debt Calculation Box */}
-          {(paymentMethod === "DEBT" || (isPartialSplit && debtAdditionAmount > 0)) && (
-            <div className="rounded-xl border border-red-200 bg-red-50/60 p-3.5 space-y-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-red-800">
-                <HandCoins className="size-4" />
-                <span>Debt / Credit Summary</span>
+          {/* Real-time Debt / Credit Summary Box (When Amount Paid < Total) */}
+          {debtAdditionAmount > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 space-y-2 text-xs animate-in fade-in duration-150">
+              <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                <HandCoins className="size-4 text-amber-700" />
+                <span>Customer Debt / Credit Notice</span>
               </div>
               <div className="space-y-1.5 pt-1 text-[11px]">
                 <div className="flex justify-between">
-                  <span className="text-red-900/70">Customer:</span>
-                  <span className="font-semibold text-red-950">{selectedCustomer?.name || "Not Selected"}</span>
+                  <span className="text-amber-900/70">Selected Customer:</span>
+                  <span className={`font-semibold ${selectedCustomer ? "text-amber-950" : "text-red-600 font-bold"}`}>
+                    {selectedCustomer ? selectedCustomer.name : "⚠️ Required (None Selected)"}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-red-900/70">Current Debt:</span>
-                  <span className="font-bold text-red-950">{currentCustomerDebt.toLocaleString()} ETB</span>
+                {selectedCustomer && (
+                  <div className="flex justify-between">
+                    <span className="text-amber-900/70">Previous Debt Balance:</span>
+                    <span className="font-semibold text-amber-950">{currentCustomerDebt.toLocaleString()} ETB</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-amber-800">
+                  <span>Remaining Added to Debt:</span>
+                  <span className="text-red-600">+{debtAdditionAmount.toLocaleString()} ETB</span>
                 </div>
-                <div className="flex justify-between font-semibold text-red-800">
-                  <span>Current Sale Added to Debt:</span>
-                  <span>+{debtAdditionAmount.toLocaleString()} ETB</span>
-                </div>
-                <div className="flex justify-between border-t border-red-200 pt-1.5 text-xs font-bold text-[#dc2626]">
-                  <span>New Total Debt:</span>
-                  <span>{newProjectedDebt.toLocaleString()} ETB</span>
-                </div>
+                {selectedCustomer && (
+                  <div className="flex justify-between border-t border-amber-200 pt-1.5 text-xs font-bold text-red-700">
+                    <span>New Total Customer Debt:</span>
+                    <span>{newProjectedDebt.toLocaleString()} ETB</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
+
 
         {/* ================================================================= */}
         {/* Cart Total & Checkout Action                                      */}
@@ -957,17 +976,17 @@ export default function PosPage() {
             disabled={isProcessing || cart.length === 0}
             onClick={handleCheckoutClick}
             className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 ${
-              paymentMethod === "DEBT" || (isPartialSplit && debtAdditionAmount > 0)
+              debtAdditionAmount > 0
                 ? "bg-[#dc2626] hover:bg-red-700"
                 : "bg-[#111827] hover:bg-slate-800"
             }`}
           >
             {isProcessing ? (
               "Processing..."
-            ) : paymentMethod === "DEBT" ? (
+            ) : debtAdditionAmount > 0 ? (
               <>
                 <HandCoins className="size-4" />
-                Complete Debt Sale ({total.toLocaleString()} ETB)
+                Complete Sale (with {debtAdditionAmount.toLocaleString()} ETB Debt)
               </>
             ) : (
               <>
@@ -976,6 +995,7 @@ export default function PosPage() {
               </>
             )}
           </button>
+
         </div>
       </div>
 

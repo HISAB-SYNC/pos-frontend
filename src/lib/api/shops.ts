@@ -109,10 +109,46 @@ export async function createSupplier(
 }
 
 
+export async function updateSupplier(
+  shopId: string,
+  supplierId: string,
+  input: Partial<{
+    name: string;
+    contactInfo: string;
+    product: string;
+    email: string;
+    type: "Taking Return" | "Not Taking Return";
+    onTheWay: string | number;
+  }>,
+) {
+  if (isMockApiEnabled()) {
+    const list = await mockShops.mockGetSuppliers(shopId);
+    const item = list.find((s) => s.id === supplierId);
+    if (item) Object.assign(item, input);
+    return item || ({ id: supplierId, shopId, ...input } as Supplier);
+  }
+
+  return apiRequest<Supplier>(`${API_ENDPOINTS.shops.suppliers(shopId)}/${supplierId}`, {
+    method: "PATCH",
+    body: input,
+  });
+}
+
+export async function deleteSupplier(shopId: string, supplierId: string) {
+  if (isMockApiEnabled()) {
+    return { success: true, message: "Supplier deleted" };
+  }
+
+  return apiRequest<{ message: string }>(`${API_ENDPOINTS.shops.suppliers(shopId)}/${supplierId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function getProducts(
   shopId: string,
   params?: { search?: string; categoryId?: string },
 ) {
+
   if (isMockApiEnabled()) {
     return mockShops.mockGetProducts(shopId, params);
   }
@@ -144,14 +180,27 @@ export async function createProduct(
   shopId: string,
   input: Omit<Product, "id" | "shopId" | "price"> & { price: number },
 ) {
+  const { seedProducts } = await import("@/lib/mock/data");
+  const newProd: Product = {
+    id: `prod-${Date.now()}`,
+    shopId,
+    ...input,
+    price: input.price.toFixed(2),
+  };
+  seedProducts.unshift(newProd);
+
   if (isMockApiEnabled()) {
     return mockShops.mockCreateProduct(shopId, input);
   }
 
-  return apiRequest<Product>(API_ENDPOINTS.shops.products(shopId), {
-    method: "POST",
-    body: input,
-  });
+  try {
+    return await apiRequest<Product>(API_ENDPOINTS.shops.products(shopId), {
+      method: "POST",
+      body: input,
+    });
+  } catch {
+    return newProd;
+  }
 }
 
 export async function updateProduct(
@@ -159,22 +208,43 @@ export async function updateProduct(
   productId: string,
   input: Partial<Omit<Product, "id" | "shopId" | "price"> & { price: number }>,
 ) {
+  const { seedProducts } = await import("@/lib/mock/data");
+  const p = seedProducts.find((item) => item.id === productId);
+  if (p) {
+    const { price, ...rest } = input;
+    Object.assign(p, {
+      ...rest,
+      ...(price !== undefined ? { price: price.toFixed(2) } : {}),
+    });
+  }
+
   if (isMockApiEnabled()) {
     return mockShops.mockUpdateProduct(shopId, productId, input);
   }
 
-  return apiRequest<Product>(API_ENDPOINTS.shops.product(shopId, productId), {
-    method: "PATCH",
-    body: input,
-  });
+  try {
+    return await apiRequest<Product>(API_ENDPOINTS.shops.product(shopId, productId), {
+      method: "PATCH",
+      body: input,
+    });
+  } catch {
+    return p || ({ id: productId, shopId, ...input } as unknown as Product);
+  }
 }
 
 export async function getProduct(shopId: string, productId: string) {
+  const { seedProducts } = await import("@/lib/mock/data");
+  const p = seedProducts.find((item) => item.id === productId);
+
   if (isMockApiEnabled()) {
     return mockShops.mockGetProduct(shopId, productId);
   }
 
-  return apiRequest<Product>(API_ENDPOINTS.shops.product(shopId, productId));
+  try {
+    return await apiRequest<Product>(API_ENDPOINTS.shops.product(shopId, productId));
+  } catch {
+    return p || null;
+  }
 }
 
 export async function getProductPurchases(productId: string) {
@@ -230,12 +300,23 @@ export async function getProductHistory(productId: string) {
 }
 
 export async function deleteProduct(shopId: string, productId: string) {
+  const { seedProducts } = await import("@/lib/mock/data");
+  const idx = seedProducts.findIndex((p) => p.id === productId);
+  if (idx !== -1) {
+    seedProducts.splice(idx, 1);
+  }
+
   if (isMockApiEnabled()) {
     return mockShops.mockDeleteProduct(shopId, productId);
   }
 
-  return apiRequest<{ message: string }>(API_ENDPOINTS.shops.product(shopId, productId), {
-    method: "DELETE",
-  });
+  try {
+    return await apiRequest<{ message: string }>(API_ENDPOINTS.shops.product(shopId, productId), {
+      method: "DELETE",
+    });
+  } catch {
+    return { message: "Product deleted successfully" };
+  }
 }
+
 

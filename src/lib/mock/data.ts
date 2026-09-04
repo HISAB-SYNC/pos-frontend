@@ -10,12 +10,14 @@ import type {
   ProductAdjustment,
   ProductHistory,
   ProductPurchase,
+  Sale,
   Shop,
   Supplier,
   TeamMember,
   TeamSummary,
   User,
 } from "@/lib/api/types";
+
 
 
 
@@ -26,22 +28,20 @@ export type DashboardMetrics = {
     profit: number;
     cost: number;
   };
-  inventorySummary: {
-    quantityInHand: number;
-    toBeReceived: number;
-  };
-  purchaseOverview: {
-    purchase: number;
-    cost: number;
-    cancel: number;
-    return: number;
-  };
-  productSummary: {
-    suppliers: number;
-    categories: number;
+  netProfit: number;
+  grossProfit: number;
+  totalExpenses: number;
+  cogs: number;
+  outstandingDebt: number;
+  debtorsCount: number;
+  todaySalesCount: number;
+  todayRevenue: number;
+  paymentBreakdown: {
+    cash: number;
+    bank: number;
+    telebirr: number;
   };
   salesAndPurchase: Array<{ month: string; sales: number; purchase: number }>;
-  orderSummary: Array<{ month: string; ordered: number; delivered: number }>;
   topSellingStock: Array<{
     name: string;
     soldQuantity: number;
@@ -54,7 +54,16 @@ export type DashboardMetrics = {
     remainingQuantity: number;
     unit: string;
   }>;
+  recentSales?: Array<{
+    id: string;
+    customerName: string;
+    totalAmount: number;
+    paymentMethod: string;
+    date: string;
+    status: string;
+  }>;
 };
+
 
 export type ReportMetrics = {
   overview: {
@@ -945,22 +954,21 @@ export const seedDashboardMetrics: DashboardMetrics = {
   salesOverview: {
     sales: 832,
     revenue: 18300,
-    profit: 868,
-    cost: 17432,
+    profit: 5490,
+    cost: 12810,
   },
-  inventorySummary: {
-    quantityInHand: 868,
-    toBeReceived: 200,
-  },
-  purchaseOverview: {
-    purchase: 82,
-    cost: 13573,
-    cancel: 5,
-    return: 17432,
-  },
-  productSummary: {
-    suppliers: 31,
-    categories: 21,
+  netProfit: 4190,
+  grossProfit: 5490,
+  totalExpenses: 1300,
+  cogs: 12810,
+  outstandingDebt: 6700,
+  debtorsCount: 3,
+  todaySalesCount: 14,
+  todayRevenue: 2450,
+  paymentBreakdown: {
+    cash: 9500,
+    bank: 5200,
+    telebirr: 3600,
   },
   salesAndPurchase: [
     { month: "Jan", sales: 18000, purchase: 22000 },
@@ -969,13 +977,6 @@ export const seedDashboardMetrics: DashboardMetrics = {
     { month: "Apr", sales: 28000, purchase: 35000 },
     { month: "May", sales: 42000, purchase: 38000 },
     { month: "Jun", sales: 38000, purchase: 45000 },
-  ],
-  orderSummary: [
-    { month: "Jan", ordered: 1200, delivered: 900 },
-    { month: "Feb", ordered: 1800, delivered: 1400 },
-    { month: "Mar", ordered: 2200, delivered: 1900 },
-    { month: "Apr", ordered: 2800, delivered: 2400 },
-    { month: "May", ordered: 3200, delivered: 2900 },
   ],
   topSellingStock: [
     { name: "Coca Cola", soldQuantity: 40, remainingQuantity: 12, price: "75 Birr" },
@@ -987,7 +988,14 @@ export const seedDashboardMetrics: DashboardMetrics = {
     { id: "2", name: "Whole Milk 1L", remainingQuantity: 2, unit: "pcs" },
     { id: "3", name: "Cooking Oil 1L", remainingQuantity: 3, unit: "pcs" },
   ],
+  recentSales: [
+    { id: "S-1049", customerName: "Abebe Kebede", totalAmount: 850, paymentMethod: "Telebirr", date: "Today, 02:45 PM", status: "COMPLETED" },
+    { id: "S-1048", customerName: "Sara Mohammed", totalAmount: 1420, paymentMethod: "Cash", date: "Today, 01:15 PM", status: "COMPLETED" },
+    { id: "S-1047", customerName: "Walk-in Customer", totalAmount: 320, paymentMethod: "Cash", date: "Today, 11:30 AM", status: "COMPLETED" },
+    { id: "S-1046", customerName: "Amira Hassen", totalAmount: 2100, paymentMethod: "Bank", date: "Yesterday", status: "COMPLETED" },
+  ],
 };
+
 
 export const seedReportMetrics: ReportMetrics = {
   overview: {
@@ -1178,7 +1186,33 @@ export const seedProductHistory: ProductHistory[] = [
   },
 ];
 
+export const seedSales: Sale[] = [
+  {
+    id: "sale-101",
+    shopId: "shop-1",
+    customerId: "cust-1",
+    totalAmount: "180.00",
+    subtotal: "180.00",
+    discountAmount: "0.00",
+    taxAmount: "0.00",
+    paymentMethod: "CASH",
+    status: "COMPLETED",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    items: [
+      {
+        id: "item-1",
+        productId: "prod-sun-chips",
+        quantity: 2,
+        unitPrice: "90.00",
+        subtotal: "180.00",
+        product: { id: "prod-sun-chips", name: "Sun Chips", sku: "CHIP-001" },
+      },
+    ],
+  },
+];
+
 export type MockStore = {
+
   users: User[];
   shops: Shop[];
   categories: Category[];

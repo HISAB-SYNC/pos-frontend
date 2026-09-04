@@ -25,7 +25,9 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { getCustomers, getDebts, getDebtSummary, recordDebtPayment } from "@/lib/api/app-data";
 import type { Customer, Debt, DebtSummary, DebtTransaction } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
+
 
 /* ------------------------------------------------------------------ */
 /* Modal: Debt Transaction History                                    */
@@ -204,7 +206,7 @@ function ReceivePaymentModal({
     initialCustomerId || customers.find((c) => parseFloat(c.debtBalance || "0") > 0)?.id || customers[0]?.id || "",
   );
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Mobile Payment">("Cash");
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Bank" | "Telebirr">("Cash");
   const [notes, setNotes] = useState("");
   const [reference, setReference] = useState(`PAY-${Math.floor(100 + Math.random() * 900)}`);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -344,8 +346,8 @@ function ReceivePaymentModal({
           {/* Payment Method */}
           <div>
             <label className="mb-1 block font-medium text-[#374151]">Repayment Method</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(["Cash", "Card", "Bank Transfer", "Mobile Payment"] as const).map((method) => (
+            <div className="grid grid-cols-3 gap-2">
+              {(["Cash", "Bank", "Telebirr"] as const).map((method) => (
                 <button
                   key={method}
                   type="button"
@@ -357,14 +359,14 @@ function ReceivePaymentModal({
                   }`}
                 >
                   {method === "Cash" && "💵"}
-                  {method === "Card" && "💳"}
-                  {method === "Bank Transfer" && "🏦"}
-                  {method === "Mobile Payment" && "📱"}
+                  {method === "Bank" && "🏦"}
+                  {method === "Telebirr" && "📱"}
                   {method}
                 </button>
               ))}
             </div>
           </div>
+
 
           {/* Reference & Notes */}
           <div className="grid grid-cols-2 gap-3">
@@ -477,10 +479,32 @@ export default function DebtsPage() {
     });
   }, [customers, activeTab, searchQuery]);
 
+  function handleExportLedger() {
+    exportToCsv("customer-debt-ledger", filteredCustomers, [
+      { header: "Customer ID", formatter: (c) => c.customerId || "CUST-001" },
+      { header: "Customer Name", key: "name" },
+      { header: "Phone", key: "phone" },
+      { header: "Address", key: "address" },
+      {
+        header: "Outstanding Balance (ETB)",
+        formatter: (c) => parseFloat(String(c.debtBalance || "0")).toFixed(2),
+      },
+      {
+        header: "Credit Limit (ETB)",
+        formatter: (c) => parseFloat(String(c.creditLimit || "5000")).toFixed(2),
+      },
+
+      {
+        header: "Days Overdue",
+        formatter: (c) => c.daysOverdue || "-",
+      },
+      { header: "Status", formatter: (c) => c.status || "Active" },
+    ]);
+  }
+
   if (loading) {
     return <LoadingState />;
   }
-
 
   return (
     <div className="space-y-6">
@@ -497,6 +521,7 @@ export default function DebtsPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={handleExportLedger}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3.5 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
           >
             <Download className="size-3.5 text-[#6b7280]" />
@@ -515,6 +540,7 @@ export default function DebtsPage() {
           </button>
         </div>
       </div>
+
 
       {/* ------------------------------------------------------------------ */}
       {/* 2. Top Summary Metric Cards                                        */}

@@ -136,6 +136,8 @@ export const seedUsers: User[] = [
   },
 ];
 
+
+
 export const seedShops: Shop[] = [
   {
     id: MOCK_IDS.shop,
@@ -1249,4 +1251,5 @@ export function createSeedStore(): MockStore {
     },
   };
 }
+
 

@@ -27,7 +27,6 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-[#e5e7eb] bg-white px-4 sm:px-6">
       <SidebarTrigger />
 
-
       <div className="relative mx-auto hidden w-full max-w-xl flex-1 md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9ca3af]" />
         <Input

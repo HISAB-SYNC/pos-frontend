@@ -17,6 +17,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import {
   createCustomer,
   deleteCustomer,
+  getCustomerDetail,
   getCustomers,
   recordDebtPayment,
   updateCustomer,
@@ -30,15 +31,33 @@ import { useShopStore } from "@/stores/shop-store";
 /* Modal: Customer Information                                        */
 /* ------------------------------------------------------------------ */
 function CustomerInfoModal({
-  customer,
+  customer: initialCustomer,
+  shopId,
   onClose,
   onRecordPayment,
 }: {
   customer: Customer | null;
+  shopId: string;
   onClose: () => void;
   onRecordPayment: (customerId: string) => void;
 }) {
-  if (!customer) return null;
+  const [detailCustomer, setDetailCustomer] = useState<Customer | null>(initialCustomer);
+
+  useEffect(() => {
+    setDetailCustomer(initialCustomer);
+    if (initialCustomer && shopId) {
+      getCustomerDetail(shopId, initialCustomer.id)
+        .then((data) => {
+          if (data) {
+            setDetailCustomer((prev) => ({ ...prev, ...data }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialCustomer, shopId]);
+
+  if (!detailCustomer) return null;
+  const customer = detailCustomer;
 
   const debt = parseFloat(customer.debtBalance || "0");
   const limit = parseFloat(String(customer.creditLimit || "5000"));
@@ -136,7 +155,27 @@ function CustomerInfoModal({
           </div>
 
           <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
-            {customer.debtHistory && customer.debtHistory.length > 0 ? (
+            {customer.sales && customer.sales.length > 0 ? (
+              customer.sales.map((sale) => (
+                <div
+                  key={sale.id}
+                  className="flex items-center justify-between rounded-xl bg-[#f9fafb] px-4 py-2.5 text-xs"
+                >
+                  <div>
+                    <p className="font-medium text-[#111827]">POS Sale ({sale.id.slice(0, 8)})</p>
+                    <p className="text-[10px] text-[#9ca3af]">
+                      {new Date(sale.createdAt).toLocaleDateString("en-GB")} • {sale.paymentMethod || "CASH"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-[#111827]">{parseFloat(sale.totalAmount || "0").toLocaleString()} ETB</p>
+                    <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 bg-emerald-50">
+                      {sale.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : customer.debtHistory && customer.debtHistory.length > 0 ? (
               customer.debtHistory.map((tx) => (
                 <div
                   key={tx.id}
@@ -188,9 +227,9 @@ function CustomerInfoModal({
           <button
             type="button"
             onClick={() => onRecordPayment(customer.id)}
-            className="flex-1 rounded-lg bg-[#111827] py-2.5 text-xs font-medium text-white transition-colors hover:bg-[#1f2937]"
+            className="flex-1 rounded-lg bg-[#c0e763] py-2.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
           >
-            Pay
+            Record Payment
           </button>
         </div>
       </div>
@@ -323,7 +362,7 @@ function AddCustomerModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
+              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Customer"}
             </button>
@@ -451,7 +490,7 @@ function EditCustomerModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -468,59 +507,32 @@ function EditCustomerModal({
 function DeleteCustomerDialog({
   customer,
   onClose,
-  onDeleted,
-  shopId,
 }: {
   customer: Customer | null;
   onClose: () => void;
-  onDeleted: () => void;
-  shopId: string;
+  onDeleted?: () => void;
+  shopId?: string;
 }) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  async function handleConfirm() {
-    if (!customer) return;
-    setIsDeleting(true);
-    try {
-      await deleteCustomer(shopId, customer.id);
-      onDeleted();
-      onClose();
-    } catch {
-      onDeleted();
-      onClose();
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
   if (!customer) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
           <Trash2 className="size-5" />
         </div>
-        <h3 className="text-base font-bold text-[#111827]">Delete Customer</h3>
-        <p className="mt-1 text-xs text-[#6b7280]">
-          Are you sure you want to delete <span className="font-semibold text-[#111827]">{customer.name}</span>?
+        <h3 className="text-base font-bold text-[#111827]">Customer Deletion Restricted</h3>
+        <p className="mt-2 text-xs leading-relaxed text-[#4b5563]">
+          Customer <span className="font-semibold text-[#111827]">{customer.name}</span> cannot be deleted because the backend enforces audit integrity for all historical sales and credit ledgers. You can edit customer details or mark notes accordingly.
         </p>
 
-        <div className="mt-5 flex justify-end gap-2.5 text-xs">
+        <div className="mt-5 flex justify-end text-xs">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+            className="rounded-lg bg-zinc-900 px-4 py-2 font-semibold text-white hover:bg-zinc-800"
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={isDeleting}
-            onClick={handleConfirm}
-            className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {isDeleting ? "Deleting..." : "Delete Permanently"}
+            Understood
           </button>
         </div>
       </div>
@@ -551,6 +563,18 @@ export default function CustomersPage() {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  const handleOpenCustomer = useCallback(async (cust: Customer) => {
+    setSelectedCustomer(cust);
+    try {
+      const full = await getCustomerDetail(shopId, cust.id);
+      if (full) {
+        setSelectedCustomer((prev) => (prev?.id === cust.id ? { ...prev, ...full } : prev));
+      }
+    } catch {
+      // Retain existing item
+    }
+  }, [shopId]);
+
   // Payment State
   const [paymentCustomer, setPaymentCustomer] = useState<Customer | null>(null);
   const [payAmount, setPayAmount] = useState("");
@@ -566,6 +590,9 @@ export default function CustomersPage() {
     try {
       const data = await getCustomers(shopId);
       setCustomers(data ?? []);
+    } catch (err) {
+      console.warn("Could not load customers:", err);
+      setCustomers([]);
     } finally {
       setIsLoading(false);
     }
@@ -639,6 +666,7 @@ export default function CustomersPage() {
 
       <CustomerInfoModal
         customer={selectedCustomer}
+        shopId={shopId}
         onClose={() => setSelectedCustomer(null)}
         onRecordPayment={(cid) => {
           const c = customers.find((x) => x.id === cid) || null;
@@ -739,9 +767,9 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#111827] px-4 text-xs font-medium text-white transition-colors hover:bg-[#1f2937]"
+              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
             >
-              <Plus className="size-3.5" />
+              <Plus className="size-3.5 text-zinc-950" />
               Add Customer
             </button>
           </div>
@@ -760,7 +788,7 @@ export default function CustomersPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
                 activeTab === tab.id
-                  ? "border-[#2563eb] text-[#2563eb]"
+                  ? "border-zinc-950 text-zinc-950"
                   : "border-transparent text-[#6b7280] hover:text-[#111827]"
               }`}
             >
@@ -803,7 +831,7 @@ export default function CustomersPage() {
                   return (
                     <tr
                       key={customer.id}
-                      onClick={() => setSelectedCustomer(customer)}
+                      onClick={() => handleOpenCustomer(customer)}
                       className="cursor-pointer transition-colors hover:bg-[#f9fafb]"
                     >
                       <td className="px-6 py-3.5">
@@ -939,7 +967,7 @@ export default function CustomersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-slate-800"
+                  className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
                 >
                   Confirm Payment
                 </button>

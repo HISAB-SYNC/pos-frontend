@@ -24,7 +24,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductAvatar } from "@/app/(dashboard)/products/page";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
-  createProductAdjustment,
   getCategories,
   getProducts,
   updateProduct,
@@ -73,16 +72,6 @@ function StockAdjustModal({
       // 1. Update product stock quantity
       await updateProduct(shopId, product.id, {
         stockQuantity: newQuantity,
-      });
-
-      // 2. Record adjustment history
-      const diff = newQuantity - currentQty;
-      await createProductAdjustment(product.id, {
-        adjustmentId: `ADJ-${Date.now().toString().slice(-6)}`,
-        quantityChange: diff,
-        reason: `${reason} (${adjustmentType})`,
-        store: storeLocation,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       });
 
       onAdjusted();
@@ -215,10 +204,10 @@ function StockAdjustModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !quantity}
-              className="rounded-xl bg-[#111827] px-5 py-2 font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              disabled={isSubmitting || !quantity || parseInt(quantity, 10) <= 0}
+              className="rounded-xl bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Updating..." : "Confirm Adjustment"}
+              {isSubmitting ? "Adjusting..." : "Apply Adjustment"}
             </button>
           </div>
         </form>
@@ -267,6 +256,10 @@ export default function InventoryPage() {
       ]);
       setProducts(prods ?? []);
       setCategories(cats ?? []);
+    } catch (err) {
+      console.warn("Could not load inventory data:", err);
+      setProducts([]);
+      setCategories([]);
     } finally {
       setIsLoading(false);
     }
@@ -392,7 +385,7 @@ export default function InventoryPage() {
             </button>
             <Link
               href="/products"
-              className="flex h-9 items-center gap-1.5 rounded-xl bg-[#111827] px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
             >
               <Package className="size-3.5" />
               Manage Catalog
@@ -404,56 +397,56 @@ export default function InventoryPage() {
         {/* 2. Top Metric Cards                                                */}
         {/* ------------------------------------------------------------------ */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#6b7280]">Total Inventory Items</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <Package className="size-4.5" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Total Units in Stock</span>
+              <div className="flex size-9 items-center justify-center rounded-xl bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
+                <Package className="size-4" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-[#111827]">
-              {metrics.totalItems.toLocaleString()} <span className="text-xs font-normal text-[#6b7280]">units</span>
+            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {metrics.totalItems.toLocaleString()} <span className="font-sans text-xs font-normal text-zinc-500">units</span>
             </p>
-            <p className="mt-1 text-[11px] text-[#6b7280]">Across {metrics.totalProducts} catalog products</p>
+            <p className="mt-1 text-[11px] text-zinc-500">Across {metrics.totalProducts} catalog products</p>
           </div>
 
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#6b7280]">Inventory Asset Valuation</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <PackageCheck className="size-4.5" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Inventory Valuation</span>
+              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20">
+                <PackageCheck className="size-4" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-[#111827]">
-              {metrics.totalValuation.toLocaleString()} <span className="text-xs font-normal text-[#6b7280]">ETB</span>
+            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {metrics.totalValuation.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
             </p>
-            <p className="mt-1 text-[11px] text-[#16a34a]">Based on current selling prices</p>
+            <p className="mt-1 text-[11px] font-medium text-emerald-600">Based on catalog retail prices</p>
           </div>
 
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#6b7280]">Low Stock Alerts</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                <AlertTriangle className="size-4.5" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Low Stock Warnings</span>
+              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-500/20">
+                <AlertTriangle className="size-4" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-amber-600">
-              {metrics.lowStockCount} <span className="text-xs font-normal text-[#6b7280]">items</span>
+            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-amber-900 tabular-nums">
+              {metrics.lowStockCount} <span className="font-sans text-xs font-normal text-zinc-500">items</span>
             </p>
-            <p className="mt-1 text-[11px] text-[#6b7280]">Require reordering soon</p>
+            <p className="mt-1 text-[11px] text-zinc-500">Below minimum reorder threshold</p>
           </div>
 
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#6b7280]">Out of Stock</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                <PackageX className="size-4.5" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Depleted / Stockout</span>
+              <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-500/20">
+                <PackageX className="size-4" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-red-600">
-              {metrics.outOfStockCount} <span className="text-xs font-normal text-[#6b7280]">items</span>
+            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-red-700 tabular-nums">
+              {metrics.outOfStockCount} <span className="font-sans text-xs font-normal text-zinc-500">items</span>
             </p>
-            <p className="mt-1 text-[11px] text-[#ef4444]">Currently unavailable for sale</p>
+            <p className="mt-1 text-[11px] font-medium text-red-600">Zero units on hand</p>
           </div>
         </div>
 

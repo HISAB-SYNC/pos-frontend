@@ -18,13 +18,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import {
-  createProductAdjustment,
-  createProductPurchase,
   deleteProduct,
   getProduct,
-  getProductAdjustments,
-  getProductHistory,
-  getProductPurchases,
   updateProduct,
 } from "@/lib/api";
 import type {
@@ -77,21 +72,6 @@ function NewPurchaseModal({
     e.preventDefault();
     setLoading(true);
     try {
-      const qty = parseInt(form.quantity, 10) || 0;
-      const cost = parseFloat(form.unitCost) || 0;
-      await createProductPurchase(productId, {
-        purchaseId: `P-${Math.floor(1000 + Math.random() * 9000)}`,
-        supplier: form.supplier,
-        quantity: qty,
-        unitCost: cost,
-        totalCost: qty * cost,
-        date: form.date,
-        status: form.status,
-      });
-      onCreated();
-      onClose();
-    } catch (err) {
-      console.error(err);
       onCreated();
       onClose();
     } finally {
@@ -226,18 +206,6 @@ function NewAdjustmentModal({
     e.preventDefault();
     setLoading(true);
     try {
-      const change = parseInt(form.quantityChange, 10) || 0;
-      await createProductAdjustment(productId, {
-        adjustmentId: `A-${Math.floor(1000 + Math.random() * 9000)}`,
-        quantityChange: change,
-        reason: form.reason,
-        store: form.store,
-        date: form.date,
-      });
-      onCreated();
-      onClose();
-    } catch (err) {
-      console.error(err);
       onCreated();
       onClose();
     } finally {
@@ -484,22 +452,11 @@ export default function ProductDetailPage() {
     try {
       const prod = await getProduct(shopId, rawId);
       setProduct(prod);
-
-      const targetId = prod?.id || rawId;
-      const [pur, adj, hist] = await Promise.all([
-        getProductPurchases(targetId),
-        getProductAdjustments(targetId),
-        getProductHistory(targetId),
-      ]);
-      setPurchases(pur ?? []);
-      setAdjustments(adj ?? []);
-      setHistory(hist ?? []);
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-
   }, [shopId, rawId]);
 
   useEffect(() => {
@@ -787,10 +744,10 @@ export default function ProductDetailPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`relative px-4 py-2.5 text-sm font-semibold transition-colors ${
                   isActive
-                    ? "border-b-2 border-[#2563eb] text-[#2563eb]"
-                    : "text-[#6b7280] hover:text-[#111827]"
+                    ? "border-b-2 border-zinc-950 text-zinc-950"
+                    : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
                 {tab.label}

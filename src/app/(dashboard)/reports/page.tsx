@@ -55,7 +55,9 @@ import { useShopStore } from "@/stores/shop-store";
 
 const PAYMENT_METHOD_COLORS: Record<string, string> = {
   CASH: "#10b981",
+  CARD: "#3b82f6",
   BANK: "#3b82f6",
+  MOBILE: "#8b5cf6",
   TELEBIRR: "#8b5cf6",
 };
 
@@ -77,6 +79,9 @@ export default function ReportsPage() {
         endDate: period === "custom" && customEnd ? customEnd : undefined,
       });
       setAnalytics(data);
+    } catch (err) {
+      console.warn("Could not load analytics reports:", err);
+      setAnalytics(null);
     } finally {
       setLoading(false);
     }
@@ -86,20 +91,24 @@ export default function ReportsPage() {
     loadAnalytics();
   }, [loadAnalytics]);
 
-  // Payment Breakdown Chart Data (Cash, Bank, Telebirr)
+  // Payment Breakdown Chart Data (Cash, Card/Bank, Mobile/Telebirr)
   const paymentChartData = useMemo(() => {
     if (!analytics?.salesAnalytics.paymentMethodBreakdown) return [];
     const breakdown = analytics.salesAnalytics.paymentMethodBreakdown;
     const items: Array<{ name: string; value: number; color: string }> = [];
 
-    if (breakdown.CASH?.totalAmount) {
-      items.push({ name: "Cash", value: breakdown.CASH.totalAmount, color: PAYMENT_METHOD_COLORS.CASH });
+    const cashAmount = breakdown.CASH?.totalAmount || 0;
+    const cardOrBankAmount = (breakdown.CARD?.totalAmount || 0) || (breakdown.BANK?.totalAmount || 0);
+    const mobileOrTelebirrAmount = (breakdown.MOBILE?.totalAmount || 0) || (breakdown.TELEBIRR?.totalAmount || 0);
+
+    if (cashAmount > 0) {
+      items.push({ name: "Cash", value: cashAmount, color: PAYMENT_METHOD_COLORS.CASH });
     }
-    if (breakdown.BANK?.totalAmount) {
-      items.push({ name: "Bank", value: breakdown.BANK.totalAmount, color: PAYMENT_METHOD_COLORS.BANK });
+    if (cardOrBankAmount > 0) {
+      items.push({ name: "Card / Bank", value: cardOrBankAmount, color: PAYMENT_METHOD_COLORS.CARD });
     }
-    if (breakdown.TELEBIRR?.totalAmount) {
-      items.push({ name: "Telebirr", value: breakdown.TELEBIRR.totalAmount, color: PAYMENT_METHOD_COLORS.TELEBIRR });
+    if (mobileOrTelebirrAmount > 0) {
+      items.push({ name: "Mobile / Telebirr", value: mobileOrTelebirrAmount, color: PAYMENT_METHOD_COLORS.MOBILE });
     }
     return items;
   }, [analytics]);
@@ -150,8 +159,8 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <BarChart3 className="size-4" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
+              <BarChart3 className="size-4 text-[#c0e763]" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Shop Analytics &amp; Reports</h1>
           </div>
@@ -175,7 +184,7 @@ export default function ReportsPage() {
                 onClick={() => setPeriod(tab.id as AnalyticsPeriod)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   period === tab.id
-                    ? "bg-[#111827] text-white shadow-sm"
+                    ? "bg-zinc-950 text-[#c0e763] shadow-sm font-bold"
                     : "text-[#4b5563] hover:bg-[#f9fafb]"
                 }`}
               >
@@ -213,19 +222,19 @@ export default function ReportsPage() {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-[#2563eb] focus:outline-none"
+              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-zinc-950 focus:outline-none"
             />
             <span className="text-[#9ca3af]">to</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-[#2563eb] focus:outline-none"
+              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-zinc-950 focus:outline-none"
             />
             <button
               type="button"
               onClick={loadAnalytics}
-              className="rounded-lg bg-[#111827] px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800"
+              className="rounded-lg bg-[#c0e763] px-3 py-1 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952]"
             >
               Apply Filter
             </button>
@@ -238,35 +247,35 @@ export default function ReportsPage() {
       {/* ================================================================= */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* Gross Revenue */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Total Revenue</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <DollarSign className="size-4" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-950 text-[#c0e763]">
+              <DollarSign className="size-4 text-[#c0e763]" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-[#111827]">
+            <span className="font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">
               {(sales?.totalRevenue || 0).toLocaleString()}
             </span>
-            <span className="text-xs font-medium text-[#6b7280]">ETB</span>
+            <span className="font-mono text-xs font-semibold text-[#6b7280]">ETB</span>
           </div>
           <div className="mt-2 flex items-center justify-between text-[11px] text-[#6b7280]">
             <span>Tax: {(sales?.totalTaxCollected || 0).toLocaleString()} ETB</span>
-            <span className="text-emerald-600 font-medium">Completed Sales</span>
+            <span className="font-medium text-emerald-600">Completed Sales</span>
           </div>
         </div>
 
         {/* Total Completed Orders */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Total Sales Count</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
               <ShoppingCart className="size-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-[#111827]">{sales?.totalSalesCount || 0}</span>
+            <span className="font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">{sales?.totalSalesCount || 0}</span>
             <span className="text-xs text-[#6b7280]">Orders</span>
           </div>
           <div className="mt-2 text-[11px] text-[#6b7280]">
@@ -275,16 +284,16 @@ export default function ReportsPage() {
         </div>
 
         {/* Active Customer Spenders */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Customer Base</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
               <Users className="size-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-[#111827]">{customers?.totalCustomers || 0}</span>
-            <span className="text-xs text-purple-600 font-medium">
+            <span className="font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">{customers?.totalCustomers || 0}</span>
+            <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-800">
               +{customers?.newCustomersInPeriod || 0} New
             </span>
           </div>
@@ -294,7 +303,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Outstanding Customer Debt */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Outstanding Credit Debt</span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-red-50 text-red-600">
@@ -302,10 +311,10 @@ export default function ReportsPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-[#dc2626]">
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#dc2626] tabular-nums">
               {(customers?.outstandingDebt.totalAmount || 0).toLocaleString()}
             </span>
-            <span className="text-xs text-[#dc2626]">ETB</span>
+            <span className="font-mono text-xs font-semibold text-[#dc2626]">ETB</span>
           </div>
           <div className="mt-2 text-[11px] text-[#6b7280]">
             {customers?.outstandingDebt.count || 0} Open debtor accounts
@@ -334,8 +343,8 @@ export default function ReportsPage() {
               >
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#c0e763" stopOpacity={0.65} />
+                    <stop offset="95%" stopColor="#c0e763" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -354,8 +363,9 @@ export default function ReportsPage() {
                 <Tooltip
                   formatter={(val: any) => [`${Number(val).toLocaleString()} ETB`, "Revenue"]}
                   contentStyle={{
-                    backgroundColor: "#111827",
-                    borderRadius: "8px",
+                    backgroundColor: "#0c1017",
+                    border: "1px solid #1e293b",
+                    borderRadius: "10px",
                     color: "#fff",
                     fontSize: "12px",
                   }}
@@ -363,7 +373,7 @@ export default function ReportsPage() {
                 <Area
                   type="monotone"
                   dataKey="totalRevenue"
-                  stroke="#2563eb"
+                  stroke="#0c1017"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
@@ -427,7 +437,7 @@ export default function ReportsPage() {
             </div>
             <Link
               href="/products"
-              className="text-xs font-semibold text-[#2563eb] hover:underline"
+              className="text-xs font-semibold text-zinc-950 hover:underline"
             >
               View Catalog
             </Link>
@@ -451,10 +461,10 @@ export default function ReportsPage() {
                       <td className="py-2.5 font-bold text-[#6b7280]">#{idx + 1}</td>
                       <td className="py-2.5 font-bold text-[#111827]">{p.name}</td>
                       <td className="py-2.5 font-mono text-[#6b7280]">{p.sku}</td>
-                      <td className="py-2.5 text-center font-bold text-[#2563eb]">
+                      <td className="py-2.5 text-center font-mono font-bold text-zinc-900 tabular-nums">
                         {p.totalQuantitySold} pcs
                       </td>
-                      <td className="py-2.5 text-right font-bold text-[#111827]">
+                      <td className="py-2.5 text-right font-mono font-bold text-[#111827] tabular-nums">
                         {p.totalRevenue.toLocaleString()} ETB
                       </td>
                     </tr>
@@ -480,7 +490,7 @@ export default function ReportsPage() {
             </div>
             <Link
               href="/customers"
-              className="text-xs font-semibold text-[#2563eb] hover:underline"
+              className="text-xs font-semibold text-zinc-950 hover:underline"
             >
               All Customers
             </Link>
@@ -502,10 +512,10 @@ export default function ReportsPage() {
                     <tr key={c.customerId} className="hover:bg-[#f9fafb]">
                       <td className="py-2.5 font-bold text-[#111827]">{c.name}</td>
                       <td className="py-2.5 text-[#6b7280]">{c.phone || c.email || "-"}</td>
-                      <td className="py-2.5 text-center font-semibold text-[#374151]">
+                      <td className="py-2.5 text-center font-mono font-semibold text-[#374151] tabular-nums">
                         {c.salesCount}
                       </td>
-                      <td className="py-2.5 text-right font-bold text-[#16a34a]">
+                      <td className="py-2.5 text-right font-mono font-bold text-[#16a34a] tabular-nums">
                         {c.totalSpent.toLocaleString()} ETB
                       </td>
                     </tr>

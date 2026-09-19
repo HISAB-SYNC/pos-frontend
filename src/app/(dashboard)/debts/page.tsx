@@ -3,6 +3,7 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Banknote,
   Calendar,
   CheckCircle2,
   Clock,
@@ -13,8 +14,11 @@ import {
   Eye,
   Filter,
   HandCoins,
+  Landmark,
+  Plus,
   Receipt,
   Search,
+  Smartphone,
   User,
   Users,
   X,
@@ -22,7 +26,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
-import { getCustomers, getDebts, getDebtSummary, recordDebtPayment } from "@/lib/api/app-data";
+import { createDebt, getCustomers, getDebts, getDebtSummary, recordDebtPayment } from "@/lib/api/app-data";
 import type { Customer, Debt, DebtSummary, DebtTransaction } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
@@ -57,11 +61,11 @@ function DebtHistoryModal({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-[#111827]">Debt & Credit History</h2>
-              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-600">
+              <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-800">
                 {customer.customerId || "CUST-001"}
               </span>
             </div>
-            <p className="text-xs text-[#6b7280]">
+            <p className="mt-0.5 text-xs text-[#6b7280]">
               {customer.name} • {customer.phone || "No phone"} • {customer.address || "Addis Ababa"}
             </p>
           </div>
@@ -69,10 +73,10 @@ function DebtHistoryModal({
             <button
               type="button"
               onClick={() => onOpenPayment(customer)}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-[#111827] px-3.5 text-xs font-medium text-white transition-colors hover:bg-slate-800"
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3.5 text-xs font-bold text-zinc-950 transition-all hover:bg-[#b0d952]"
             >
-              <Coins className="size-3.5" />
-              Pay Debt
+              <Coins className="size-3.5 text-zinc-950" />
+              Receive Payment
             </button>
             <button
               type="button"
@@ -181,6 +185,149 @@ function DebtHistoryModal({
             Close
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Modal: Create Standalone Debt                                      */
+/* ------------------------------------------------------------------ */
+function CreateDebtModal({
+  customers,
+  onClose,
+  onSuccess,
+}: {
+  customers: Customer[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
+
+  const [customerId, setCustomerId] = useState(customers[0]?.id || "");
+  const [amount, setAmount] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!customerId || !amount || parseFloat(amount) <= 0) {
+      setErrorMsg("Please select a customer and enter a valid debt amount.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      await createDebt(activeShopId, {
+        customerId,
+        amount: parseFloat(amount),
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+        notes: notes.trim() || undefined,
+      });
+      onSuccess();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "message" in err
+          ? String((err as any).message)
+          : "Failed to record debt.";
+      setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="mb-4 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
+          <div>
+            <h2 className="text-base font-bold text-[#111827]">Record Standalone Debt</h2>
+            <p className="text-xs text-[#6b7280]">Issue store credit or register manual debt</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-600 font-medium">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+          <div>
+            <label className="mb-1 block font-medium text-[#374151]">Customer *</label>
+            <select
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              required
+              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            >
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.phone || "No phone"}) — Debt: {parseFloat(c.debtBalance || "0").toLocaleString()} ETB
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-[#374151]">Debt Amount (ETB) *</label>
+            <input
+              type="number"
+              step="0.01"
+              min="1"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="e.g. 500.00"
+              required
+              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-[#374151]">Due Date</label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-[#374151]">Notes / Purpose</label>
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Emergency store credit"
+              className="w-full rounded-lg border border-[#e5e7eb] p-2.5 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-lg bg-[#c0e763] px-4 py-2 font-bold text-zinc-950 hover:bg-[#b0d952] disabled:opacity-50"
+            >
+              {isSubmitting ? "Recording..." : "Confirm Debt"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -322,7 +469,7 @@ function ReceivePaymentModal({
               <button
                 type="button"
                 onClick={() => setAmount(String(currentDebt))}
-                className="text-[11px] font-semibold text-blue-600 hover:underline"
+                className="text-[11px] font-semibold text-zinc-900 underline underline-offset-2 hover:text-black"
               >
                 Pay Full Balance
               </button>
@@ -334,10 +481,10 @@ function ReceivePaymentModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="e.g. 500"
-                className="h-10 w-full rounded-xl border border-[#e5e7eb] px-3 pr-12 text-xs font-semibold text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                className="h-10 w-full rounded-xl border border-[#e5e7eb] px-3 pr-12 font-mono text-sm font-semibold text-[#111827] focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950 tabular-nums"
                 required
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#9ca3af]">
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-semibold text-[#9ca3af]">
                 ETB
               </span>
             </div>
@@ -352,15 +499,15 @@ function ReceivePaymentModal({
                   key={method}
                   type="button"
                   onClick={() => setPaymentMethod(method)}
-                  className={`flex h-9 items-center justify-center gap-1.5 rounded-lg border text-xs font-medium transition-all ${
+                  className={`flex h-9 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition-all ${
                     paymentMethod === method
-                      ? "border-[#111827] bg-[#111827] text-white shadow-sm"
+                      ? "border-zinc-950 bg-zinc-950 text-[#c0e763] shadow-sm"
                       : "border-[#e5e7eb] bg-white text-[#374151] hover:bg-[#f9fafb]"
                   }`}
                 >
-                  {method === "Cash" && "💵"}
-                  {method === "Bank" && "🏦"}
-                  {method === "Telebirr" && "📱"}
+                  {method === "Cash" && <Banknote className="size-3.5" />}
+                  {method === "Bank" && <Landmark className="size-3.5" />}
+                  {method === "Telebirr" && <Smartphone className="size-3.5" />}
                   {method}
                 </button>
               ))}
@@ -375,7 +522,7 @@ function ReceivePaymentModal({
               <input
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-2.5 font-mono text-xs text-[#111827]"
+                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-2.5 font-mono text-xs text-[#111827] focus:border-zinc-950 focus:outline-none"
               />
             </div>
             <div>
@@ -384,7 +531,7 @@ function ReceivePaymentModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. Paid at counter"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-2.5 text-xs text-[#111827]"
+                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-2.5 text-xs text-[#111827] focus:border-zinc-950 focus:outline-none"
               />
             </div>
           </div>
@@ -394,14 +541,14 @@ function ReceivePaymentModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || payVal <= 0}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Recording..." : "Confirm Payment"}
             </button>
@@ -436,6 +583,7 @@ export default function DebtsPage() {
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   const [paymentCustomerId, setPaymentCustomerId] = useState<string | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isCreateDebtModalOpen, setIsCreateDebtModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -529,13 +677,21 @@ export default function DebtsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setIsCreateDebtModalOpen(true)}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-800 shadow-sm transition-all hover:bg-zinc-50 active:scale-95"
+          >
+            <Plus className="size-3.5 text-zinc-600" />
+            Record Debt
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setPaymentCustomerId(null);
               setIsPaymentModalOpen(true);
             }}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-[#111827] px-4 text-xs font-medium text-white transition-colors hover:bg-slate-800"
+            className="flex h-9 items-center gap-1.5 rounded-lg bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
           >
-            <Coins className="size-3.5" />
+            <Coins className="size-3.5 text-zinc-950" />
             Receive Payment
           </button>
         </div>
@@ -547,64 +703,68 @@ export default function DebtsPage() {
       {/* ------------------------------------------------------------------ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Outstanding */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#6b7280]">Total Outstanding Debt</span>
             <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
               <HandCoins className="size-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#dc2626]">
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#dc2626] tabular-nums">
               {summary.totalOutstandingDebt.toLocaleString()}
             </span>
-            <span className="text-xs font-semibold text-[#dc2626]">ETB</span>
+            <span className="font-mono text-xs font-bold text-[#dc2626]">ETB</span>
           </div>
           <span className="mt-1 block text-[11px] text-[#9ca3af]">From {summary.totalDebtors} debtors</span>
         </div>
 
         {/* Active Debtors */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#6b7280]">Active Debtors</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
               <Users className="size-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#2563eb]">{summary.totalDebtors}</span>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">
+              {summary.totalDebtors}
+            </span>
             <span className="text-xs font-medium text-[#6b7280]">Customers</span>
           </div>
           <span className="mt-1 block text-[11px] text-[#9ca3af]">Accounts with active balances</span>
         </div>
 
         {/* Collected Repayments */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#6b7280]">Collected Repayments</span>
             <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <CheckCircle2 className="size-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#16a34a]">
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-emerald-600 tabular-nums">
               {summary.collectedThisMonth.toLocaleString()}
             </span>
-            <span className="text-xs font-semibold text-[#16a34a]">ETB</span>
+            <span className="font-mono text-xs font-bold text-emerald-600">ETB</span>
           </div>
           <span className="mt-1 block text-[11px] text-[#9ca3af]">Recorded repayments</span>
         </div>
 
         {/* Overdue Accounts */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#6b7280]">Overdue Accounts</span>
             <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
               <Clock className="size-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#d97706]">{summary.overdueCount}</span>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-amber-600 tabular-nums">
+              {summary.overdueCount}
+            </span>
             <span className="text-xs font-medium text-[#6b7280]">Customers</span>
           </div>
           <span className="mt-1 block text-[11px] text-[#9ca3af]">Past due payment date</span>
@@ -673,7 +833,7 @@ export default function DebtsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search customer, phone, ID..."
-              className="h-9 w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:bg-white focus:outline-none"
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-zinc-950 focus:bg-white focus:outline-none"
             />
           </div>
         </div>
@@ -714,18 +874,18 @@ export default function DebtsPage() {
 
                       {/* Outstanding Debt */}
                       <td className="px-5 py-4">
-                        <span className={`font-bold ${debt > 0 ? "text-[#dc2626]" : "text-emerald-600"}`}>
+                        <span className={`font-mono font-bold tabular-nums ${debt > 0 ? "text-[#dc2626]" : "text-emerald-600"}`}>
                           {debt.toLocaleString()} ETB
                         </span>
                       </td>
 
                       {/* Total Credit */}
-                      <td className="px-5 py-4 font-medium text-[#374151]">
+                      <td className="px-5 py-4 font-mono font-medium text-[#374151] tabular-nums">
                         {totalCredit.toLocaleString()} ETB
                       </td>
 
                       {/* Total Repaid */}
-                      <td className="px-5 py-4 font-medium text-[#16a34a]">
+                      <td className="px-5 py-4 font-mono font-medium text-[#16a34a] tabular-nums">
                         {totalPaid.toLocaleString()} ETB
                       </td>
 
@@ -769,10 +929,10 @@ export default function DebtsPage() {
                               setPaymentCustomerId(cust.id);
                               setIsPaymentModalOpen(true);
                             }}
-                            className="flex h-8 items-center gap-1 rounded-lg bg-[#111827] px-3 text-xs font-medium text-white transition-colors hover:bg-slate-800"
+                            className="flex h-8 items-center gap-1 rounded-lg bg-zinc-950 px-3 text-xs font-semibold text-[#c0e763] shadow-sm transition-all hover:bg-zinc-800"
                             title="Receive Payment"
                           >
-                            <Coins className="size-3.5" />
+                            <Coins className="size-3.5 text-[#c0e763]" />
                             Pay
                           </button>
                         </div>
@@ -814,6 +974,17 @@ export default function DebtsPage() {
           onClose={() => setIsPaymentModalOpen(false)}
           onSuccess={() => {
             setIsPaymentModalOpen(false);
+            loadData();
+          }}
+        />
+      )}
+
+      {isCreateDebtModalOpen && (
+        <CreateDebtModal
+          customers={customers}
+          onClose={() => setIsCreateDebtModalOpen(false)}
+          onSuccess={() => {
+            setIsCreateDebtModalOpen(false);
             loadData();
           }}
         />

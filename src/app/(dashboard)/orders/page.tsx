@@ -485,6 +485,10 @@ export default function OrdersPage() {
       ]);
       setSummary(sum);
       setOrders(ords);
+    } catch (err) {
+      console.warn("Could not load orders data:", err);
+      setSummary(null);
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }

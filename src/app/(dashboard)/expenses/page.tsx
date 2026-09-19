@@ -197,7 +197,7 @@ function AddExpenseModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
+              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Expense"}
             </button>
@@ -368,7 +368,7 @@ function EditExpenseModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -571,10 +571,10 @@ export default function ExpensesPage() {
             <div className="grid grid-cols-1 divide-y divide-[#f3f4f6] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
               {/* Group 1: Total Expenses */}
               <div className="px-3 py-2 first:pl-0">
-                <p className="text-xs font-semibold text-[#2563eb]">Total Expenses</p>
+                <p className="text-xs font-semibold text-zinc-900">Total Expenses</p>
                 <div className="mt-2 flex items-center gap-6">
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-[#111827] tabular-nums">
                       {summary.totalExpenses?.count ?? 0}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">
@@ -582,7 +582,7 @@ export default function ExpensesPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-[#111827] tabular-nums">
                       {(summary.totalExpenses?.cost ?? summary.totalExpenses?.amount ?? 0).toLocaleString()}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">
@@ -597,11 +597,11 @@ export default function ExpensesPage() {
                 <p className="text-xs font-semibold text-[#16a34a]">Total Paid</p>
                 <div className="mt-2 flex items-center gap-6">
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">{summary.totalPaid?.count ?? 0}</p>
+                    <p className="font-mono text-xl font-bold tracking-tight text-[#111827] tabular-nums">{summary.totalPaid?.count ?? 0}</p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">{summary.totalPaid?.subtext ?? "Settled"}</p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-emerald-600 tabular-nums">
                       {(summary.totalPaid?.cost ?? 0).toLocaleString()}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">{summary.totalPaid?.costLabel ?? "Cost (ETB)"}</p>
@@ -614,7 +614,7 @@ export default function ExpensesPage() {
                 <p className="text-xs font-semibold text-[#f59e0b]">Total Pending</p>
                 <div className="mt-2 flex items-center gap-6">
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-[#111827] tabular-nums">
                       {summary.totalPending?.count ?? 0}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">
@@ -622,7 +622,7 @@ export default function ExpensesPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-amber-600 tabular-nums">
                       {(summary.totalPending?.cost ?? summary.pendingPayment?.amount ?? 0).toLocaleString()}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">
@@ -637,7 +637,7 @@ export default function ExpensesPage() {
                 <p className="text-xs font-semibold text-[#ef4444]">Total Overdue</p>
                 <div className="mt-2 flex items-center gap-6">
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-[#111827] tabular-nums">
                       {summary.totalOverdue?.count ?? 0}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">
@@ -645,7 +645,7 @@ export default function ExpensesPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-[#111827]">
+                    <p className="font-mono text-xl font-bold tracking-tight text-red-600 tabular-nums">
                       {(summary.totalOverdue?.cost ?? 0).toLocaleString()}
                     </p>
                     <p className="mt-1 text-[11px] text-[#9ca3af]">
@@ -759,9 +759,9 @@ export default function ExpensesPage() {
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#111827] px-4 text-xs font-medium text-white transition-colors hover:bg-[#1f2937]"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-3.5 text-zinc-950" />
                 Add Expense
               </button>
             </div>

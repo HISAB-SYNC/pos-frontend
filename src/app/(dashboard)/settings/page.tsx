@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import { getUserProfile, updateUserProfile } from "@/lib/api/app-data";
+import { updateShop } from "@/lib/api/shops";
 import type { UserProfile } from "@/lib/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
@@ -25,11 +26,18 @@ export default function SettingsPage() {
   const setSession = useAuthStore((state) => state.setSession);
   const accessToken = useAuthStore((state) => state.accessToken);
   const activeShopName = useShopStore((state) => state.activeShopName);
-
+  const activeShopId = useShopStore((state) => state.activeShopId);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState(authUser?.name || "");
   const [email, setEmail] = useState(authUser?.email || "");
+
+  // Shop fields
+  const [shopName, setShopName] = useState("");
+  const [shopAddress, setShopAddress] = useState("");
+  const [taxRate, setTaxRate] = useState("15.0");
+  const [currency, setCurrency] = useState("ETB");
+  const [isSavingShop, setIsSavingShop] = useState(false);
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState("");
@@ -52,6 +60,13 @@ export default function SettingsPage() {
       setProfile(data);
       if (data.name) setName(data.name);
       if (data.email) setEmail(data.email);
+      if (data.ownedShops && data.ownedShops.length > 0) {
+        const primary = data.ownedShops[0];
+        if (primary.name) setShopName(primary.name);
+        if (primary.address) setShopAddress(primary.address);
+        if (primary.taxRate) setTaxRate(String(primary.taxRate));
+        if (primary.currency) setCurrency(primary.currency);
+      }
     } catch {
       // Fallback
     }
@@ -248,7 +263,7 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={lowStockAlert}
                   onChange={(e) => setLowStockAlert(e.target.checked)}
-                  className="mt-0.5 size-4 rounded border-[#d1d5db] text-[#2563eb]"
+                  className="mt-0.5 size-4 rounded border-[#d1d5db] text-zinc-950 focus:ring-zinc-950"
                 />
                 <div>
                   <p className="font-semibold text-[#111827]">Low Stock Notification</p>
@@ -261,7 +276,7 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={debtDueAlert}
                   onChange={(e) => setDebtDueAlert(e.target.checked)}
-                  className="mt-0.5 size-4 rounded border-[#d1d5db] text-[#2563eb]"
+                  className="mt-0.5 size-4 rounded border-[#d1d5db] text-zinc-950 focus:ring-zinc-950"
                 />
                 <div>
                   <p className="font-semibold text-[#111827]">Customer Debt Due Alerts</p>
@@ -276,14 +291,114 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563eb] px-6 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-6 py-2.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
-              <Check className="size-3.5" />
+              <Check className="size-3.5 text-zinc-950" />
               {isSaving ? "Saving Changes..." : "Save Settings"}
             </button>
           </div>
         </form>
       </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 3. Shop & Store Settings Form (PATCH /shops/:id)                  */}
+      {/* ------------------------------------------------------------------ */}
+      {(profile?.role === "OWNER" || authUser?.role === "OWNER" || profile?.ownedShops?.length) && (
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+          <div className="mb-6 border-b border-[#f3f4f6] pb-4">
+            <div className="flex items-center gap-2">
+              <Store className="size-4 text-blue-600" />
+              <h2 className="text-sm font-bold text-[#111827]">Shop &amp; Store Configuration</h2>
+            </div>
+            <p className="text-xs text-[#6b7280]">Manage your active shop details, tax rate, and address</p>
+          </div>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const targetShopId = activeShopId || profile?.ownedShops?.[0]?.id;
+              if (!targetShopId) return;
+              setIsSavingShop(true);
+              setErrorMsg("");
+              setSuccessMsg("");
+              try {
+                await updateShop(targetShopId, {
+                  name: shopName,
+                  address: shopAddress,
+                  taxRate: parseFloat(taxRate) || 0,
+                  currency,
+                });
+                setSuccessMsg("Shop store configuration updated successfully!");
+                setTimeout(() => setSuccessMsg(""), 4000);
+              } catch (err: any) {
+                setErrorMsg(err?.message || "Failed to update store settings.");
+              } finally {
+                setIsSavingShop(false);
+              }
+            }}
+            className="space-y-4 text-xs"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block font-semibold text-[#374151]">Store Name</label>
+                <input
+                  type="text"
+                  required
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  placeholder="e.g. Apex Supermarket"
+                  className="h-10 w-full rounded-xl border border-[#e5e7eb] px-3.5 text-xs text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-semibold text-[#374151]">Store Address</label>
+                <input
+                  type="text"
+                  value={shopAddress}
+                  onChange={(e) => setShopAddress(e.target.value)}
+                  placeholder="e.g. Addis Ababa, Bole"
+                  className="h-10 w-full rounded-xl border border-[#e5e7eb] px-3.5 text-xs text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-semibold text-[#374151]">Default Tax Rate (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(e.target.value)}
+                  placeholder="15.0"
+                  className="h-10 w-full rounded-xl border border-[#e5e7eb] px-3.5 text-xs text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-semibold text-[#374151]">Currency Code</label>
+                <input
+                  type="text"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  placeholder="ETB"
+                  className="h-10 w-full rounded-xl border border-[#e5e7eb] px-3.5 text-xs text-[#111827] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3">
+              <button
+                type="submit"
+                disabled={isSavingShop}
+                className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-6 py-2.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              >
+                <Check className="size-3.5 text-zinc-950" />
+                {isSavingShop ? "Saving Store..." : "Update Store Profile"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

@@ -243,7 +243,7 @@ function RegisterOwnerModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563eb] px-5 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Registering..." : "Complete Registration"}
             </button>
@@ -359,6 +359,11 @@ export default function AdminDashboardPage() {
       setStats(statsData);
       setShops(shopsData);
       setUsers(usersData.users);
+    } catch (err) {
+      console.warn("Could not load admin dashboard data:", err);
+      setStats(null);
+      setShops([]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -440,8 +445,8 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <ShieldCheck className="size-4" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
+              <ShieldCheck className="size-4 text-[#c0e763]" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">SuperAdmin Oversight Dashboard</h1>
           </div>
@@ -463,9 +468,9 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setIsRegisterModalOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#2563eb] px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
           >
-            <UserPlus className="size-4" />
+            <UserPlus className="size-4 text-zinc-950" />
             + Register New Owner
           </button>
         </div>
@@ -493,15 +498,15 @@ export default function AdminDashboardPage() {
       {/* ================================================================= */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* Total Registered Shops */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Total Registered Shops</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Building2 className="size-4" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-950 text-[#c0e763]">
+              <Building2 className="size-4 text-[#c0e763]" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#111827]">{stats.totalShops}</span>
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#111827] tabular-nums">{stats.totalShops}</span>
             <span className="text-xs text-[#16a34a] font-medium">{stats.totalActiveShops} Active</span>
           </div>
           <div className="mt-2 flex items-center gap-2 text-[11px] text-[#6b7280]">
@@ -511,15 +516,15 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Registered Shop Owners */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Registered Store Owners</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
               <Crown className="size-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#111827]">{stats.totalUsersByRole.OWNER}</span>
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#111827] tabular-nums">{stats.totalUsersByRole.OWNER}</span>
             <span className="text-xs text-[#6b7280]">Primary Accounts</span>
           </div>
           <div className="mt-2 text-[11px] text-[#6b7280]">
@@ -528,15 +533,15 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Platform Users Breakdown */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Total Platform Users</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
               <Users className="size-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#111827]">
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#111827] tabular-nums">
               {stats.totalUsersByRole.OWNER +
                 stats.totalUsersByRole.ADMIN +
                 stats.totalUsersByRole.SALES +
@@ -550,7 +555,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Suspended Accounts Alert */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Suspended Accounts</span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-red-50 text-red-600">
@@ -558,7 +563,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#dc2626]">{stats.totalSuspendedAccounts}</span>
+            <span className="font-mono text-2xl font-bold tracking-tight text-[#dc2626] tabular-nums">{stats.totalSuspendedAccounts}</span>
             <span className="text-xs text-red-600 font-medium">Frozen</span>
           </div>
           <div className="mt-2 text-[11px] text-[#6b7280]">
@@ -621,7 +626,7 @@ export default function AdminDashboardPage() {
             </div>
             <a
               href="/admin/shops"
-              className="flex items-center gap-1 text-xs font-semibold text-[#2563eb] hover:underline"
+              className="flex items-center gap-1 text-xs font-semibold text-zinc-950 hover:underline"
             >
               View All ({shops.length})
               <ArrowUpRight className="size-3.5" />
@@ -728,7 +733,7 @@ export default function AdminDashboardPage() {
                   <tr key={owner.id} className="hover:bg-[#f9fafb]">
                     <td className="py-3 font-bold text-[#111827]">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-full bg-blue-50 text-blue-700 font-bold text-[11px]">
+                        <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 font-mono text-[11px] font-bold text-[#c0e763]">
                           {owner.name.slice(0, 2).toUpperCase()}
                         </div>
                         <span>{owner.name}</span>

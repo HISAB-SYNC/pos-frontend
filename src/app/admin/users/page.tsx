@@ -30,6 +30,9 @@ export default function AdminUsersPage() {
     try {
       const data = await getAdminUsers({ role: roleFilter, limit: 50 });
       setUsers(data.users);
+    } catch (err) {
+      console.warn("Could not load admin users:", err);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -80,8 +83,8 @@ export default function AdminUsersPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <Users className="size-4" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
+              <Users className="size-4 text-[#c0e763]" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Platform Users Oversight</h1>
           </div>
@@ -155,7 +158,7 @@ export default function AdminUsersPage() {
                 onClick={() => setRoleFilter(tab.id)}
                 className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   roleFilter === tab.id
-                    ? "bg-[#111827] text-white shadow-sm"
+                    ? "bg-zinc-950 text-[#c0e763] shadow-sm"
                     : "border border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]"
                 }`}
               >
@@ -171,7 +174,7 @@ export default function AdminUsersPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search user name, email, shop..."
-              className="h-9 w-full rounded-xl border border-[#e5e7eb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-zinc-950 focus:outline-none"
             />
           </div>
         </div>
@@ -198,7 +201,7 @@ export default function AdminUsersPage() {
                     <tr key={u.id} className="hover:bg-[#f9fafb]">
                       <td className="py-3 font-bold text-[#111827]">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex size-7.5 items-center justify-center rounded-full bg-blue-50 font-bold text-blue-700 text-xs">
+                          <div className="flex size-7.5 items-center justify-center rounded-lg bg-zinc-900 font-mono text-[11px] font-bold text-[#c0e763]">
                             {u.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>

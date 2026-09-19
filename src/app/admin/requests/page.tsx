@@ -362,6 +362,10 @@ export default function AdminRequestsPage() {
       ]);
       setUsers(usersRes.users);
       setShops(shopsRes);
+    } catch (err) {
+      console.warn("Could not load owner requests:", err);
+      setUsers([]);
+      setShops([]);
     } finally {
       setLoading(false);
     }

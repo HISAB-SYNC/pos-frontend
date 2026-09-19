@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   ArrowRight,
+  Banknote,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   CreditCard,
   FileText,
   HandCoins,
+  Landmark,
   Minus,
   Package,
   Plus,
@@ -17,6 +19,7 @@ import {
   Receipt,
   Search,
   ShoppingCart,
+  Smartphone,
   Trash2,
   User,
   UserPlus,
@@ -41,7 +44,7 @@ type CartItem = {
   unitPrice: number;
 };
 
-type PaymentMethodType = "CASH" | "CARD" | "BANK_TRANSFER" | "MOBILE" | "DEBT";
+type PaymentMethodType = "CASH" | "CARD" | "BANK" | "BANK_TRANSFER" | "TELEBIRR" | "MOBILE" | "DEBT";
 
 /* ------------------------------------------------------------------ */
 /* Modal: Quick Add Customer                                          */
@@ -136,20 +139,20 @@ function QuickAddCustomerModal({
             />
           </div>
 
-          <div className="mt-5 flex justify-end gap-2 border-t border-[#f3f4f6] pt-4">
+          <div className="mt-5 flex justify-end gap-2 border-t border-zinc-100 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              className="rounded-xl border border-zinc-200 px-4 py-2 font-semibold text-zinc-600 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Creating..." : "Save Customer"}
+              {isSubmitting ? "Registering..." : "Save Customer"}
             </button>
           </div>
         </form>
@@ -220,12 +223,12 @@ function DebtConfirmationModal({
           </p>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[#f3f4f6] pt-4">
+        <div className="flex justify-end gap-2 border-t border-zinc-100 pt-4">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
+            className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
           >
             Cancel
           </button>
@@ -233,9 +236,9 @@ function DebtConfirmationModal({
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="flex items-center gap-1.5 rounded-lg bg-[#111827] px-5 py-2 text-xs font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl bg-amber-400 px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-amber-500 active:scale-95 disabled:opacity-50"
           >
-            {isSubmitting ? "Processing..." : "Confirm & Complete Sale"}
+            {isSubmitting ? "Completing..." : "Confirm & Charge Credit"}
             <ArrowRight className="size-3.5" />
           </button>
         </div>
@@ -263,63 +266,63 @@ function SaleReceiptModal({
   const methodLabel = sale.paymentMethod === "BANK" ? "Bank" : sale.paymentMethod === "TELEBIRR" ? "Telebirr" : "Cash";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex flex-col items-center border-b border-[#f3f4f6] pb-4 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="size-6" />
+        <div className="flex flex-col items-center border-b border-zinc-100 pb-4 text-center">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-[#f3fad9] text-zinc-950 ring-4 ring-[#c0e763]/20">
+            <CheckCircle2 className="size-6 text-zinc-900 stroke-[2.5]" />
           </div>
-          <h2 className="mt-2 text-base font-bold text-[#111827]">Sale Completed Successfully!</h2>
-          <p className="font-mono text-xs text-[#6b7280]">{sale.id}</p>
+          <h2 className="mt-3 text-base font-bold text-zinc-950">Sale Finalized</h2>
+          <p className="font-mono text-[11px] font-medium text-zinc-400">REF: {sale.id.slice(0, 16)}</p>
         </div>
 
         {/* Receipt Content */}
         <div className="my-4 space-y-3 text-xs">
           {/* Customer / Method */}
-          <div className="rounded-xl bg-[#f9fafb] p-3 space-y-1.5">
+          <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-3 space-y-1.5">
             <div className="flex justify-between">
-              <span className="text-[#6b7280]">Date:</span>
-              <span className="text-[#111827]">{new Date().toLocaleString()}</span>
+              <span className="text-zinc-500">Timestamp:</span>
+              <span className="font-medium text-zinc-800">{new Date().toLocaleString()}</span>
             </div>
             {sale.customer && (
               <div className="flex justify-between">
-                <span className="text-[#6b7280]">Customer:</span>
-                <span className="font-semibold text-[#111827]">{sale.customer.name}</span>
+                <span className="text-zinc-500">Account:</span>
+                <span className="font-bold text-zinc-900">{sale.customer.name}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-[#6b7280]">Payment Method:</span>
-              <span className="font-semibold text-[#111827]">{methodLabel}</span>
+              <span className="text-zinc-500">Tender Type:</span>
+              <span className="font-semibold text-zinc-900">{methodLabel}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#6b7280]">Amount Paid Now:</span>
-              <span className="font-semibold text-emerald-700">{paid.toLocaleString()} ETB</span>
+              <span className="text-zinc-500">Collected:</span>
+              <span className="font-mono font-bold text-emerald-600 tabular-nums">{paid.toLocaleString()} ETB</span>
             </div>
           </div>
 
           {/* Items Summary */}
-          <div className="max-h-36 overflow-y-auto rounded-xl border border-[#e5e7eb] p-3 space-y-2">
+          <div className="max-h-36 overflow-y-auto rounded-xl border border-zinc-200/80 p-3 space-y-2">
             {sale.items?.map((it, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span className="text-[#374151]">
+              <div key={idx} className="flex items-center justify-between text-xs">
+                <span className="font-medium text-zinc-800">
                   {it.quantity}x {it.product?.name || `Product #${it.productId.slice(0, 8)}`}
                 </span>
-                <span className="font-semibold text-[#111827]">{it.subtotal} ETB</span>
+                <span className="font-mono font-bold text-zinc-950 tabular-nums">{it.subtotal} ETB</span>
               </div>
             ))}
           </div>
 
           {/* Debt Summary Banner if Credit */}
           {isDebtSale && sale.customer && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs space-y-1">
-              <div className="flex justify-between font-semibold text-amber-900">
-                <span>Added to Customer Debt:</span>
-                <span className="text-red-600 font-bold">+{debt.toLocaleString()} ETB</span>
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs space-y-1">
+              <div className="flex justify-between font-bold text-amber-900">
+                <span>Credit Balance Added:</span>
+                <span className="font-mono font-bold text-red-600 tabular-nums">+{debt.toLocaleString()} ETB</span>
               </div>
               <div className="flex justify-between text-[11px] text-amber-800">
-                <span>New Total Customer Balance:</span>
-                <span className="font-bold text-red-700">
+                <span>Updated Customer Ledger:</span>
+                <span className="font-mono font-bold text-amber-950 tabular-nums">
                   {parseFloat(sale.customer.debtBalance || "0").toLocaleString()} ETB
                 </span>
               </div>
@@ -327,22 +330,23 @@ function SaleReceiptModal({
           )}
 
           {/* Total */}
-          <div className="flex items-center justify-between border-t border-[#e5e7eb] pt-2 text-sm font-bold">
-            <span className="text-[#111827]">Total Sale Amount:</span>
-            <span className="text-base text-[#111827]">{parseFloat(sale.totalAmount).toLocaleString()} ETB</span>
+          <div className="flex items-center justify-between border-t border-zinc-100 pt-2.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Grand Total</span>
+            <span className="font-mono text-base font-bold text-zinc-950 tabular-nums">
+              {parseFloat(sale.totalAmount).toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+            </span>
           </div>
         </div>
 
-
         {/* Modal Buttons */}
-        <div className="mt-5 flex items-center justify-between border-t border-[#f3f4f6] pt-4">
+        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
           <button
             type="button"
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-3.5 py-2 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
+            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3.5 py-2 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
           >
-            <Printer className="size-3.5 text-[#6b7280]" />
-            Print Receipt
+            <Printer className="size-3.5 text-zinc-500" />
+            Print Docket
           </button>
           <button
             type="button"
@@ -350,9 +354,9 @@ function SaleReceiptModal({
               onClose();
               onNewSale();
             }}
-            className="flex items-center gap-1.5 rounded-lg bg-[#111827] px-5 py-2 text-xs font-medium text-white transition-colors hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
           >
-            Start New Sale
+            <span>Next Transaction</span>
             <ArrowRight className="size-3.5" />
           </button>
         </div>
@@ -579,8 +583,12 @@ export default function PosPage() {
       setCompletedSale(sale);
       setIsDebtConfirmModalOpen(false);
       clearCart();
-    } catch {
-      setValidationError("Failed to complete sale. Please try again.");
+    } catch (err: unknown) {
+      const errorMsg =
+        err && typeof err === "object" && "message" in err
+          ? String((err as any).message)
+          : "Failed to complete sale. Please try again.";
+      setValidationError(errorMsg);
     } finally {
       setIsProcessing(false);
     }
@@ -623,10 +631,10 @@ export default function PosPage() {
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-medium transition-all ${
+              className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                 selectedCategory === cat
-                  ? "bg-[#111827] text-white shadow-sm"
-                  : "border border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]"
+                  ? "bg-[#c0e763] text-zinc-950 shadow-xs ring-1 ring-[#c0e763]"
+                  : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
               }`}
             >
               {cat === "ALL" ? "All Categories" : cat}
@@ -643,19 +651,19 @@ export default function PosPage() {
             return (
               <div
                 key={product.id}
-                className={`group flex flex-col justify-between rounded-2xl border bg-white p-3.5 shadow-sm transition-all hover:shadow-md ${
-                  inCart ? "border-blue-500 ring-1 ring-blue-500" : "border-[#e5e7eb]"
+                className={`group flex flex-col justify-between rounded-2xl border bg-white p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:border-zinc-300 hover:shadow-md ${
+                  inCart ? "border-zinc-950 ring-2 ring-[#c0e763]" : "border-zinc-200"
                 }`}
               >
                 <div>
-                  <div className="flex items-start justify-between">
-                    <span className="rounded-md bg-[#f3f4f6] px-2 py-0.5 font-mono text-[10px] font-medium text-[#6b7280]">
+                  <div className="flex items-start justify-between gap-1.5">
+                    <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-600">
                       {product.sku}
                     </span>
                     <span
-                      className={`text-[10px] font-semibold ${
+                      className={`text-[10px] font-bold ${
                         isOutOfStock
-                          ? "text-red-500"
+                          ? "text-red-600"
                           : product.stockQuantity < 10
                           ? "text-amber-600"
                           : "text-emerald-600"
@@ -665,20 +673,20 @@ export default function PosPage() {
                     </span>
                   </div>
 
-                  <h3 className="mt-2 line-clamp-1 text-xs font-bold text-[#111827]">{product.name}</h3>
-                  <p className="text-[11px] text-[#9ca3af]">{product.category?.name || "General"}</p>
+                  <h3 className="mt-2.5 line-clamp-1 text-xs font-bold text-zinc-900">{product.name}</h3>
+                  <p className="text-[11px] font-medium text-zinc-400">{product.category?.name || "General"}</p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-[#f3f4f6] pt-3">
-                  <div className="font-bold text-[#111827]">
-                    {parseFloat(product.price || "0").toLocaleString()} <span className="text-[10px] font-normal text-[#6b7280]">ETB</span>
+                <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                  <div className="font-mono font-bold text-zinc-950 tabular-nums text-sm">
+                    {parseFloat(product.price || "0").toLocaleString()} <span className="font-sans text-[10px] font-semibold text-zinc-500">ETB</span>
                   </div>
 
                   <button
                     type="button"
                     disabled={isOutOfStock}
                     onClick={() => addToCart(product)}
-                    className="flex size-7 items-center justify-center rounded-lg bg-[#111827] text-white transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-white transition-all hover:bg-[#c0e763] hover:text-zinc-950 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                     title="Add to cart"
                   >
                     <Plus className="size-3.5" />
@@ -693,24 +701,24 @@ export default function PosPage() {
       {/* ================================================================= */}
       {/* Right Column: Active Cart & Debt Payment Panel                    */}
       {/* ================================================================= */}
-      <div className="flex flex-col justify-between rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+      <div className="flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
         <div className="space-y-4">
           {/* Cart Header */}
-          <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
                 <ShoppingCart className="size-4" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-[#111827]">Current Order</h2>
-                <span className="text-[11px] text-[#9ca3af]">{cart.length} item types in cart</span>
+                <h2 className="text-sm font-bold tracking-tight text-zinc-900">Current Order</h2>
+                <span className="text-[11px] font-medium text-zinc-400">{cart.length} item types in cart</span>
               </div>
             </div>
             {cart.length > 0 && (
               <button
                 type="button"
                 onClick={clearCart}
-                className="text-[11px] font-medium text-red-600 hover:underline"
+                className="text-[11px] font-semibold text-red-600 hover:underline"
               >
                 Clear Cart
               </button>
@@ -719,20 +727,20 @@ export default function PosPage() {
 
           {/* Validation Error Message */}
           {validationError && (
-            <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-xs font-medium text-red-700">
+            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
               <AlertCircle className="size-4 shrink-0" />
               <span>{validationError}</span>
             </div>
           )}
 
           {/* Selected Customer Selector */}
-          <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-3 space-y-2 text-xs">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 space-y-2 text-xs">
             <div className="flex items-center justify-between">
-              <label className="font-semibold text-[#374151]">Customer Selection</label>
+              <label className="font-bold uppercase tracking-wider text-[10px] text-zinc-500">Customer Account</label>
               <button
                 type="button"
                 onClick={() => setIsAddCustModalOpen(true)}
-                className="flex items-center gap-1 font-semibold text-blue-600 hover:underline"
+                className="flex items-center gap-1 font-semibold text-zinc-900 hover:underline"
               >
                 <UserPlus className="size-3" />
                 + New Customer
@@ -825,15 +833,16 @@ export default function PosPage() {
           </div>
 
           {/* Payment Method Selector (Cash, Bank, Telebirr) */}
-          <div className="space-y-2.5 border-t border-[#f3f4f6] pt-3 text-xs">
-            <label className="font-semibold text-[#374151]">Payment Method</label>
+          <div className="space-y-2 border-t border-zinc-100 pt-3 text-xs">
+            <label className="font-bold uppercase tracking-wider text-[11px] text-zinc-500">Payment Tender</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: "CASH", label: "Cash", icon: "💵" },
-                { id: "BANK", label: "Bank", icon: "🏦" },
-                { id: "TELEBIRR", label: "Telebirr", icon: "📱" },
+                { id: "CASH", label: "Cash", icon: Banknote },
+                { id: "BANK", label: "Bank", icon: Landmark },
+                { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
               ].map((m) => {
                 const isSelected = paymentMethod === m.id;
+                const IconComponent = m.icon;
 
                 return (
                   <button
@@ -842,11 +851,11 @@ export default function PosPage() {
                     onClick={() => setPaymentMethod(m.id as PaymentMethodType)}
                     className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
                       isSelected
-                        ? "border-[#111827] bg-[#111827] text-white shadow-sm ring-1 ring-[#111827]"
-                        : "border-[#e5e7eb] bg-white text-[#374151] hover:bg-[#f9fafb]"
+                        ? "border-zinc-950 bg-[#c0e763] text-zinc-950 shadow-sm ring-1 ring-zinc-950 font-bold"
+                        : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
                     }`}
                   >
-                    <span className="text-lg">{m.icon}</span>
+                    <IconComponent className="size-5" />
                     <span className="mt-1 text-xs font-semibold">{m.label}</span>
                   </button>
                 );
@@ -965,9 +974,11 @@ export default function PosPage() {
                 <span>ETB</span>
               </div>
             </div>
-            <div className="flex justify-between border-t border-[#e5e7eb] pt-2 text-sm font-bold text-[#111827]">
-              <span>Total Payable</span>
-              <span className="text-base text-[#111827]">{total.toLocaleString()} ETB</span>
+            <div className="flex items-baseline justify-between border-t border-zinc-100 pt-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Total Payable</span>
+              <span className="font-mono text-lg font-bold text-zinc-950 tabular-nums">
+                {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+              </span>
             </div>
           </div>
 
@@ -975,23 +986,23 @@ export default function PosPage() {
             type="button"
             disabled={isProcessing || cart.length === 0}
             onClick={handleCheckoutClick}
-            className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-xs font-bold tracking-tight shadow-md transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 ${
               debtAdditionAmount > 0
-                ? "bg-[#dc2626] hover:bg-red-700"
-                : "bg-[#111827] hover:bg-slate-800"
+                ? "bg-amber-400 text-zinc-950 shadow-amber-400/20 hover:bg-amber-500"
+                : "bg-[#c0e763] text-zinc-950 shadow-[#c0e763]/25 hover:bg-[#b0d952]"
             }`}
           >
             {isProcessing ? (
-              "Processing..."
+              <span className="font-medium">Processing Transaction...</span>
             ) : debtAdditionAmount > 0 ? (
               <>
                 <HandCoins className="size-4" />
-                Complete Sale (with {debtAdditionAmount.toLocaleString()} ETB Debt)
+                <span>Complete Sale (+{debtAdditionAmount.toLocaleString()} ETB Debt)</span>
               </>
             ) : (
               <>
-                <Check className="size-4" />
-                Complete Sale ({total.toLocaleString()} ETB)
+                <Check className="size-4 stroke-[3]" />
+                <span>Charge {total.toLocaleString()} ETB</span>
               </>
             )}
           </button>

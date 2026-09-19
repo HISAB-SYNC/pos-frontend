@@ -29,6 +29,9 @@ export default function AdminShopsPage() {
     try {
       const data = await getAdminShops();
       setShops(data);
+    } catch (err) {
+      console.warn("Could not load admin shops:", err);
+      setShops([]);
     } finally {
       setLoading(false);
     }
@@ -79,8 +82,8 @@ export default function AdminShopsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <Building2 className="size-4" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
+              <Building2 className="size-4 text-[#c0e763]" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Registered Shops Oversight</h1>
           </div>
@@ -121,21 +124,21 @@ export default function AdminShopsPage() {
 
       {/* Metrics overview */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
           <span className="text-xs font-semibold text-[#6b7280]">Total Registered Shops</span>
-          <div className="mt-2 text-2xl font-bold text-[#111827]">{shops.length}</div>
+          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">{shops.length}</div>
           <span className="text-[11px] text-[#6b7280]">Stores onboarded to platform</span>
         </div>
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
           <span className="text-xs font-semibold text-[#6b7280]">Active Operating Shops</span>
-          <div className="mt-2 text-2xl font-bold text-[#16a34a]">
+          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-emerald-600 tabular-nums">
             {shops.filter((s) => s.isActive).length}
           </div>
           <span className="text-[11px] text-emerald-600 font-medium">Accepting sales & inventory</span>
         </div>
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
           <span className="text-xs font-semibold text-[#6b7280]">Suspended / Inactive</span>
-          <div className="mt-2 text-2xl font-bold text-[#dc2626]">
+          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-[#dc2626] tabular-nums">
             {shops.filter((s) => !s.isActive).length}
           </div>
           <span className="text-[11px] text-red-600 font-medium">Frozen shop operations</span>
@@ -153,7 +156,7 @@ export default function AdminShopsPage() {
                 onClick={() => setStatusFilter(tab)}
                 className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === tab
-                    ? "bg-[#111827] text-white shadow-sm"
+                    ? "bg-zinc-950 text-[#c0e763] shadow-sm"
                     : "border border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]"
                 }`}
               >

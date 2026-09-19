@@ -5,15 +5,16 @@ import { cn } from "@/lib/utils";
 type AndalusLogoProps = {
   variant?: "full" | "compact" | "icon";
   className?: string;
+  textClassName?: string;
   size?: number;
 };
 
-export function AndalusLogo({ variant = "full", className, size }: AndalusLogoProps) {
+export function AndalusLogo({ variant = "full", className, textClassName, size }: AndalusLogoProps) {
   const dimension = size ?? (variant === "full" ? 52 : 44);
 
   if (variant === "icon") {
     return (
-      <div className={cn("relative flex size-10 items-center justify-center overflow-hidden", className)}>
+      <div className={cn("relative flex size-10 items-center justify-center overflow-hidden rounded-xl", className)}>
         <Image
           src="/andalus-logo.png"
           alt="Andalus"
@@ -34,7 +35,7 @@ export function AndalusLogo({ variant = "full", className, size }: AndalusLogoPr
         className,
       )}
     >
-      <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden">
+      <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl">
         <Image
           src="/andalus-logo.png"
           alt="Andalus"
@@ -47,10 +48,11 @@ export function AndalusLogo({ variant = "full", className, size }: AndalusLogoPr
       <span
         className={cn(
           "font-bold tracking-tight text-[#111827]",
+          textClassName,
           variant === "compact" ? "text-xl" : "text-2xl",
         )}
       >
-        Andalus
+        Andalus<span className="text-[#c0e763]">.</span>
       </span>
     </div>
   );

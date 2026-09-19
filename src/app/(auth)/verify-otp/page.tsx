@@ -11,7 +11,7 @@ import {
   maskEmail,
 } from "@/components/auth/auth-shell";
 import { OtpInput } from "@/components/auth/otp-input";
-import { requestPasswordReset } from "@/lib/api/auth";
+import { requestPasswordReset, verifyPasswordResetOtp } from "@/lib/api/auth";
 import type { ApiError } from "@/lib/api/types";
 
 const OTP_LENGTH = 6;
@@ -45,15 +45,25 @@ function VerifyOtpContent() {
     return () => window.clearInterval(timer);
   }, [secondsLeft]);
 
-  function handleVerify() {
+  async function handleVerify() {
     if (otp.length !== OTP_LENGTH) {
       setStatus("error");
       setErrorMessage("Please enter the full verification code.");
       return;
     }
 
-    setStatus("idle");
-    router.push(`/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(otp)}`);
+    setStatus("loading");
+    setErrorMessage("Something went wrong. Please try again.");
+
+    try {
+      const res = await verifyPasswordResetOtp({ email, otp });
+      setStatus("idle");
+      router.push(`/reset-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(res.resetToken)}`);
+    } catch (error) {
+      const apiError = error as ApiError;
+      setErrorMessage(apiError.message ?? "Invalid verification code. Please try again.");
+      setStatus("error");
+    }
   }
 
   async function handleResend() {

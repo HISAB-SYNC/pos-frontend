@@ -2,14 +2,9 @@ import { useAuthStore } from "@/stores/auth-store";
 
 import type { ApiError, ApiResponse } from "./types";
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
 function getApiBaseUrl() {
-  if (!apiBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is not configured.");
-  }
-
-  return apiBaseUrl.replace(/\/$/, "");
+  const url = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-0fzk.onrender.com";
+  return url.replace(/\/$/, "");
 }
 
 type RequestOptions = Omit<RequestInit, "body"> & {
@@ -28,16 +23,47 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   if (auth) {
     const token = useAuthStore.getState().accessToken;
 
+    if (!token && process.env.NEXT_PUBLIC_USE_MOCK_API !== "true") {
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
+      throw {
+        message: "Authentication token missing. Please sign in.",
+        status: 401,
+      } satisfies ApiError;
+    }
+
     if (token) {
       requestHeaders.set("Authorization", `Bearer ${token}`);
     }
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...rest,
-    headers: requestHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
+      ...rest,
+      headers: requestHeaders,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkError: unknown) {
+    const errorMsg =
+      networkError instanceof Error ? networkError.message : "Network request failed";
+    throw {
+      message: `Unable to connect to backend: ${errorMsg}. Please check your connection or backend status.`,
+      status: 0,
+    } satisfies ApiError;
+  }
+
+  if (response.status === 401) {
+    useAuthStore.getState().clearSession();
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login";
+    }
+    throw {
+      message: "Authentication token missing or expired. Redirecting to login...",
+      status: 401,
+    } satisfies ApiError;
+  }
 
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 

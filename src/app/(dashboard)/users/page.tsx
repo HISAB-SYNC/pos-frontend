@@ -197,6 +197,8 @@ function AddTeamMemberModal({
 
       await createTeamMember(shopId, {
         name: newMember.name,
+        email: newMember.email,
+        phone: newMember.phone,
         role: newMember.role,
         password,
       });
@@ -386,7 +388,7 @@ function AddTeamMemberModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563eb] px-5 py-2 font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Provisioning..." : "Complete Provisioning"}
             </button>
@@ -507,7 +509,7 @@ function EditPermissionsModal({
           <button
             type="button"
             onClick={handleSave}
-            className="flex items-center gap-1.5 rounded-xl bg-[#111827] px-5 py-2 font-bold text-white shadow-sm hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
           >
             Save Permissions
           </button>
@@ -591,7 +593,7 @@ function ResetPasswordModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-xl bg-[#2563eb] px-5 py-2 font-bold text-white hover:bg-blue-700"
+              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
             >
               Update Password
             </button>
@@ -734,7 +736,7 @@ function EditMemberDetailsModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-[#2563eb] px-5 py-2 font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -879,6 +881,10 @@ export default function UsersPage() {
       ]);
       setMembers(membersData);
       setSummary(summaryData);
+    } catch (err) {
+      console.warn("Could not load user data:", err);
+      setMembers([]);
+      setSummary(null);
     } finally {
       setLoading(false);
     }
@@ -1026,8 +1032,8 @@ export default function UsersPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <UserCog className="size-4" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
+              <UserCog className="size-4 text-[#c0e763]" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Employee RBAC &amp; Access Control</h1>
           </div>
@@ -1048,9 +1054,9 @@ export default function UsersPage() {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#2563eb] px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
           >
-            <UserPlus className="size-4" />
+            <UserPlus className="size-4 text-zinc-950" />
             + Provision Team Member
           </button>
         </div>
@@ -1071,26 +1077,26 @@ export default function UsersPage() {
 
       {/* Metric Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
           <span className="text-xs font-semibold text-[#6b7280]">Total Team Members</span>
-          <div className="mt-2 text-2xl font-bold text-[#111827]">{members.length}</div>
+          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">{members.length}</div>
           <span className="text-[11px] text-[#6b7280]">Staff assigned to this store</span>
         </div>
 
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
           <span className="text-xs font-semibold text-[#6b7280]">Store Administrators</span>
-          <div className="mt-2 text-2xl font-bold text-purple-600">
+          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">
             {members.filter((m) => m.role === "Shop Admin" || m.role === "ADMIN").length}
           </div>
-          <span className="text-[11px] text-purple-600 font-medium">Operations &amp; Seller Management</span>
+          <span className="text-[11px] text-[#6b7280]">Operations &amp; Seller Management</span>
         </div>
 
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
           <span className="text-xs font-semibold text-[#6b7280]">Sellers &amp; Cashiers</span>
-          <div className="mt-2 text-2xl font-bold text-emerald-600">
+          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">
             {members.filter((m) => m.role === "Shop Sale" || m.role === "SALES").length}
           </div>
-          <span className="text-[11px] text-emerald-600 font-medium">POS &amp; Sales Checkout Only</span>
+          <span className="text-[11px] text-[#6b7280]">POS &amp; Sales Checkout Only</span>
         </div>
       </div>
 
@@ -1106,7 +1112,7 @@ export default function UsersPage() {
               onClick={() => setActiveTab("DIRECTORY")}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeTab === "DIRECTORY"
-                  ? "bg-[#111827] text-white shadow-sm"
+                  ? "bg-zinc-950 text-[#c0e763] shadow-sm"
                   : "bg-white text-[#4b5563] hover:bg-[#f9fafb] border border-[#e5e7eb]"
               }`}
             >
@@ -1119,7 +1125,7 @@ export default function UsersPage() {
               onClick={() => setActiveTab("AUDIT_LOGS")}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeTab === "AUDIT_LOGS"
-                  ? "bg-[#111827] text-white shadow-sm"
+                  ? "bg-zinc-950 text-[#c0e763] shadow-sm"
                   : "bg-white text-[#4b5563] hover:bg-[#f9fafb] border border-[#e5e7eb]"
               }`}
             >

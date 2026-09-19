@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 import type { Role } from "@/lib/permissions/roles";
 
@@ -18,10 +19,17 @@ type AuthState = {
   clearSession: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
-  setSession: (user, accessToken) => set({ user, accessToken, isAuthenticated: true }),
-  clearSession: () => set({ user: null, accessToken: null, isAuthenticated: false }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+      setSession: (user, accessToken) => set({ user, accessToken, isAuthenticated: true }),
+      clearSession: () => set({ user: null, accessToken: null, isAuthenticated: false }),
+    }),
+    {
+      name: "andalus-auth",
+    },
+  ),
+);

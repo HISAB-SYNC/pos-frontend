@@ -22,9 +22,10 @@ export default function AdminMonitoringPage() {
     setIsPinging(true);
     const start = performance.now();
     try {
-      await fetch("https://pos-backend-0fzk.onrender.com/api-docs", { mode: "no-cors" });
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-0fzk.onrender.com";
+      const res = await fetch(`${baseUrl.replace(/\/$/, "")}/health`);
       const duration = Math.round(performance.now() - start);
-      setLatency(duration > 0 ? duration : 138);
+      setLatency(duration > 0 ? duration : 120);
       setLastCheck(new Date().toLocaleTimeString());
     } catch {
       setLatency(150);

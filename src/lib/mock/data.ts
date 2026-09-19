@@ -93,11 +93,13 @@ export type ReportMetrics = {
 
 export const MOCK_IDS = {
   shop: "648408bb-c857-43eb-92fe-018cb8a1eb47",
+  secondShop: "759519cc-d968-54fc-03af-129dc9b2fc58",
   owner: "8cf48530-64b4-4b3d-b7ce-ebe54893bbdf",
   admin: "b26c9427-0829-4875-96e9-29a8ecc8e1c6",
   sales: "c36d0538-0930-5986-a7fa-39b9fdd2e2d7",
   categoryBeverages: "cddbee02-a5bb-421a-9137-6386671add10",
   categoryGrocery: "eddcee03-b6cc-532b-a248-7497782bee21",
+  categoryElectronics: "f11aee04-c7dd-643c-b359-8508893cff32",
   supplier: "f891a2bc-3d4e-567f-8901-abcdef234567",
   productMilk: "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
   productBread: "b2c3d4e5-f6a7-8901-bcde-2345678901bc",
@@ -150,11 +152,24 @@ export const seedShops: Shop[] = [
     ownerId: MOCK_IDS.owner,
     createdAt: now,
   },
+  {
+    id: MOCK_IDS.secondShop,
+    name: "Andalus Electronics",
+    address: "Bole Medhanialem Mall, Addis Ababa",
+    businessType: "electronics",
+    taxRate: "15",
+    currency: "ETB",
+    language: "en",
+    ownerId: MOCK_IDS.owner,
+    createdAt: now,
+  },
 ];
 
 export const seedCategories: Category[] = [
   { id: MOCK_IDS.categoryBeverages, shopId: MOCK_IDS.shop, name: "Beverages" },
   { id: MOCK_IDS.categoryGrocery, shopId: MOCK_IDS.shop, name: "Grocery" },
+  { id: MOCK_IDS.categoryElectronics, shopId: MOCK_IDS.secondShop, name: "Smartphones & Tablets" },
+  { id: "cat-audio-acc", shopId: MOCK_IDS.secondShop, name: "Audio & Accessories" },
 ];
 
 export const seedSuppliers: Supplier[] = [
@@ -484,6 +499,70 @@ export const seedProducts: Product[] = [
     category: { id: MOCK_IDS.categoryGrocery, name: "Grocery" },
     supplier: { id: MOCK_IDS.supplier, name: "Fresh Farms Distributors" },
   },
+  {
+    id: "prod-galaxy-a54",
+    shopId: MOCK_IDS.secondShop,
+    sku: "SMSG-A54-128",
+    name: "Samsung Galaxy A54 5G (128GB)",
+    description: "Awesome Graphite, 8GB RAM, 128GB Storage",
+    price: "38500.00",
+    stockQuantity: 14,
+    unit: "pcs",
+    lowStockThreshold: 3,
+    categoryId: MOCK_IDS.categoryElectronics,
+    supplierId: "sup-001",
+    category: { id: MOCK_IDS.categoryElectronics, name: "Smartphones & Tablets" },
+    supplier: { id: "sup-001", name: "Richard Martin" },
+    attributes: { buyingPrice: "31000.00", costPrice: "31000.00" },
+  },
+  {
+    id: "prod-anker-charger",
+    shopId: MOCK_IDS.secondShop,
+    sku: "ANK-CHG-45W",
+    name: "Anker 45W USB-C Fast Charger",
+    description: "PowerPort III with Foldable Plug",
+    price: "1850.00",
+    stockQuantity: 38,
+    unit: "pcs",
+    lowStockThreshold: 10,
+    categoryId: "cat-audio-acc",
+    supplierId: "sup-002",
+    category: { id: "cat-audio-acc", name: "Audio & Accessories" },
+    supplier: { id: "sup-002", name: "Tom Homan" },
+    attributes: { buyingPrice: "1200.00", costPrice: "1200.00" },
+  },
+  {
+    id: "prod-sony-earbuds",
+    shopId: MOCK_IDS.secondShop,
+    sku: "SNY-EAR-C500",
+    name: "Sony WF-C500 Wireless Earbuds",
+    description: "True Wireless Bluetooth In-Ear Headphones with Mic",
+    price: "7200.00",
+    stockQuantity: 2,
+    unit: "pcs",
+    lowStockThreshold: 5,
+    categoryId: "cat-audio-acc",
+    supplierId: "sup-003",
+    category: { id: "cat-audio-acc", name: "Audio & Accessories" },
+    supplier: { id: "sup-003", name: "Veandir" },
+    attributes: { buyingPrice: "5100.00", costPrice: "5100.00" },
+  },
+  {
+    id: "prod-smart-watch",
+    shopId: MOCK_IDS.secondShop,
+    sku: "WCH-ULTRA-8",
+    name: "Smart Watch Ultra 49mm",
+    description: "Titanium Case with Orange Alpine Loop",
+    price: "6500.00",
+    stockQuantity: 9,
+    unit: "pcs",
+    lowStockThreshold: 4,
+    categoryId: "cat-audio-acc",
+    supplierId: "sup-004",
+    category: { id: "cat-audio-acc", name: "Audio & Accessories" },
+    supplier: { id: "sup-004", name: "Charin" },
+    attributes: { buyingPrice: "4200.00", costPrice: "4200.00" },
+  },
 ];
 
 
@@ -679,6 +758,27 @@ export const seedCustomers: Customer[] = [
     ],
     recentTransactions: [],
   },
+  {
+    id: "cust-elec-001",
+    shopId: MOCK_IDS.secondShop,
+    name: "Dawit Electronics Buyer",
+    customerId: "Cust-E01",
+    phone: "+251911998877",
+    address: "Addis Ababa, Bole Medhanialem",
+    email: "dawit.elec@example.com",
+    debtBalance: "4500",
+    creditLimit: "15000",
+    daysOverdue: "2 days",
+    date: "10/08/2026",
+    status: "Active",
+    isRecurring: false,
+    loyaltyPoints: 340,
+    totalCreditPurchases: 18000,
+    totalPaid: 13500,
+    lastTransactionDate: "Sep 05, 2026",
+    debtHistory: [],
+    recentTransactions: [],
+  },
 ];
 
 
@@ -721,6 +821,19 @@ export const seedDebts: Debt[] = [
     status: "partial",
     notes: "Cooking oil & household essentials",
     transactions: seedCustomers[3].debtHistory,
+  },
+  {
+    id: "debt-elec-001",
+    shopId: MOCK_IDS.secondShop,
+    customerId: "cust-elec-001",
+    customerName: "Dawit Electronics Buyer",
+    customerPhone: "+251911998877",
+    amount: "4500.00",
+    paidAmount: "13500.00",
+    dueDate: "2026-09-25",
+    status: "partial",
+    notes: "Smart Watch installment balance",
+    transactions: [],
   },
 ];
 
@@ -783,6 +896,28 @@ export const seedExpenses: Expense[] = [
     status: "Paid",
     isRecurring: false,
   },
+  {
+    id: "exp-elec-001",
+    shopId: MOCK_IDS.secondShop,
+    date: "Sep 01, 2026",
+    description: "Bole Mall Showroom Rent",
+    category: "Rent",
+    amount: "15,000",
+    paymentMethod: "Bank Transfer",
+    status: "Paid",
+    isRecurring: true,
+  },
+  {
+    id: "exp-elec-002",
+    shopId: MOCK_IDS.secondShop,
+    date: "Sep 05, 2026",
+    description: "Ethio Telecom High-Speed Fiber",
+    category: "Utilities",
+    amount: "2,200",
+    paymentMethod: "Mobile Payment",
+    status: "Paid",
+    isRecurring: true,
+  },
 ];
 
 export const seedTeamSummary: TeamSummary = {
@@ -828,6 +963,24 @@ export const seedTeamMembers: TeamMember[] = [
     role: "Shop Admin",
     joinedDate: "11/11/22",
     lastLogin: "11/12/22",
+  },
+  {
+    id: "tm-elec-1",
+    shopId: MOCK_IDS.secondShop,
+    name: "Dawit Bekele",
+    email: "dawit.elec@gmail.com",
+    role: "Shop Admin",
+    joinedDate: "15/01/24",
+    lastLogin: "18/09/26",
+  },
+  {
+    id: "tm-elec-2",
+    shopId: MOCK_IDS.secondShop,
+    name: "Sara Solomon",
+    email: "sara.elec@gmail.com",
+    role: "Shop Sale",
+    joinedDate: "20/02/24",
+    lastLogin: "17/09/26",
   },
 ];
 
@@ -948,6 +1101,26 @@ export const seedOrders: OrderRecord[] = [
     orderId: "2474",
     expectedDelivery: "11/11/22",
     status: "Delayed",
+  },
+  {
+    id: "ord-elec-1",
+    shopId: MOCK_IDS.secondShop,
+    product: "Samsung Galaxy A54",
+    price: 42000,
+    quantity: "2 Units",
+    orderId: "8910",
+    expectedDelivery: "25/09/26",
+    status: "Confirmed",
+  },
+  {
+    id: "ord-elec-2",
+    shopId: MOCK_IDS.secondShop,
+    product: "Anker 65W Fast Charger",
+    price: 3200,
+    quantity: "5 Units",
+    orderId: "8911",
+    expectedDelivery: "28/09/26",
+    status: "Out for delivery",
   },
 ];
 
@@ -1191,30 +1364,103 @@ export const seedProductHistory: ProductHistory[] = [
 export const seedSales: Sale[] = [
   {
     id: "sale-101",
-    shopId: "shop-1",
-    customerId: "cust-1",
-    totalAmount: "180.00",
-    subtotal: "180.00",
+    shopId: MOCK_IDS.shop,
+    customerId: "cust-001",
+    totalAmount: "450.00",
+    subtotal: "450.00",
     discountAmount: "0.00",
     taxAmount: "0.00",
     paymentMethod: "CASH",
     status: "COMPLETED",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    createdAt: new Date().toISOString(),
     items: [
       {
         id: "item-1",
         productId: "prod-sun-chips",
-        quantity: 2,
+        quantity: 5,
         unitPrice: "90.00",
-        subtotal: "180.00",
+        subtotal: "450.00",
         product: { id: "prod-sun-chips", name: "Sun Chips", sku: "CHIP-001" },
+      },
+    ],
+  },
+  {
+    id: "sale-102",
+    shopId: MOCK_IDS.shop,
+    customerId: "cust-003",
+    totalAmount: "2200.00",
+    subtotal: "2200.00",
+    discountAmount: "0.00",
+    taxAmount: "0.00",
+    paymentMethod: "BANK",
+    status: "COMPLETED",
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    items: [
+      {
+        id: "item-2",
+        productId: MOCK_IDS.productOil,
+        quantity: 10,
+        unitPrice: "220.00",
+        subtotal: "2200.00",
+        product: { id: MOCK_IDS.productOil, name: "Cooking Oil 1L", sku: "OIL-1L" },
+      },
+    ],
+  },
+  {
+    id: "sale-elec-101",
+    shopId: MOCK_IDS.secondShop,
+    customerId: "cust-elec-001",
+    totalAmount: "38500.00",
+    subtotal: "38500.00",
+    discountAmount: "0.00",
+    taxAmount: "0.00",
+    paymentMethod: "BANK",
+    status: "COMPLETED",
+    createdAt: new Date().toISOString(),
+    items: [
+      {
+        id: "item-elec-1",
+        productId: "prod-galaxy-a54",
+        quantity: 1,
+        unitPrice: "38500.00",
+        subtotal: "38500.00",
+        product: { id: "prod-galaxy-a54", name: "Samsung Galaxy A54 5G (128GB)", sku: "SMSG-A54-128" },
+      },
+    ],
+  },
+  {
+    id: "sale-elec-102",
+    shopId: MOCK_IDS.secondShop,
+    customerId: "cust-elec-001",
+    totalAmount: "9050.00",
+    subtotal: "9050.00",
+    discountAmount: "0.00",
+    taxAmount: "0.00",
+    paymentMethod: "TELEBIRR",
+    status: "COMPLETED",
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    items: [
+      {
+        id: "item-elec-2",
+        productId: "prod-anker-charger",
+        quantity: 1,
+        unitPrice: "1850.00",
+        subtotal: "1850.00",
+        product: { id: "prod-anker-charger", name: "Anker 45W USB-C Fast Charger", sku: "ANK-CHG-45W" },
+      },
+      {
+        id: "item-elec-3",
+        productId: "prod-sony-earbuds",
+        quantity: 1,
+        unitPrice: "7200.00",
+        subtotal: "7200.00",
+        product: { id: "prod-sony-earbuds", name: "Sony WF-C500 Wireless Earbuds", sku: "SNY-EAR-C500" },
       },
     ],
   },
 ];
 
 export type MockStore = {
-
   users: User[];
   shops: Shop[];
   categories: Category[];
@@ -1226,6 +1472,9 @@ export type MockStore = {
   customers: Customer[];
   debts: Debt[];
   expenses: Expense[];
+  sales: Sale[];
+  orders: OrderRecord[];
+  teamMembers: TeamMember[];
   resetTokens: Record<string, string>;
   passwords: Record<string, string>;
 };
@@ -1243,6 +1492,9 @@ export function createSeedStore(): MockStore {
     customers: structuredClone(seedCustomers),
     debts: structuredClone(seedDebts),
     expenses: structuredClone(seedExpenses),
+    sales: structuredClone(seedSales),
+    orders: structuredClone(seedOrders),
+    teamMembers: structuredClone(seedTeamMembers),
     resetTokens: {},
     passwords: {
       "owner@demo.com": "demo1234",

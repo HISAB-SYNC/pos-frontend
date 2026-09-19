@@ -139,6 +139,13 @@ export default function LoginPage() {
         <button type="submit" disabled={status === "loading"} className={authButtonClassName}>
           {status === "loading" ? "Signing in..." : "Login"}
         </button>
+
+        <p className="pt-2 text-center text-xs text-[#6b7280]">
+          New store owner?{" "}
+          <Link href="/register" className="font-semibold text-[#111827] hover:underline">
+            Create an Account
+          </Link>
+        </p>
       </form>
     </AuthShell>
   );

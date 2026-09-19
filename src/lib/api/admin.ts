@@ -218,7 +218,7 @@ export async function getAdminShops(): Promise<AdminShop[]> {
 
   try {
     const live = await apiRequest<AdminShop[]>(API_ENDPOINTS.admin.shops);
-    if (Array.isArray(live) && live.length > 0) {
+    if (Array.isArray(live)) {
       return live;
     }
     return seedAdminShops;
@@ -458,19 +458,19 @@ export async function registerOwnerByAdmin(
 
   if (!isMockApiEnabled()) {
     try {
-      await apiRequest(API_ENDPOINTS.auth.registerOwner, {
+      const res = await apiRequest<{ success: boolean; data: any }>(API_ENDPOINTS.admin.owners, {
         method: "POST",
         body: {
           name: input.name,
           email: input.email,
           password: input.password,
-          phone: input.phone,
-          shopName: input.shopName,
-          businessType: input.businessType || "RETAIL",
-          address: input.address || "Addis Ababa",
-          currency: input.currency || "ETB",
         },
       });
+      if (res?.data) {
+        newOwner.id = res.data.id;
+        newOwner.name = res.data.name;
+        newOwner.email = res.data.email;
+      }
     } catch {
       // Optimistic persistence in memory
     }

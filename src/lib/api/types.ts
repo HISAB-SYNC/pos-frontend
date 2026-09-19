@@ -150,6 +150,8 @@ export type Customer = {
   daysOverdue?: number | string;
   status?: "Active" | "Overdue" | "Inactive";
   date?: string;
+  createdAt?: string;
+  updatedAt?: string;
   customerId?: string;
   isRecurring?: boolean;
   loyaltyPoints?: number;
@@ -515,6 +517,7 @@ export type UserProfile = {
   ownedShops?: Array<{
     id: string;
     name: string;
+    address?: string;
     businessType?: string;
     currency?: string;
     taxRate?: string;
@@ -523,6 +526,7 @@ export type UserProfile = {
   shop?: {
     id: string;
     name: string;
+    address?: string;
     businessType?: string;
     currency?: string;
     isActive: boolean;

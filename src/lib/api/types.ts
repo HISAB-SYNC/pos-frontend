@@ -213,13 +213,12 @@ export type DebtPayment = {
   id: string;
   debtId?: string;
   customerId?: string;
-  amount: string;
+  amount: string | number;
   paymentMethod?: "Cash" | "Bank" | "Telebirr" | string;
   reference?: string;
   notes?: string;
   paidAt: string;
 };
-
 
 export type Debt = {
   id: string;
@@ -227,9 +226,17 @@ export type Debt = {
   customerId: string;
   customerName?: string;
   customerPhone?: string;
+  customer?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    debtBalance?: string | number;
+  };
   saleId?: string;
   amount: string;
   paidAmount?: string;
+  remainingAmount?: string;
   dueDate?: string;
   status: "PENDING" | "PARTIAL" | "PAID" | "pending" | "partial" | "paid" | "OVERDUE" | "overdue";
   notes?: string;

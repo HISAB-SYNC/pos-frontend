@@ -56,7 +56,7 @@ function DebtDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="mb-5 flex items-start justify-between border-b border-[#f3f4f6] pb-4">
           <div>
@@ -236,7 +236,7 @@ function CustomerDebtHistoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-start justify-between border-b border-[#f3f4f6] pb-4">
           <div>
             <div className="flex items-center gap-2">
@@ -419,7 +419,7 @@ function CreateDebtModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
           <div>
             <h2 className="text-base font-bold text-[#111827]">Record Standalone Debt</h2>
@@ -595,7 +595,7 @@ function ReceivePaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
           <div className="flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
@@ -924,7 +924,7 @@ export default function DebtsPage() {
             Track individual store credits, record partial/full repayments, and audit customer balances.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={mainTab === "debts" ? handleExportDebts : handleExportCustomerLedger}
@@ -1032,11 +1032,11 @@ export default function DebtsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* 3. Main Dual Tab Switcher                                           */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex border-b border-zinc-200">
+      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none">
         <button
           type="button"
           onClick={() => setMainTab("debts")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 border-b-2 px-4 sm:px-5 py-3 text-xs font-bold transition-all ${
             mainTab === "debts"
               ? "border-zinc-950 text-zinc-950"
               : "border-transparent text-zinc-500 hover:text-zinc-800"
@@ -1052,7 +1052,7 @@ export default function DebtsPage() {
         <button
           type="button"
           onClick={() => setMainTab("customers")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 border-b-2 px-4 sm:px-5 py-3 text-xs font-bold transition-all ${
             mainTab === "customers"
               ? "border-zinc-950 text-zinc-950"
               : "border-transparent text-zinc-500 hover:text-zinc-800"
@@ -1100,7 +1100,7 @@ export default function DebtsPage() {
             </div>
 
             {/* Search Box */}
-            <div className="relative w-full max-w-xs">
+            <div className="relative w-full sm:max-w-xs">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
@@ -1303,7 +1303,7 @@ export default function DebtsPage() {
             </div>
 
             {/* Search Box */}
-            <div className="relative w-full max-w-xs">
+            <div className="relative w-full sm:max-w-xs">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"

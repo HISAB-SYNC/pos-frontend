@@ -80,7 +80,7 @@ function CustomerInfoModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-[560px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-[560px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-base font-semibold text-[#111827]">Customer Information</h2>
@@ -291,7 +291,7 @@ function AddCustomerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-[440px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-[440px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-base font-semibold text-[#111827]">New Customer</h2>
           <button
@@ -432,7 +432,7 @@ function EditCustomerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-[460px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
           <h2 className="text-base font-semibold text-[#111827]">Edit Customer</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
@@ -517,7 +517,7 @@ function DeleteCustomerDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
           <Trash2 className="size-5" />
         </div>
@@ -677,20 +677,20 @@ export default function CustomersPage() {
 
       <div className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
         {/* Header toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-6 py-4">
+        <div className="flex flex-col gap-3 border-b border-[#e5e7eb] p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold text-[#111827]">Customers ({filteredCustomers.length})</h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Search */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9ca3af]" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search customers..."
-                className="h-9 w-48 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full sm:w-48 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
               />
             </div>
 
@@ -776,7 +776,7 @@ export default function CustomersPage() {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-[#e5e7eb] px-6">
+        <div className="flex border-b border-[#e5e7eb] px-3.5 sm:px-6 overflow-x-auto scrollbar-none">
           {[
             { id: "ALL", label: "All Customers" },
             { id: "WITH_DEBT", label: "With Outstanding Debt" },
@@ -786,7 +786,7 @@ export default function CustomersPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as any)}
-              className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
+              className={`shrink-0 py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
                 activeTab === tab.id
                   ? "border-zinc-950 text-zinc-950"
                   : "border-transparent text-[#6b7280] hover:text-[#111827]"
@@ -895,7 +895,7 @@ export default function CustomersPage() {
       {/* Repayment Modal from Customer Info */}
       {paymentCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="mb-4 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
               <h2 className="text-base font-semibold text-[#111827]">Record Payment for {paymentCustomer.name}</h2>
               <button

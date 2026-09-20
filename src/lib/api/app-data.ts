@@ -137,10 +137,55 @@ export async function deleteCustomer(_shopId: string, customerId: string) {
 export async function getDebts(shopId: string, params?: { status?: string; customerId?: string; search?: string }) {
   const store = getMockStore();
 
+  function normalizeDebt(d: Debt): Debt {
+    const cust = store.customers.find((c) => c.id === d.customerId || c.name === (d.customer?.name || d.customerName));
+    const totalAmount = parseFloat(String(d.amount || "0"));
+    
+    // Calculate total payments made against this debt
+    let totalPaid = 0;
+    if (Array.isArray(d.payments) && d.payments.length > 0) {
+      totalPaid = d.payments.reduce((sum, p) => sum + parseFloat(String(p.amount || 0)), 0);
+    } else if (d.paidAmount !== undefined) {
+      totalPaid = parseFloat(String(d.paidAmount || 0));
+    }
+
+    const remaining = Math.max(0, totalAmount - totalPaid);
+    
+    let computedStatus: Debt["status"] = "PENDING";
+    if (remaining <= 0.001) {
+      computedStatus = "PAID";
+    } else if (totalPaid > 0) {
+      computedStatus = "PARTIAL";
+    } else if (d.dueDate && new Date(d.dueDate) < new Date()) {
+      computedStatus = "OVERDUE";
+    } else if (d.status) {
+      computedStatus = d.status.toUpperCase() as Debt["status"];
+    }
+
+    const customerName = d.customer?.name || d.customerName || cust?.name || "Customer";
+    const customerPhone = d.customer?.phone || d.customerPhone || cust?.phone || "—";
+
+    return {
+      ...d,
+      customerName,
+      customerPhone,
+      amount: totalAmount.toFixed(2),
+      paidAmount: totalPaid.toFixed(2),
+      remainingAmount: remaining.toFixed(2),
+      status: computedStatus,
+      payments: d.payments || [],
+      transactions: d.transactions || cust?.debtHistory || [],
+    };
+  }
+
   if (isMockApiEnabled()) {
-    let list = store.debts.filter((d) => !d.shopId || d.shopId === shopId);
+    let list = store.debts.filter((d) => !d.shopId || d.shopId === shopId).map(normalizeDebt);
     if (params?.customerId) {
       list = list.filter((d) => d.customerId === params.customerId);
+    }
+    if (params?.status) {
+      const s = params.status.toUpperCase();
+      list = list.filter((d) => d.status.toUpperCase() === s);
     }
     if (params?.search) {
       const q = params.search.toLowerCase();
@@ -148,7 +193,8 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
         (d) =>
           d.customerName?.toLowerCase().includes(q) ||
           d.customerPhone?.toLowerCase().includes(q) ||
-          d.id.toLowerCase().includes(q),
+          d.id.toLowerCase().includes(q) ||
+          (d.notes && d.notes.toLowerCase().includes(q)),
       );
     }
     return list;
@@ -162,29 +208,41 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
 
     const liveData = await apiRequest<Debt[]>(`${API_ENDPOINTS.shops.debts(shopId)}${suffix}`);
     if (Array.isArray(liveData)) {
-      return liveData.map((d) => {
-        const cust = store.customers.find((c) => c.id === d.customerId || c.name === d.customerName);
-        return {
-          ...d,
-          customerPhone: d.customerPhone || cust?.phone || "+251912345678",
-          paidAmount: d.paidAmount || (cust ? String(cust.totalPaid || 0) : "0"),
-          transactions: d.transactions || cust?.debtHistory || [],
-        };
-      });
+      let mapped = liveData.map(normalizeDebt);
+      if (params?.search) {
+        const q = params.search.toLowerCase();
+        mapped = mapped.filter(
+          (d) =>
+            d.customerName?.toLowerCase().includes(q) ||
+            d.customerPhone?.toLowerCase().includes(q) ||
+            d.id.toLowerCase().includes(q) ||
+            (d.notes && d.notes.toLowerCase().includes(q)),
+        );
+      }
+      return mapped;
     }
-    return store.debts.filter((d) => !d.shopId || d.shopId === shopId);
-  } catch {
-    return store.debts.filter((d) => !d.shopId || d.shopId === shopId);
+    return store.debts.filter((d) => !d.shopId || d.shopId === shopId).map(normalizeDebt);
+  } catch (err) {
+    console.warn("Could not fetch live debts, using fallback:", err);
+    return store.debts.filter((d) => !d.shopId || d.shopId === shopId).map(normalizeDebt);
   }
 }
 
 export async function getDebtSummary(shopId: string) {
   const debts = await getDebts(shopId);
-  const totalOutstanding = debts.reduce((sum, d) => sum + parseFloat(d.amount || "0"), 0);
-  const totalDebtors = debts.filter((d) => parseFloat(d.amount || "0") > 0).length;
+  const totalOutstanding = debts
+    .filter((d) => d.status !== "PAID")
+    .reduce((sum, d) => sum + parseFloat(d.remainingAmount || d.amount || "0"), 0);
+
+  const debtorIds = new Set(
+    debts.filter((d) => d.status !== "PAID" && parseFloat(d.remainingAmount || d.amount || "0") > 0).map((d) => d.customerId),
+  );
+  const totalDebtors = debtorIds.size;
+
   const overdueCount = debts.filter(
-    (d) => d.status.toUpperCase() === "OVERDUE" || (d.dueDate && new Date(d.dueDate) < new Date()),
+    (d) => d.status === "OVERDUE" || (d.status !== "PAID" && d.dueDate && new Date(d.dueDate) < new Date()),
   ).length;
+
   const collectedThisMonth = debts.reduce((sum, d) => sum + parseFloat(d.paidAmount || "0"), 0);
 
   return {
@@ -199,22 +257,61 @@ export async function createDebt(
   shopId: string,
   input: { customerId: string; amount: number; dueDate?: string; notes?: string },
 ) {
-  if (isMockApiEnabled()) {
-    return {
-      id: `debt-${Date.now()}`,
-      shopId,
-      customerId: input.customerId,
-      amount: input.amount.toFixed(2),
-      status: "PENDING",
-      dueDate: input.dueDate,
-      notes: input.notes,
-    } as Debt;
+  const store = getMockStore();
+  const { seedCustomers, seedDebts } = await import("@/lib/mock/data");
+
+  const customer = store.customers.find((c) => c.id === input.customerId) || seedCustomers.find((c) => c.id === input.customerId);
+
+  const newDebt: Debt = {
+    id: `debt-${Date.now()}`,
+    shopId,
+    customerId: input.customerId,
+    customerName: customer?.name || "Customer",
+    customerPhone: customer?.phone || "—",
+    amount: input.amount.toFixed(2),
+    paidAmount: "0.00",
+    remainingAmount: input.amount.toFixed(2),
+    status: "PENDING",
+    dueDate: input.dueDate,
+    notes: input.notes,
+    payments: [],
+    transactions: [],
+    createdAt: new Date().toISOString(),
+  };
+
+  // Keep mock store in sync
+  store.debts.unshift(newDebt);
+  if (Array.isArray(seedDebts)) seedDebts.unshift(newDebt);
+
+  if (customer) {
+    const currentBalance = parseFloat(customer.debtBalance || "0");
+    const updatedBalance = currentBalance + input.amount;
+    customer.debtBalance = updatedBalance.toFixed(2);
+    customer.totalCreditPurchases = (parseFloat(String(customer.totalCreditPurchases || currentBalance)) + input.amount).toFixed(2);
   }
 
-  return apiRequest<Debt>(API_ENDPOINTS.shops.debts(shopId), {
-    method: "POST",
-    body: input,
-  });
+  if (!isMockApiEnabled()) {
+    try {
+      const backendCreated = await apiRequest<Debt>(API_ENDPOINTS.shops.debts(shopId), {
+        method: "POST",
+        body: {
+          customerId: input.customerId,
+          amount: input.amount,
+          dueDate: input.dueDate || undefined,
+          notes: input.notes || undefined,
+        },
+      });
+      if (backendCreated?.id) {
+        newDebt.id = backendCreated.id;
+      }
+      return backendCreated || newDebt;
+    } catch (err) {
+      console.warn("Backend createDebt failed, using local copy:", err);
+      return newDebt;
+    }
+  }
+
+  return newDebt;
 }
 
 export async function recordDebtPayment(
@@ -223,7 +320,7 @@ export async function recordDebtPayment(
     customerId: string;
     debtId?: string;
     amount: number;
-    paymentMethod: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
+    paymentMethod?: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
     notes?: string;
     reference?: string;
   },
@@ -232,13 +329,28 @@ export async function recordDebtPayment(
     throw new Error("Payment amount must be greater than 0");
   }
 
+  const store = getMockStore();
   const { seedCustomers, seedDebts } = await import("@/lib/mock/data");
 
-  const customer = seedCustomers.find((c) => c.id === input.customerId);
+  const customer = store.customers.find((c) => c.id === input.customerId) || seedCustomers.find((c) => c.id === input.customerId);
   const currentDebt = customer ? parseFloat(customer.debtBalance || "0") : 0;
-  const newBalance = Math.max(0, currentDebt - input.amount);
+  const newCustomerBalance = Math.max(0, currentDebt - input.amount);
 
   const ref = input.reference || `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
+  const nowIso = new Date().toISOString();
+  const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const paymentRecord = {
+    id: `pay-${Date.now()}`,
+    debtId: input.debtId,
+    customerId: input.customerId,
+    amount: input.amount.toFixed(2),
+    paymentMethod: input.paymentMethod || "Cash",
+    reference: ref,
+    notes: input.notes || "Debt payment recorded",
+    paidAt: nowIso,
+  };
+
   const transaction = {
     id: `dth-${Date.now()}`,
     customerId: input.customerId,
@@ -246,45 +358,83 @@ export async function recordDebtPayment(
     type: "Debt Payment" as const,
     reference: ref,
     amount: -Math.abs(input.amount),
-    remainingBalance: newBalance,
-    date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    paymentMethod: input.paymentMethod,
+    remainingBalance: newCustomerBalance,
+    date: dateStr,
+    paymentMethod: input.paymentMethod || "Cash",
     notes: input.notes || "Debt payment recorded",
   };
 
   if (customer) {
-    customer.debtBalance = String(newBalance);
+    customer.debtBalance = newCustomerBalance.toFixed(2);
     customer.totalPaid = (parseFloat(String(customer.totalPaid || "0")) + input.amount).toFixed(0);
-    customer.lastTransactionDate = transaction.date;
+    customer.lastTransactionDate = dateStr;
     if (!customer.debtHistory) customer.debtHistory = [];
     customer.debtHistory.unshift(transaction);
   }
 
-  const debtRecord = seedDebts.find((d) => d.customerId === input.customerId || (input.debtId && d.id === input.debtId));
+  // Find or identify debt record in memory
+  let debtRecord = store.debts.find(
+    (d) => (input.debtId && d.id === input.debtId) || (d.customerId === input.customerId && d.status !== "PAID"),
+  );
+  if (!debtRecord) {
+    debtRecord = seedDebts.find(
+      (d) => (input.debtId && d.id === input.debtId) || (d.customerId === input.customerId && d.status !== "PAID"),
+    );
+  }
+
   if (debtRecord) {
-    debtRecord.amount = String(newBalance);
-    debtRecord.paidAmount = String(parseFloat(debtRecord.paidAmount || "0") + input.amount);
-    debtRecord.status = newBalance === 0 ? "PAID" : "PARTIAL";
+    const oldPaid = parseFloat(debtRecord.paidAmount || "0");
+    const newPaid = oldPaid + input.amount;
+    const totalOrig = parseFloat(debtRecord.amount || "0");
+    const remaining = Math.max(0, totalOrig - newPaid);
+
+    debtRecord.paidAmount = newPaid.toFixed(2);
+    debtRecord.remainingAmount = remaining.toFixed(2);
+    debtRecord.status = remaining <= 0.001 ? "PAID" : "PARTIAL";
+
+    if (!debtRecord.payments) debtRecord.payments = [];
+    debtRecord.payments.unshift(paymentRecord);
+
     if (!debtRecord.transactions) debtRecord.transactions = [];
     debtRecord.transactions.unshift(transaction);
   }
 
-  const debtIdToUse = input.debtId || debtRecord?.id;
-  if (!isMockApiEnabled() && debtIdToUse) {
-    const updatedDebt = await apiRequest<Debt>(API_ENDPOINTS.shops.debtPayments(shopId, debtIdToUse), {
-      method: "POST",
-      body: { amount: input.amount },
-    });
-    return {
-      success: true,
-      newBalance: updatedDebt?.amount !== undefined ? parseFloat(updatedDebt.amount) : newBalance,
-      transaction,
-    };
+  // Resolve target debt ID for live backend call
+  let debtIdToUse = input.debtId || debtRecord?.id;
+
+  if (!isMockApiEnabled()) {
+    try {
+      // If we don't have a debtId, query backend for open debts for this customer
+      if (!debtIdToUse) {
+        const liveDebts = await apiRequest<Debt[]>(`${API_ENDPOINTS.shops.debts(shopId)}?customerId=${input.customerId}`);
+        const openDebt = Array.isArray(liveDebts) ? liveDebts.find((d) => d.status !== "PAID") : null;
+        if (openDebt) {
+          debtIdToUse = openDebt.id;
+        }
+      }
+
+      if (debtIdToUse) {
+        const updatedDebt = await apiRequest<Debt>(API_ENDPOINTS.shops.debtPayments(shopId, debtIdToUse), {
+          method: "POST",
+          body: { amount: input.amount },
+        });
+
+        return {
+          success: true,
+          debt: updatedDebt,
+          newBalance: updatedDebt?.amount !== undefined ? parseFloat(updatedDebt.amount) : newCustomerBalance,
+          transaction,
+        };
+      }
+    } catch (err) {
+      console.warn("Backend recordDebtPayment failed, returning local state:", err);
+    }
   }
 
   return {
     success: true,
-    newBalance,
+    debt: debtRecord,
+    newBalance: newCustomerBalance,
     transaction,
   };
 }
@@ -806,6 +956,19 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       purchase: totalCogs > 0 ? Math.round((totalCogs / 6) * (0.6 + idx * 0.12)) : 0,
     }));
 
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const trendWeekly = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const factor = 0.6 + i * 0.08;
+      const daySales = totalSalesRev > 0 ? Math.round((totalSalesRev / 14) * factor) : 0;
+      return {
+        month: `${dayNames[d.getDay()]} ${d.getDate()}`,
+        sales: daySales,
+        purchase: Math.round(daySales * 0.65),
+      };
+    });
+
     return {
       salesOverview: {
         sales: shopSales.length,
@@ -829,6 +992,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       salesAndPurchase: salesAndPurchase.length > 0 ? salesAndPurchase : [
         { month: "Current", sales: totalSalesRev, purchase: totalCogs },
       ],
+      trendWeekly,
       topSellingStock,
       lowQuantityStock,
       recentSales,
@@ -840,16 +1004,27 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
   }
 
   try {
-    const [backendMetrics, products, lowStock, liveSales, liveExpenses, liveDebts] = await Promise.allSettled([
+    const [backendMetrics, products, lowStock, liveSales, liveExpenses, liveDebts, liveAnalytics] = await Promise.allSettled([
       apiRequest<BackendDashboardMetrics>(API_ENDPOINTS.shops.dashboard(shopId)),
       apiRequest<Product[]>(API_ENDPOINTS.shops.products(shopId)),
       apiRequest<Product[]>(API_ENDPOINTS.shops.lowStockProducts(shopId)),
       apiRequest<Sale[]>(API_ENDPOINTS.shops.sales(shopId)),
       apiRequest<any>(API_ENDPOINTS.shops.expenses(shopId)),
       apiRequest<Debt[]>(API_ENDPOINTS.shops.debts(shopId)),
+      apiRequest<any>(`${API_ENDPOINTS.shops.analytics(shopId)}?period=monthly`),
     ]);
 
+    const isAllCoreRejected =
+      backendMetrics.status === "rejected" &&
+      products.status === "rejected" &&
+      liveSales.status === "rejected";
+
+    if (isAllCoreRejected) {
+      return computeMockDashboardMetrics(shopId);
+    }
+
     const bMetrics = backendMetrics.status === "fulfilled" ? backendMetrics.value : null;
+    const analyticsData = liveAnalytics.status === "fulfilled" ? liveAnalytics.value : null;
     const prods = products.status === "fulfilled" && Array.isArray(products.value) ? products.value : [];
     const lowStockLive = lowStock.status === "fulfilled" && Array.isArray(lowStock.value) ? lowStock.value : [];
     const salesList = liveSales.status === "fulfilled" && Array.isArray(liveSales.value) ? liveSales.value : [];
@@ -864,43 +1039,135 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     );
 
     const debtsList = liveDebts.status === "fulfilled" && Array.isArray(liveDebts.value) ? liveDebts.value : [];
-    const totalLiveDebt = bMetrics?.outstandingDebts?.totalAmount ?? debtsList.reduce((sum, d) => sum + (parseFloat(d.amount || "0") || 0), 0);
-    const debtorsCount = bMetrics?.outstandingDebts?.count ?? debtsList.filter((d) => (parseFloat(d.amount || "0") || 0) > 0).length;
+    const openDebts = debtsList.filter((d) => d.status !== "PAID" && (parseFloat(String(d.amount || "0")) || 0) > 0);
+    const debtsSum = openDebts.reduce((sum, d) => sum + (parseFloat(String(d.amount || "0")) || 0), 0);
+    const totalLiveDebt = bMetrics?.outstandingDebts?.totalAmount !== undefined
+      ? bMetrics.outstandingDebts.totalAmount
+      : (analyticsData?.debts?.totalOutstandingDebtAmount ?? debtsSum);
+    const debtorsCount = bMetrics?.outstandingDebts?.count !== undefined
+      ? bMetrics.outstandingDebts.count
+      : (analyticsData?.debts?.outstandingDebtsCount ?? openDebts.length);
 
-    const salesRev = validSales.reduce((sum, s) => sum + parseFloat(s.totalAmount || "0"), 0);
-    const calculatedRev = bMetrics?.todaysSales?.totalAmount !== undefined
+    // 1. All-time historical sales revenue
+    const totalHistoricalSalesRev = validSales.reduce(
+      (sum, s) => sum + (parseFloat(String(s.totalAmount || "0")) || 0),
+      0,
+    );
+
+    // 2. Today's sales (from backend ticker or calculated by today's date)
+    const todayDateStr = new Date().toDateString();
+    const todaySales = validSales.filter((s) => new Date(s.createdAt).toDateString() === todayDateStr);
+    const calculatedTodayRev = todaySales.reduce(
+      (sum, s) => sum + (parseFloat(String(s.totalAmount || "0")) || 0),
+      0,
+    );
+    const calculatedTodayCount = todaySales.length;
+
+    const todayRevenue = bMetrics?.todaysSales?.totalAmount !== undefined
       ? bMetrics.todaysSales.totalAmount
-      : salesRev;
+      : calculatedTodayRev;
 
+    const todaySalesCount = bMetrics?.todaysSales?.count !== undefined
+      ? bMetrics.todaysSales.count
+      : calculatedTodayCount;
+
+    // 3. Total Revenue is all-time historical sales
+    const totalRevenue = totalHistoricalSalesRev > 0
+      ? totalHistoricalSalesRev
+      : (analyticsData?.sales?.totalRevenue ?? todayRevenue);
+
+    const totalSalesCount = validSales.length > 0
+      ? validSales.length
+      : (analyticsData?.sales?.totalSalesCount ?? todaySalesCount);
+
+    // 4. Payment breakdown (across historical sales or analytics)
     const breakdown = { cash: 0, bank: 0, telebirr: 0 };
     validSales.forEach((s) => {
       const method = (s.paymentMethod || "").toUpperCase();
-      const paid = s.amountPaid !== undefined ? parseFloat(String(s.amountPaid)) : (s.splitDetails?.cashAmount ?? parseFloat(s.totalAmount || "0"));
-      if (method === "BANK" || method === "BANK_TRANSFER") breakdown.bank += paid;
+      const paid = s.amountPaid !== undefined
+        ? parseFloat(String(s.amountPaid))
+        : (s.splitDetails?.cashAmount ?? (parseFloat(String(s.totalAmount || "0")) || 0));
+      if (method === "BANK" || method === "BANK_TRANSFER" || method === "CARD") breakdown.bank += paid;
       else if (method === "TELEBIRR" || method === "MOBILE") breakdown.telebirr += paid;
       else breakdown.cash += paid;
     });
 
+    if (validSales.length === 0 && analyticsData?.sales?.paymentMethodBreakdown) {
+      const pmb = analyticsData.sales.paymentMethodBreakdown;
+      breakdown.cash = pmb.CASH?.totalAmount ?? 0;
+      breakdown.bank = (pmb.CARD?.totalAmount ?? 0) + (pmb.BANK?.totalAmount ?? 0);
+      breakdown.telebirr = (pmb.MOBILE?.totalAmount ?? 0) + (pmb.TELEBIRR?.totalAmount ?? 0);
+    }
+
+    // 5. Cost of goods sold & Profit
+    let totalCogs = 0;
+    validSales.forEach((s) => {
+      if (s.items && Array.isArray(s.items) && s.items.length > 0) {
+        s.items.forEach((it: any) => {
+          const prod = prods.find((p) => p.id === it.productId);
+          const attrs = (prod?.attributes ?? {}) as Record<string, any>;
+          const costPrice = parseFloat(attrs.buyingPrice || attrs.costPrice || "0") || ((parseFloat(String(prod?.price || "0")) || 0) * 0.65);
+          totalCogs += costPrice * (it.quantity || 1);
+        });
+      } else {
+        totalCogs += (parseFloat(String(s.totalAmount || "0")) || 0) * 0.65;
+      }
+    });
+
+    totalCogs = Math.round(totalCogs);
+    const grossProfit = Math.max(0, Math.round(totalRevenue - totalCogs));
+    const netProfit = Math.max(0, Math.round(grossProfit - totalLiveExpenses));
+
+    // 6. Recent sales list
     const recent = validSales.slice(0, 4).map((s) => {
       const method = (s.paymentMethod || "CASH").toUpperCase();
-      const methodLabel = method === "BANK" || method === "BANK_TRANSFER" ? "Bank" : method === "TELEBIRR" || method === "MOBILE" ? "Telebirr" : "Cash";
+      const methodLabel = method === "BANK" || method === "BANK_TRANSFER" || method === "CARD" ? "Bank" : method === "TELEBIRR" || method === "MOBILE" ? "Telebirr" : "Cash";
 
       return {
         id: s.id.slice(0, 8),
         customerName: s.customer?.name || "Walk-in Customer",
-        totalAmount: parseFloat(s.totalAmount || "0"),
+        totalAmount: parseFloat(String(s.totalAmount || "0")),
         paymentMethod: methodLabel,
         date: new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
         status: s.status,
       };
     });
 
-    const liveTopSelling = prods.slice(0, 3).map((p) => ({
-      name: p.name,
-      soldQuantity: validSales.length > 0 ? 10 : 0,
-      remainingQuantity: p.stockQuantity,
-      price: `${parseFloat(p.price || "0").toLocaleString()} Birr`,
-    }));
+    // 7. Top selling stock (calculated from sales items or analytics)
+    const productSoldMap: Record<string, number> = {};
+    validSales.forEach((s) => {
+      if (s.items && Array.isArray(s.items)) {
+        s.items.forEach((it: any) => {
+          const pid = it.productId || it.product?.id;
+          if (pid) {
+            productSoldMap[pid] = (productSoldMap[pid] || 0) + (it.quantity || 1);
+          }
+        });
+      }
+    });
+
+    let liveTopSelling = prods
+      .map((p) => ({
+        name: p.name,
+        soldQuantity: productSoldMap[p.id] ?? (validSales.length > 0 ? 1 : 0),
+        remainingQuantity: p.stockQuantity,
+        price: `${parseFloat(String(p.price || "0")).toLocaleString()} Birr`,
+      }))
+      .sort((a, b) => b.soldQuantity - a.soldQuantity)
+      .slice(0, 4);
+
+    if (
+      liveTopSelling.length === 0 &&
+      analyticsData?.products?.topSellingProducts &&
+      Array.isArray(analyticsData.products.topSellingProducts)
+    ) {
+      liveTopSelling = analyticsData.products.topSellingProducts.map((p: any) => ({
+        name: p.name,
+        soldQuantity: p.totalQuantitySold ?? 0,
+        remainingQuantity: 0,
+        price: `${parseFloat(String(p.totalRevenue || "0")).toLocaleString()} Birr`,
+      }));
+    }
 
     const liveLowStock = lowStockLive.map((p) => ({
       id: p.id,
@@ -909,33 +1176,105 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       unit: p.unit || "pcs",
     }));
 
-    const grossProfit = Math.round(calculatedRev * 0.35);
-    const cogs = Math.round(calculatedRev * 0.65);
-    const netProfit = Math.max(0, grossProfit - totalLiveExpenses);
+    // 8. Trends: Monthly & Weekly
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    type MonthBucket = {
+      monthIndex: number;
+      year: number;
+      month: string;
+      sales: number;
+      purchase: number;
+    };
+    const last6Months: MonthBucket[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      last6Months.push({
+        monthIndex: d.getMonth(),
+        year: d.getFullYear(),
+        month: monthNames[d.getMonth()],
+        sales: 0,
+        purchase: 0,
+      });
+    }
+
+    validSales.forEach((s) => {
+      const d = new Date(s.createdAt);
+      if (!isNaN(d.getTime())) {
+        const m = last6Months.find((item) => item.monthIndex === d.getMonth() && item.year === d.getFullYear());
+        if (m) {
+          m.sales += parseFloat(String(s.totalAmount || "0")) || 0;
+        }
+      }
+    });
+
+    const salesAndPurchase = last6Months.map((m) => ({
+      month: m.month,
+      sales: Math.round(m.sales),
+      purchase: Math.round(m.sales * 0.65),
+    }));
+
+    // Weekly trend (last 7 days)
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    type DayBucket = {
+      dateKey: string;
+      month: string;
+      sales: number;
+      purchase: number;
+    };
+    const last7Days: DayBucket[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toDateString();
+      last7Days.push({
+        dateKey,
+        month: `${dayNames[d.getDay()]} ${d.getDate()}`,
+        sales: 0,
+        purchase: 0,
+      });
+    }
+
+    validSales.forEach((s) => {
+      const d = new Date(s.createdAt);
+      if (!isNaN(d.getTime())) {
+        const dayItem = last7Days.find((item) => item.dateKey === d.toDateString());
+        if (dayItem) {
+          dayItem.sales += parseFloat(String(s.totalAmount || "0")) || 0;
+        }
+      }
+    });
+
+    const trendWeekly = last7Days.map((d) => ({
+      month: d.month,
+      sales: Math.round(d.sales),
+      purchase: Math.round(d.sales * 0.65),
+    }));
 
     return {
       salesOverview: {
-        sales: bMetrics?.todaysSales?.count ?? validSales.length,
-        revenue: calculatedRev,
+        sales: totalSalesCount,
+        revenue: totalRevenue,
         profit: grossProfit,
-        cost: cogs,
+        cost: totalCogs,
       },
       netProfit,
       grossProfit,
       totalExpenses: Math.round(totalLiveExpenses),
-      cogs,
+      cogs: totalCogs,
       outstandingDebt: Math.round(totalLiveDebt),
       debtorsCount,
-      todaySalesCount: bMetrics?.todaysSales?.count ?? (validSales.length > 0 ? 1 : 0),
-      todayRevenue: bMetrics?.todaysSales?.totalAmount ?? (salesRev > 0 ? salesRev : 0),
+      todaySalesCount,
+      todayRevenue: Math.round(todayRevenue),
       paymentBreakdown: {
         cash: Math.round(breakdown.cash),
         bank: Math.round(breakdown.bank),
         telebirr: Math.round(breakdown.telebirr),
       },
-      salesAndPurchase: [
-        { month: "Current", sales: calculatedRev, purchase: cogs },
+      salesAndPurchase: salesAndPurchase.length > 0 ? salesAndPurchase : [
+        { month: "Current", sales: totalRevenue, purchase: totalCogs },
       ],
+      trendWeekly,
       topSellingStock: liveTopSelling,
       lowQuantityStock: liveLowStock,
       recentSales: recent,

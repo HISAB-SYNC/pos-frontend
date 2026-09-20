@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
   AuthShell,
   authButtonClassName,
   authInputClassName,
   authLabelClassName,
+  authSubtitleClassName,
   authTitleClassName,
 } from "@/components/auth/auth-shell";
 import { login } from "@/lib/api/auth";
@@ -26,6 +28,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("Invalid email or password.");
 
@@ -81,8 +84,6 @@ export default function LoginPage() {
       }
 
       router.push("/dashboard");
-
-
     } catch (error) {
       const apiError = error as ApiError;
       setErrorMessage(apiError.message ?? "Invalid email or password.");
@@ -91,18 +92,24 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell showMobileLogo={false} showFormLogo>
-      <h1 className={authTitleClassName}>Welcome Back!</h1>
-      <p className="mt-2 text-[16px] leading-6 text-[#3d3d3d]">For Manager</p>
+    <AuthShell hideAllLogos layout="centered" backHref="/landing-page">
+      <div>
+        <h1 className={authTitleClassName}>Welcome Back</h1>
+        <p className={authSubtitleClassName}>
+          Sign in to access your shop terminal and management dashboard.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit} className="mt-7 space-y-4">
         <div>
           <label htmlFor="email" className={authLabelClassName}>
-            Email*
+            Email Address
           </label>
           <input
             id="email"
             type="email"
+            autoComplete="email"
+            placeholder="owner@yourshop.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -112,42 +119,72 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label htmlFor="password" className={authLabelClassName}>
-            Password*
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={status === "loading"}
-            className={authInputClassName}
-          />
-          <div className="mt-2 text-right">
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className={authLabelClassName}>
+              Password
+            </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-[#222222] transition-colors hover:text-[#000000] hover:underline"
+              className="text-xs font-medium text-zinc-600 transition-colors hover:text-zinc-950 hover:underline"
             >
-              Forgot Password
+              Forgot password?
             </Link>
+          </div>
+          <div className="relative mt-1">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={status === "loading"}
+              className={`${authInputClassName} pr-11`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-700"
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
           </div>
         </div>
 
-        {status === "error" && <p className="text-sm text-red-600">{errorMessage}</p>}
+        {status === "error" && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/80 p-3 text-xs leading-relaxed text-red-700">
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-500" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         <button type="submit" disabled={status === "loading"} className={authButtonClassName}>
-          {status === "loading" ? "Signing in..." : "Login"}
+          {status === "loading" ? (
+            <>
+              <Loader2 className="size-4 animate-spin text-[#c0e763]" />
+              <span>Signing in...</span>
+            </>
+          ) : (
+            "Sign In"
+          )}
         </button>
 
-        <p className="pt-2 text-center text-xs text-[#6b7280]">
-          New store owner?{" "}
-          <Link href="/register" className="font-semibold text-[#111827] hover:underline">
-            Create an Account
-          </Link>
-        </p>
+        <div className="pt-3 text-center">
+          <p className="text-xs text-zinc-500">
+            New store owner?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-zinc-900 transition-colors hover:text-[#5c7f12] hover:underline"
+            >
+              Create an Account
+            </Link>
+          </p>
+        </div>
       </form>
     </AuthShell>
   );
 }
+
 

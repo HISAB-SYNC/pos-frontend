@@ -7,6 +7,8 @@ type AuthShellProps = {
   backHref?: string;
   showMobileLogo?: boolean;
   showFormLogo?: boolean;
+  hideAllLogos?: boolean;
+  layout?: "split" | "centered";
 };
 
 export function AuthShell({
@@ -14,23 +16,56 @@ export function AuthShell({
   backHref,
   showMobileLogo = true,
   showFormLogo = false,
+  hideAllLogos = false,
+  layout = "split",
 }: AuthShellProps) {
+  const isCentered = layout === "centered" || hideAllLogos;
+
+  if (isCentered) {
+    return (
+      <div className="relative flex min-h-screen w-full items-center justify-center bg-[#fafbfc] px-4 py-8 sm:py-12 text-zinc-900">
+        {/* Subtle decorative background glow */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-1/2 top-0 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-radial from-[#c0e763]/10 to-transparent blur-3xl" />
+        </div>
+
+        <div className="relative w-full max-w-[420px]">
+          {backHref && (
+            <Link
+              href={backHref}
+              className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+            >
+              <span aria-hidden="true" className="text-sm leading-none">‹</span>
+              Back
+            </Link>
+          )}
+
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:p-8 md:p-9">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen w-full bg-white px-6 py-10 lg:px-10">
+    <div className="min-h-screen w-full bg-white px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
       <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-7xl items-center gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-16">
         <section className="hidden items-center justify-center lg:flex">
-          <AndalusLogo variant="icon" className="h-[420px] w-[420px] max-w-none" />
+          {!hideAllLogos && (
+            <AndalusLogo variant="icon" className="h-[420px] w-[420px] max-w-none" />
+          )}
         </section>
 
         <section className="flex justify-center lg:justify-start">
           <div className="w-full max-w-[360px] pt-2 text-[#121212]">
-            {showFormLogo && (
+            {!hideAllLogos && showFormLogo && (
               <div className="mb-8 flex justify-center lg:justify-start">
                 <AndalusLogo variant="icon" className="h-16 w-16" />
               </div>
             )}
 
-            {showMobileLogo && !showFormLogo && (
+            {!hideAllLogos && showMobileLogo && !showFormLogo && (
               <div className="mb-8 flex justify-center lg:hidden">
                 <AndalusLogo variant="icon" className="h-16 w-16" />
               </div>
@@ -55,17 +90,17 @@ export function AuthShell({
 }
 
 export const authInputClassName =
-  "h-11 w-full rounded-xl border border-[#444444] bg-white px-4 text-[15px] outline-none transition focus:border-[#111111] focus:ring-2 focus:ring-[#111111]/10 disabled:opacity-60";
+  "h-11 w-full rounded-xl border border-zinc-300 bg-white px-3.5 text-[14px] text-zinc-900 placeholder:text-zinc-400 outline-none transition duration-150 focus:border-[#7ea521] focus:ring-2 focus:ring-[#c0e763]/25 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const authButtonClassName =
-  "mt-2 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#0f172a] text-[16px] font-semibold text-white shadow-[0_10px_30px_rgba(15,23,42,0.18)] transition hover:bg-[#111c35] disabled:cursor-not-allowed disabled:opacity-70";
+  "mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0c1017] text-[14px] font-semibold text-white shadow-xs transition duration-150 hover:bg-[#1a2436] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60";
 
-export const authLabelClassName = "mb-2 block text-sm font-medium text-[#333333]";
+export const authLabelClassName = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-600";
 
 export const authTitleClassName =
-  "text-[30px] font-extrabold leading-none tracking-[-0.03em] text-[#111111]";
+  "text-2xl font-bold tracking-tight text-zinc-950 sm:text-[28px]";
 
-export const authSubtitleClassName = "mt-2 text-[16px] leading-6 text-[#8a8a8a]";
+export const authSubtitleClassName = "mt-1.5 text-sm leading-relaxed text-zinc-500";
 
 export function maskEmail(email: string) {
   const [local, domain] = email.split("@");

@@ -1,433 +1,181 @@
 "use client";
 
 import {
+  Banknote,
+  CheckCircle2,
   Download,
-  Edit2,
+  Eye,
   Filter,
+  Landmark,
   Plus,
+  Printer,
+  Receipt,
   RotateCcw,
   Search,
-  SlidersHorizontal,
-  Trash2,
+  ShoppingCart,
+  Smartphone,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
-import {
-  createOrder,
-  deleteOrder,
-  getOrders,
-  getOverallOrdersSummary,
-  updateOrder,
-} from "@/lib/api/app-data";
-import type { OrderRecord, OverallOrdersSummary } from "@/lib/api/types";
+import { getSales } from "@/lib/api/app-data";
+import type { Sale } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
 
+const PAGE_SIZE = 10;
+
 /* ------------------------------------------------------------------ */
-/* Modal: New Order                                                   */
+/* Modal: Digital Sale Receipt                                         */
 /* ------------------------------------------------------------------ */
-function AddOrderModal({
-  open,
+function SaleReceiptModal({
+  sale,
+  shopName,
   onClose,
-  onCreated,
-  shopId,
 }: {
-  open: boolean;
+  sale: Sale | null;
+  shopName: string;
   onClose: () => void;
-  onCreated: () => void;
-  shopId: string;
 }) {
-  const [form, setForm] = useState({
-    product: "",
-    price: "",
-    quantity: "",
-    orderId: "",
-    expectedDelivery: "",
-    status: "Confirmed" as "Delayed" | "Confirmed" | "Returned" | "Out for delivery",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  if (!sale) return null;
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-  }
+  const totalNum = parseFloat(String(sale.totalAmount || "0"));
+  const subtotalNum = sale.subtotal ? parseFloat(String(sale.subtotal)) : Math.round(totalNum / 1.15 * 100) / 100;
+  const taxNum = sale.taxAmount ? parseFloat(String(sale.taxAmount)) : Math.round((totalNum - subtotalNum) * 100) / 100;
+  const discountNum = sale.discountAmount ? parseFloat(String(sale.discountAmount)) : 0;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.product.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      await createOrder(shopId, {
-        product: form.product.trim(),
-        price: form.price ? Number(form.price) : "—",
-        quantity: form.quantity.trim() || "1 Packets",
-        orderId: form.orderId.trim(),
-        expectedDelivery: form.expectedDelivery.trim() || new Date().toLocaleDateString("en-GB"),
-        status: form.status,
-      });
-      onCreated();
-      onClose();
-      setForm({
-        product: "",
-        price: "",
-        quantity: "",
-        orderId: "",
-        expectedDelivery: "",
-        status: "Confirmed",
-      });
-    } catch (err) {
-      console.error(err);
-      onCreated();
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  if (!open) return null;
+  const method = (sale.paymentMethod || "CASH").toUpperCase();
+  const paymentMethodLabel =
+    method === "BANK" || method === "CARD" || method === "BANK_TRANSFER"
+      ? "Bank Transfer / Card"
+      : method === "TELEBIRR" || method === "MOBILE"
+      ? "Telebirr / Mobile Money"
+      : "Cash";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#111827]">New Order</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
+              <Receipt className="size-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-zinc-900">Sale Receipt</h3>
+              <p className="font-mono text-[10px] text-zinc-400">
+                #RCP-{sale.id.slice(0, 8).toUpperCase()}
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-full text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#111827]"
+            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[#374151]">Product Name *</label>
-            <input
-              name="product"
-              value={form.product}
-              onChange={handleChange}
-              required
-              placeholder="e.g. Coca Cola"
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-            />
+        {/* Receipt Body */}
+        <div className="my-4 rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 text-xs space-y-3">
+          <div className="text-center pb-2 border-b border-dashed border-zinc-200">
+            <h4 className="font-bold text-sm text-zinc-900">{shopName}</h4>
+            <p className="text-[11px] text-zinc-500">Official Checkout Register</p>
+            <p className="mt-1 font-mono text-[10px] text-zinc-400">
+              {new Date(sale.createdAt).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[#374151]">Price (ETB)</label>
-              <input
-                name="price"
-                type="number"
-                value={form.price}
-                onChange={handleChange}
-                placeholder="e.g. 75"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-              />
+          <div className="flex justify-between text-[11px]">
+            <span className="text-zinc-500">Customer:</span>
+            <span className="font-semibold text-zinc-800">
+              {sale.customer?.name || "Walk-in Customer"}
+            </span>
+          </div>
+
+          {/* Items List */}
+          <div className="border-t border-b border-zinc-200/80 py-2 space-y-1.5">
+            {sale.items && sale.items.length > 0 ? (
+              sale.items.map((item, idx) => (
+                <div key={item.id || idx} className="flex justify-between items-center text-[11px]">
+                  <div>
+                    <p className="font-medium text-zinc-800">
+                      {item.product?.name || `Item #${idx + 1}`}
+                    </p>
+                    <p className="font-mono text-[10px] text-zinc-400">
+                      {item.quantity} × {parseFloat(String(item.unitPrice || "0")).toFixed(2)} ETB
+                    </p>
+                  </div>
+                  <span className="font-mono font-semibold text-zinc-900">
+                    {(item.quantity * (parseFloat(String(item.unitPrice || "0")) || 0)).toFixed(2)} ETB
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-zinc-600">General POS Checkout Sale</span>
+                <span className="font-mono font-semibold text-zinc-900">
+                  {totalNum.toFixed(2)} ETB
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Financial Breakdown */}
+          <div className="space-y-1 text-[11px] pt-1">
+            <div className="flex justify-between text-zinc-500">
+              <span>Subtotal:</span>
+              <span className="font-mono">{subtotalNum.toFixed(2)} ETB</span>
             </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[#374151]">Quantity</label>
-              <input
-                name="quantity"
-                value={form.quantity}
-                onChange={handleChange}
-                placeholder="e.g. 43 Packets"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-              />
+            {taxNum > 0 && (
+              <div className="flex justify-between text-zinc-500">
+                <span>VAT / Tax (15%):</span>
+                <span className="font-mono">{taxNum.toFixed(2)} ETB</span>
+              </div>
+            )}
+            {discountNum > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Discount:</span>
+                <span className="font-mono">-{discountNum.toFixed(2)} ETB</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-xs font-bold text-zinc-900">
+              <span>Total Paid:</span>
+              <span className="font-mono text-sm">{totalNum.toLocaleString()} ETB</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[#374151]">Order ID</label>
-              <input
-                name="orderId"
-                value={form.orderId}
-                onChange={handleChange}
-                placeholder="e.g. 7535"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[#374151]">Expected Delivery</label>
-              <input
-                name="expectedDelivery"
-                value={form.expectedDelivery}
-                onChange={handleChange}
-                placeholder="e.g. 11/12/22"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-              />
-            </div>
+          <div className="pt-2 border-t border-dashed border-zinc-200 flex justify-between text-[11px]">
+            <span className="text-zinc-500">Payment Channel:</span>
+            <span className="font-semibold text-zinc-800">{paymentMethodLabel}</span>
           </div>
+        </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[#374151]">Order Status</label>
-            <select
-              name="status"
-              value={form.status}
-              onChange={handleChange}
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-xs text-[#111827] focus:border-[#2563eb] focus:outline-none"
-            >
-              <option value="Confirmed">Confirmed</option>
-              <option value="Out for delivery">Out for delivery</option>
-              <option value="Delayed">Delayed</option>
-              <option value="Returned">Returned</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
-            >
-              Discard
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 text-xs font-medium text-white transition-colors hover:bg-[#1f2937] disabled:opacity-50"
-            >
-              {isSubmitting ? "Adding..." : "Add Order"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Edit Order                                                  */
-/* ------------------------------------------------------------------ */
-function EditOrderModal({
-  order,
-  onClose,
-  onUpdated,
-  shopId,
-}: {
-  order: OrderRecord | null;
-  onClose: () => void;
-  onUpdated: () => void;
-  shopId: string;
-}) {
-  const [form, setForm] = useState({
-    product: "",
-    price: "",
-    quantity: "",
-    orderId: "",
-    expectedDelivery: "",
-    status: "Confirmed" as "Delayed" | "Confirmed" | "Returned" | "Out for delivery",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (order) {
-      setForm({
-        product: order.product || "",
-        price: String(order.price || ""),
-        quantity: order.quantity || "",
-        orderId: order.orderId || "",
-        expectedDelivery: order.expectedDelivery || "",
-        status: order.status || "Confirmed",
-      });
-    }
-  }, [order]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!order || !form.product.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      await updateOrder(shopId, order.id, {
-        product: form.product.trim(),
-        price: form.price ? Number(form.price) : "—",
-        quantity: form.quantity.trim(),
-        orderId: form.orderId.trim(),
-        expectedDelivery: form.expectedDelivery.trim(),
-        status: form.status,
-      });
-      onUpdated();
-      onClose();
-    } catch (err) {
-
-      console.error(err);
-      onUpdated();
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  if (!order) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-
-      <div className="w-full max-w-[460px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#111827]">Edit Order</h2>
+        {/* Footer Actions */}
+        <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
             onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-full text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#111827]"
+            className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
           >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-          <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Product Name *</label>
-            <input
-              value={form.product}
-              onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
-              required
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Price (ETB)</label>
-              <input
-                type="number"
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Quantity</label>
-              <input
-                value={form.quantity}
-                onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Order ID</label>
-              <input
-                value={form.orderId}
-                onChange={(e) => setForm((f) => ({ ...f, orderId: e.target.value }))}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Expected Delivery</label>
-              <input
-                value={form.expectedDelivery}
-                onChange={(e) => setForm((f) => ({ ...f, expectedDelivery: e.target.value }))}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Order Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as any }))}
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
-            >
-              <option value="Confirmed">Confirmed</option>
-              <option value="Out for delivery">Out for delivery</option>
-              <option value="Delayed">Delayed</option>
-              <option value="Returned">Returned</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Delete Order Confirmation                                   */
-/* ------------------------------------------------------------------ */
-function DeleteOrderDialog({
-  order,
-  onClose,
-  onDeleted,
-  shopId,
-}: {
-  order: OrderRecord | null;
-  onClose: () => void;
-  onDeleted: () => void;
-  shopId: string;
-}) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  async function handleConfirm() {
-    if (!order) return;
-    setIsDeleting(true);
-    try {
-      await deleteOrder(shopId, order.id);
-      onDeleted();
-      onClose();
-    } catch {
-      onDeleted();
-      onClose();
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
-  if (!order) return null;
-
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
-          <Trash2 className="size-5" />
-        </div>
-        <h3 className="text-base font-bold text-[#111827]">Delete Order</h3>
-        <p className="mt-1 text-xs text-[#6b7280]">
-          Are you sure you want to delete order <span className="font-semibold text-[#111827]">#{order.orderId}</span> ({order.product})?
-        </p>
-
-        <div className="mt-5 flex justify-end gap-2.5 text-xs">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
-          >
-            Cancel
+            Close
           </button>
           <button
             type="button"
-            disabled={isDeleting}
-            onClick={handleConfirm}
-            className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-zinc-800 transition-colors"
           >
-            {isDeleting ? "Deleting..." : "Delete Permanently"}
+            <Printer className="size-3.5" />
+            <span>Print Receipt</span>
           </button>
         </div>
       </div>
@@ -436,59 +184,30 @@ function DeleteOrderDialog({
 }
 
 /* ------------------------------------------------------------------ */
-/* Helpers: Status color                                              */
+/* Page Component: Sales History & Receipts Ledger                    */
 /* ------------------------------------------------------------------ */
-function getStatusColor(status: string) {
-  switch (status) {
-    case "Confirmed":
-      return "text-[#2563eb]";
-    case "Delayed":
-      return "text-[#f59e0b]";
-    case "Out for delivery":
-      return "text-[#16a34a]";
-    case "Returned":
-      return "text-[#6b7280]";
-    default:
-      return "text-[#374151]";
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* Page Component                                                     */
-/* ------------------------------------------------------------------ */
-const PAGE_SIZE = 9;
-
-export default function OrdersPage() {
+export default function SalesHistoryPage() {
   const activeShopId = useShopStore((state) => state.activeShopId);
+  const activeShopName = useShopStore((state) => state.activeShopName) || "Shop";
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
-  const [summary, setSummary] = useState<OverallOrdersSummary | null>(null);
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
-
-  // Filters State
+  const [search, setSearch] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-
-  // Modals State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [orderToEdit, setOrderToEdit] = useState<OrderRecord | null>(null);
-  const [orderToDelete, setOrderToDelete] = useState<OrderRecord | null>(null);
+  const [activeReceipt, setActiveReceipt] = useState<Sale | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [sum, ords] = await Promise.all([
-        getOverallOrdersSummary(shopId),
-        getOrders(shopId),
-      ]);
-      setSummary(sum);
-      setOrders(ords);
+      const data = await getSales(shopId);
+      setSales(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.warn("Could not load orders data:", err);
-      setSummary(null);
-      setOrders([]);
+      console.warn("Could not load sales history:", err);
+      setSales([]);
     } finally {
       setIsLoading(false);
     }
@@ -498,184 +217,167 @@ export default function OrdersPage() {
     loadData();
   }, [loadData]);
 
-  // Client-side filtering & pagination
-  const filteredOrders = useMemo(() => {
-    if (selectedStatus === "ALL") return orders;
-    return orders.filter((o) => o.status === selectedStatus);
-  }, [orders, selectedStatus]);
+  // Client-side filtering
+  const filteredSales = useMemo(() => {
+    return sales.filter((s) => {
+      const idMatch = s.id.toLowerCase().includes(search.toLowerCase());
+      const custMatch = s.customer?.name?.toLowerCase().includes(search.toLowerCase());
+      const phoneMatch = s.customer?.phone?.includes(search);
+      const matchesSearch = !search.trim() || idMatch || custMatch || phoneMatch;
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
-  const currentOrders = useMemo(
-    () => filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredOrders, page],
+      const methodUpper = (s.paymentMethod || "").toUpperCase();
+      let matchesMethod = selectedMethod === "ALL";
+      if (selectedMethod === "CASH") matchesMethod = methodUpper === "CASH";
+      else if (selectedMethod === "BANK") matchesMethod = methodUpper === "BANK" || methodUpper === "CARD" || methodUpper === "BANK_TRANSFER";
+      else if (selectedMethod === "TELEBIRR") matchesMethod = methodUpper === "TELEBIRR" || methodUpper === "MOBILE";
+
+      const matchesStatus =
+        selectedStatus === "ALL" || (s.status || "COMPLETED").toUpperCase() === selectedStatus;
+
+      return matchesSearch && matchesMethod && matchesStatus;
+    });
+  }, [sales, search, selectedMethod, selectedStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / PAGE_SIZE));
+  const currentSales = useMemo(
+    () => filteredSales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredSales, page],
   );
 
+  // Summary Metrics calculations
+  const totalRevenue = useMemo(
+    () => sales.filter((s) => s.status !== "CANCELLED").reduce((sum, s) => sum + (parseFloat(String(s.totalAmount || "0")) || 0), 0),
+    [sales],
+  );
+
+  const todayDateStr = new Date().toDateString();
+  const todaySalesList = useMemo(
+    () => sales.filter((s) => new Date(s.createdAt).toDateString() === todayDateStr && s.status !== "CANCELLED"),
+    [sales, todayDateStr],
+  );
+  const todayRevenue = useMemo(
+    () => todaySalesList.reduce((sum, s) => sum + (parseFloat(String(s.totalAmount || "0")) || 0), 0),
+    [todaySalesList],
+  );
+
+  const completedCount = useMemo(
+    () => sales.filter((s) => s.status !== "CANCELLED").length,
+    [sales],
+  );
+
+  const avgTicket = completedCount > 0 ? Math.round(totalRevenue / completedCount) : 0;
+
   function handleDownload() {
-    exportToCsv("orders-records", filteredOrders, [
-      { header: "Order ID", key: "orderId" },
-      { header: "Product", key: "product" },
-      { header: "Quantity", key: "quantity" },
-      { header: "Price (ETB)", key: "price" },
-      { header: "Expected Delivery", key: "expectedDelivery" },
-      { header: "Status", key: "status" },
+    exportToCsv("sales-history-ledger", filteredSales, [
+      { header: "Receipt ID", formatter: (s) => `#RCP-${s.id.slice(0, 8).toUpperCase()}` },
+      { header: "Date & Time", formatter: (s) => new Date(s.createdAt).toLocaleString() },
+      { header: "Customer", formatter: (s) => s.customer?.name || "Walk-in Customer" },
+      { header: "Payment Channel", key: "paymentMethod" },
+      { header: "Amount (ETB)", formatter: (s) => (parseFloat(String(s.totalAmount || "0"))).toFixed(2) },
+      { header: "Status", formatter: (s) => s.status || "COMPLETED" },
     ]);
   }
 
   return (
     <>
-      <AddOrderModal
-        open={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onCreated={loadData}
-        shopId={shopId}
-      />
-
-      <EditOrderModal
-        order={orderToEdit}
-        onClose={() => setOrderToEdit(null)}
-        onUpdated={loadData}
-        shopId={shopId}
-      />
-
-      <DeleteOrderDialog
-        order={orderToDelete}
-        onClose={() => setOrderToDelete(null)}
-        onDeleted={loadData}
-        shopId={shopId}
+      <SaleReceiptModal
+        sale={activeReceipt}
+        shopName={activeShopName}
+        onClose={() => setActiveReceipt(null)}
       />
 
       <div className="space-y-4">
-        {/* ------------------------------------------------------------------ */}
-        {/* 1. TOP CARD: Overall Orders                                         */}
-        {/* ------------------------------------------------------------------ */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-          <h2 className="mb-5 text-base font-semibold text-[#111827]">Overall Orders</h2>
+        {/* Top KPI Summary Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Total Sales Revenue</p>
+            <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 tabular-nums">
+              {Math.round(totalRevenue).toLocaleString()}{" "}
+              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">{completedCount} completed sales</p>
+          </div>
 
-          {summary && (
-            <div className="grid grid-cols-1 divide-y divide-[#f3f4f6] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-              {/* Group 1: Total Orders */}
-              <div className="px-3 py-2 first:pl-0">
-                <p className="text-xs font-semibold text-[#2563eb]">Total Orders</p>
-                <p className="mt-2 text-xl font-bold text-[#111827]">{summary.totalOrders.count}</p>
-                <p className="mt-1 text-[11px] text-[#9ca3af]">{summary.totalOrders.subtext}</p>
-              </div>
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Today&apos;s Revenue</p>
+            <p className="mt-2 font-mono text-2xl font-bold text-emerald-700 tabular-nums">
+              {Math.round(todayRevenue).toLocaleString()}{" "}
+              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">{todaySalesList.length} sales today</p>
+          </div>
 
-              {/* Group 2: Total Received */}
-              <div className="px-4 py-2">
-                <p className="text-xs font-semibold text-[#f59e0b]">Total Received</p>
-                <div className="mt-2 flex items-center gap-6">
-                  <div>
-                    <p className="text-xl font-bold text-[#111827]">
-                      {summary.totalReceived.count}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#9ca3af]">
-                      {summary.totalReceived.subtext}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-[#111827]">
-                      {summary.totalReceived.revenue.toLocaleString()}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#9ca3af]">
-                      {summary.totalReceived.revenueLabel}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Completed Transactions</p>
+            <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 tabular-nums">
+              {completedCount}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">All registered checkout tickets</p>
+          </div>
 
-              {/* Group 3: Total Returned */}
-              <div className="px-4 py-2">
-                <p className="text-xs font-semibold text-[#8b5cf6]">Total Returned</p>
-                <div className="mt-2 flex items-center gap-6">
-                  <div>
-                    <p className="text-xl font-bold text-[#111827]">
-                      {summary.totalReturned.count}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#9ca3af]">
-                      {summary.totalReturned.subtext}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-[#111827]">
-                      {summary.totalReturned.cost.toLocaleString()}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#9ca3af]">
-                      {summary.totalReturned.costLabel}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Group 4: On the way */}
-              <div className="px-4 py-2 last:pr-0">
-                <p className="text-xs font-semibold text-[#f87171]">On the way</p>
-                <div className="mt-2 flex items-center gap-6">
-                  <div>
-                    <p className="text-xl font-bold text-[#111827]">
-                      {summary.onTheWay.orderedCount}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#9ca3af]">{summary.onTheWay.orderedLabel}</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-[#111827]">
-                      {summary.onTheWay.cost.toLocaleString()}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#9ca3af]">{summary.onTheWay.costLabel}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Average Ticket (AOV)</p>
+            <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 tabular-nums">
+              {avgTicket.toLocaleString()}{" "}
+              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">Per checkout transaction</p>
+          </div>
         </div>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* 2. BOTTOM CARD: Orders Table                                       */}
-        {/* ------------------------------------------------------------------ */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-6 py-4">
-            <h1 className="text-lg font-semibold text-[#111827]">Orders ({filteredOrders.length})</h1>
-
+        {/* Main Table Card */}
+        <div className="rounded-xl border border-zinc-200 bg-white shadow-xs">
+          {/* Header Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-5 py-3.5">
             <div className="flex items-center gap-2.5">
-              {/* Download button */}
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3.5 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
-              >
-                <Download className="size-3.5 text-[#6b7280]" />
-                Download
-              </button>
+              <h1 className="text-base font-bold text-zinc-900 tracking-tight">Sales History</h1>
+              <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-zinc-600">
+                {filteredSales.length}
+              </span>
+            </div>
 
-              {/* Filters button & Dropdown */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search receipt #, customer..."
+                  className="h-8 w-56 rounded-lg border border-zinc-200 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              {/* Filters */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className={`flex h-9 items-center gap-1.5 rounded-lg border px-3.5 text-xs font-medium transition-colors ${
-                    selectedStatus !== "ALL"
-                      ? "border-[#2563eb] bg-blue-50 text-[#2563eb]"
-                      : "border-[#e5e7eb] bg-white text-[#374151] hover:bg-[#f9fafb]"
+                  className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
+                    selectedMethod !== "ALL" || selectedStatus !== "ALL"
+                      ? "border-[#c0e763] bg-[#c0e763]/20 text-zinc-950 font-semibold"
+                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                   }`}
                 >
-                  <SlidersHorizontal className="size-3.5 text-[#6b7280]" />
-                  Filters
-                  {selectedStatus !== "ALL" && (
-                    <span className="size-2 rounded-full bg-blue-600" />
+                  <Filter className="size-3.5" />
+                  <span>Filters</span>
+                  {(selectedMethod !== "ALL" || selectedStatus !== "ALL") && (
+                    <span className="size-1.5 rounded-full bg-[#82a823]" />
                   )}
                 </button>
 
                 {showFilterDropdown && (
-                  <div className="absolute right-0 top-11 z-30 w-56 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-xl text-xs space-y-3">
-                    <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-2">
-                      <span className="font-bold text-[#111827]">Filter Orders</span>
+                  <div className="absolute right-0 top-10 z-30 w-64 rounded-xl border border-zinc-200 bg-white p-3.5 shadow-xl text-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                      <span className="font-bold text-zinc-900">Filter Transactions</span>
                       <button
                         type="button"
                         onClick={() => {
+                          setSelectedMethod("ALL");
                           setSelectedStatus("ALL");
                           setShowFilterDropdown(false);
                         }}
-                        className="flex items-center gap-1 text-[11px] text-[#6b7280] hover:text-[#111827]"
+                        className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-900"
                       >
                         <RotateCcw className="size-3" />
                         Reset
@@ -683,139 +385,212 @@ export default function OrdersPage() {
                     </div>
 
                     <div>
-                      <label className="mb-1 block font-medium text-[#374151]">Status</label>
+                      <label className="mb-1 block font-medium text-zinc-600">Payment Channel</label>
                       <select
-                        value={selectedStatus}
-                        onChange={(e) => {
-                          setSelectedStatus(e.target.value);
-                          setPage(1);
-                        }}
-                        className="h-8 w-full rounded-lg border border-[#e5e7eb] px-2 text-[#111827]"
+                        value={selectedMethod}
+                        onChange={(e) => setSelectedMethod(e.target.value)}
+                        className="h-8 w-full rounded-md border border-zinc-200 px-2 text-zinc-900"
                       >
-                        <option value="ALL">All Statuses</option>
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Out for delivery">Out for delivery</option>
-                        <option value="Delayed">Delayed</option>
-                        <option value="Returned">Returned</option>
+                        <option value="ALL">All Channels</option>
+                        <option value="CASH">Cash</option>
+                        <option value="BANK">Bank Transfer / Card</option>
+                        <option value="TELEBIRR">Telebirr / Mobile</option>
                       </select>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setShowFilterDropdown(false)}
-                      className="w-full rounded-lg bg-[#111827] py-1.5 font-semibold text-white hover:bg-slate-800"
-                    >
-                      Apply Filter
-                    </button>
+                    <div>
+                      <label className="mb-1 block font-medium text-zinc-600">Status</label>
+                      <select
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        className="h-8 w-full rounded-md border border-zinc-200 px-2 text-zinc-900"
+                      >
+                        <option value="ALL">All Statuses</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="CANCELLED">Voided / Cancelled</option>
+                      </select>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Order button */}
+              {/* Download CSV */}
               <button
                 type="button"
-                onClick={() => setShowAddModal(true)}
-                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#111827] px-4 text-xs font-medium text-white transition-colors hover:bg-[#1f2937]"
+                onClick={handleDownload}
+                className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
               >
-                <Plus className="size-3.5" />
-                Order
+                <Download className="size-3.5" />
+                <span>Export</span>
               </button>
+
+              {/* Link to POS */}
+              <Link
+                href="/pos"
+                className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+              >
+                <ShoppingCart className="size-3.5" />
+                <span>New Sale (POS)</span>
+              </Link>
             </div>
           </div>
 
-          {/* Table */}
+          {/* Sales History Table */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-xs">
-              <thead>
-                <tr className="border-b border-[#e5e7eb] text-left text-[#6b7280]">
-                  <th className="px-6 py-3 font-medium">Products</th>
-                  <th className="px-4 py-3 font-medium">Price (ETB)</th>
-                  <th className="px-4 py-3 font-medium">Quantity</th>
-                  <th className="px-4 py-3 font-medium">Order ID</th>
-                  <th className="px-4 py-3 font-medium">Expected Delivery</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium text-right">Actions</th>
+            <table className="w-full text-left text-xs text-zinc-600">
+              <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[11px] uppercase tracking-wider text-zinc-600">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Receipt #</th>
+                  <th className="px-5 py-3 font-semibold">Date & Time</th>
+                  <th className="px-5 py-3 font-semibold">Customer</th>
+                  <th className="px-5 py-3 font-semibold">Payment Channel</th>
+                  <th className="px-5 py-3 font-semibold">Total (ETB)</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#f9fafb]">
+              <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12">
+                    <td colSpan={7} className="py-12 text-center">
                       <LoadingState />
                     </td>
                   </tr>
-                ) : currentOrders.length === 0 ? (
+                ) : currentSales.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-[#9ca3af]">
-                      No orders found.
+                    <td colSpan={7} className="py-12 text-center text-zinc-400">
+                      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
+                        <Receipt className="size-6" />
+                      </div>
+                      <p className="mt-3 text-xs font-bold text-zinc-800">No sales transactions found</p>
+                      <p className="mt-1 text-[11px] text-zinc-400">
+                        Process checkout sales on the POS screen to build your transaction ledger.
+                      </p>
+                      <Link
+                        href="/pos"
+                        className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-colors"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>Go to POS Register</span>
+                      </Link>
                     </td>
                   </tr>
                 ) : (
-                  currentOrders.map((order) => (
-                    <tr key={order.id} className="transition-colors hover:bg-[#f9fafb]">
-                      <td className="px-6 py-3.5 font-medium text-[#111827]">{order.product}</td>
-                      <td className="px-4 py-3.5 text-[#374151]">
-                        {typeof order.price === "number" ? order.price.toLocaleString() : order.price}
-                      </td>
-                      <td className="px-4 py-3.5 text-[#374151]">{order.quantity}</td>
-                      <td className="px-4 py-3.5 text-[#374151] font-mono">{order.orderId}</td>
-                      <td className="px-4 py-3.5 text-[#374151]">{order.expectedDelivery}</td>
-                      <td className="px-4 py-3.5">
-                        <span className={`font-medium ${getStatusColor(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2 text-[#6b7280]">
+                  currentSales.map((sale) => {
+                    const method = (sale.paymentMethod || "").toUpperCase();
+                    const isCash = method === "CASH";
+                    const isBank = method === "BANK" || method === "CARD" || method === "BANK_TRANSFER";
+                    const isTelebirr = method === "TELEBIRR" || method === "MOBILE";
+                    const totalVal = parseFloat(String(sale.totalAmount || "0"));
+
+                    return (
+                      <tr key={sale.id} className="transition-colors hover:bg-zinc-50/80">
+                        <td className="px-5 py-3.5 font-mono font-bold text-zinc-900">
+                          #RCP-{sale.id.slice(0, 8).toUpperCase()}
+                        </td>
+                        <td className="px-5 py-3.5 text-zinc-500 font-mono text-[11px]">
+                          {new Date(sale.createdAt).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                        <td className="px-5 py-3.5 font-medium text-zinc-900">
+                          {sale.customer?.name || "Walk-in Customer"}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {isCash && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                              <Banknote className="size-3 text-emerald-600" />
+                              Cash
+                            </span>
+                          )}
+                          {isBank && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                              <Landmark className="size-3 text-blue-600" />
+                              Bank / Card
+                            </span>
+                          )}
+                          {isTelebirr && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                              <Smartphone className="size-3 text-amber-600" />
+                              Telebirr
+                            </span>
+                          )}
+                          {!isCash && !isBank && !isTelebirr && (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+                              {sale.paymentMethod || "Other"}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 tabular-nums">
+                          {totalVal.toLocaleString()} ETB
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {sale.status === "CANCELLED" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                              <span className="size-1.5 rounded-full bg-red-600" />
+                              Voided
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              <span className="size-1.5 rounded-full bg-emerald-600" />
+                              Completed
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
                           <button
                             type="button"
-                            onClick={() => setOrderToEdit(order)}
-                            title="Edit Order"
-                            className="rounded-lg p-1.5 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                            onClick={() => setActiveReceipt(sale)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
                           >
-                            <Edit2 className="size-3.5" />
+                            <Eye className="size-3.5 text-zinc-500" />
+                            <span>Receipt</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setOrderToDelete(order)}
-                            title="Delete Order"
-                            className="rounded-lg p-1.5 hover:bg-red-50 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-[#e5e7eb] px-6 py-4">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <span className="text-xs text-[#6b7280]">
-              Page {page} of {totalPages}
-            </span>
-
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          {/* Pagination Toolbar */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
+              <div>
+                Showing <span className="font-semibold text-zinc-900 font-mono">{(page - 1) * PAGE_SIZE + 1}</span> to{" "}
+                <span className="font-semibold text-zinc-900 font-mono">
+                  {Math.min(page * PAGE_SIZE, filteredSales.length)}
+                </span>{" "}
+                of <span className="font-semibold text-zinc-900 font-mono">{filteredSales.length}</span> receipts
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="rounded border border-zinc-200 px-2.5 py-1 font-medium hover:bg-zinc-50 disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="px-2 font-mono text-xs">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded border border-zinc-200 px-2.5 py-1 font-medium hover:bg-zinc-50 disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

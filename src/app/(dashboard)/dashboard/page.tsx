@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Banknote,
+  CheckCircle2,
   CircleDollarSign,
   Landmark,
   Package,
@@ -145,6 +146,7 @@ export default function DashboardPage() {
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [trendPeriod, setTrendPeriod] = useState<"monthly" | "weekly">("monthly");
   const notifOpen = useUiStore((state) => state.notificationPanelOpen);
   const setNotifOpen = useUiStore((state) => state.setNotificationPanelOpen);
 
@@ -294,16 +296,47 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         {/* Sales & Purchase Trend Chart */}
         <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] xl:col-span-2">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold tracking-tight text-zinc-900">Sales &amp; Revenue Trends</h2>
-              <p className="text-xs text-zinc-500">Monthly commercial volume overview</p>
+              <p className="text-xs text-zinc-500">
+                {trendPeriod === "monthly"
+                  ? "Monthly commercial volume overview"
+                  : "Daily commercial volume (Last 7 Days)"}
+              </p>
             </div>
-            <span className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700">
-              Current Year
-            </span>
+            <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+              <button
+                type="button"
+                onClick={() => setTrendPeriod("monthly")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                  trendPeriod === "monthly"
+                    ? "bg-white text-zinc-900 shadow-xs ring-1 ring-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setTrendPeriod("weekly")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                  trendPeriod === "weekly"
+                    ? "bg-white text-zinc-900 shadow-xs ring-1 ring-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-900"
+                }`}
+              >
+                Last 7 Days
+              </button>
+            </div>
           </div>
-          <SalesPurchaseChart data={metrics.salesAndPurchase} />
+          <SalesPurchaseChart
+            data={
+              trendPeriod === "weekly" && metrics.trendWeekly && metrics.trendWeekly.length > 0
+                ? metrics.trendWeekly
+                : metrics.salesAndPurchase
+            }
+          />
         </section>
 
         {/* Payment Method Breakdown (Cash, Bank, Telebirr) */}
@@ -418,17 +451,51 @@ export default function DashboardPage() {
         </DashboardCard>
 
         {/* Low Quantity Stock */}
-        <DashboardCard title="Low Inventory Warnings" action={<SeeAllLink href="/inventory" />}>
-          <div className="space-y-1">
-            {metrics.lowQuantityStock.map((item) => (
-              <LowStockItem
-                key={item.id}
-                name={item.name}
-                remainingQuantity={item.remainingQuantity}
-                unit={item.unit}
-              />
-            ))}
-          </div>
+        <DashboardCard
+          title="Low Inventory Warnings"
+          action={
+            metrics.lowQuantityStock.length > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 font-mono text-[11px] font-bold text-red-700">
+                <span className="size-1.5 rounded-full bg-red-600" />
+                {metrics.lowQuantityStock.length} items
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                <span className="size-1.5 rounded-full bg-emerald-600" />
+                Healthy
+              </span>
+            )
+          }
+        >
+          {metrics.lowQuantityStock.length > 0 ? (
+            <div className="space-y-1">
+              {metrics.lowQuantityStock.map((item) => (
+                <LowStockItem
+                  key={item.id}
+                  name={item.name}
+                  remainingQuantity={item.remainingQuantity}
+                  unit={item.unit}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-7 text-center">
+              <div className="mb-2.5 flex size-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/70">
+                <CheckCircle2 className="size-5" />
+              </div>
+              <p className="text-xs font-bold text-zinc-900">No Low Inventory Warnings</p>
+              <p className="mt-1 max-w-[230px] text-[11px] leading-relaxed text-zinc-500">
+                All catalog items are currently above their minimum replenishment thresholds.
+              </p>
+              <Link
+                href="/inventory"
+                className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 hover:text-zinc-950 hover:underline"
+              >
+                <span>View Full Inventory</span>
+                <ArrowUpRight className="size-3" />
+              </Link>
+            </div>
+          )}
         </DashboardCard>
       </div>
     </div>

@@ -171,7 +171,7 @@ export default function ReportsPage() {
 
         {/* Period Selector Tabs */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-xl border border-[#e5e7eb] bg-white p-1 shadow-sm">
+          <div className="flex items-center rounded-xl border border-[#e5e7eb] bg-white p-1 shadow-sm overflow-x-auto max-w-full scrollbar-none">
             {[
               { id: "daily", label: "Today" },
               { id: "weekly", label: "Past 7 Days" },
@@ -182,7 +182,7 @@ export default function ReportsPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setPeriod(tab.id as AnalyticsPeriod)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   period === tab.id
                     ? "bg-zinc-950 text-[#c0e763] shadow-sm font-bold"
                     : "text-[#4b5563] hover:bg-[#f9fafb]"
@@ -215,9 +215,9 @@ export default function ReportsPage() {
 
       {/* Custom Date Range Inputs */}
       {period === "custom" && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 text-xs shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 text-xs shadow-sm">
           <span className="font-semibold text-[#374151]">Custom Date Range:</span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               value={customStart}
@@ -234,7 +234,7 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={loadAnalytics}
-              className="rounded-lg bg-[#c0e763] px-3 py-1 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952]"
+              className="rounded-lg bg-[#c0e763] px-3 py-1.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952]"
             >
               Apply Filter
             </button>

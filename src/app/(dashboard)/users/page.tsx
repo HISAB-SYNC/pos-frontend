@@ -216,7 +216,7 @@ function AddTeamMemberModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -446,7 +446,7 @@ function EditPermissionsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
@@ -558,7 +558,7 @@ function ResetPasswordModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center gap-2.5 border-b border-[#f3f4f6] pb-3.5">
           <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
             <KeyRound className="size-4.5" />
@@ -674,8 +674,7 @@ function EditMemberDetailsModal({
   return (
 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
           <h2 className="text-base font-bold text-[#111827]">Edit Employee Profile</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
@@ -794,7 +793,7 @@ function DeleteStaffDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
           <Trash2 className="size-5" />
         </div>
@@ -1042,7 +1041,7 @@ export default function UsersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={activeTab === "DIRECTORY" ? handleExportDirectory : handleExportAuditLogs}
@@ -1149,7 +1148,7 @@ export default function UsersPage() {
         {/* Tab 1: Team Directory Table */}
         {activeTab === "DIRECTORY" && (
           <div className="space-y-3">
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {[
                 { id: "ALL", label: "All Roles" },
                 { id: "ADMIN", label: "Shop Admins" },

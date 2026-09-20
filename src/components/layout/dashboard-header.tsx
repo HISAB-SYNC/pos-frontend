@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Bell, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,6 +12,7 @@ import { ShopSwitcher } from "./shop-switcher";
 const NOTIF_COUNT = 3;
 
 export function DashboardHeader() {
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const toggleNotificationPanel = useUiStore(
     (state) => state.toggleNotificationPanel,
@@ -29,10 +31,10 @@ export function DashboardHeader() {
     user?.role === "SUPER_ADMIN" || user?.role === "SYSTEM_ADMIN";
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-zinc-200/80 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-2 sm:gap-4 border-b border-zinc-200/80 bg-white/95 px-3 sm:px-6 backdrop-blur-md">
       <SidebarTrigger className="text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100" />
 
-      {/* Global Search Bar */}
+      {/* Global Search Bar (Desktop) */}
       <div className="relative mx-auto hidden w-full max-w-md flex-1 md:block">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
         <input
@@ -47,7 +49,39 @@ export function DashboardHeader() {
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-3">
+      {/* Mobile Search Overlay */}
+      {mobileSearchOpen && (
+        <div className="absolute inset-x-0 top-0 z-30 flex h-16 items-center gap-2 bg-white px-3 md:hidden">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              autoFocus
+              type="text"
+              placeholder="Search store..."
+              className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs font-medium text-zinc-900 focus:border-zinc-800 focus:bg-white focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen(false)}
+            className="flex size-9 items-center justify-center rounded-lg border border-zinc-200 text-xs font-semibold text-zinc-600 hover:bg-zinc-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
+        {/* Mobile Search Icon */}
+        <button
+          type="button"
+          onClick={() => setMobileSearchOpen(true)}
+          className="flex size-9 items-center justify-center rounded-lg border border-zinc-200/90 bg-white text-zinc-600 hover:bg-zinc-50 md:hidden"
+          aria-label="Open search"
+        >
+          <Search className="size-4" />
+        </button>
+
         {/* Multi-shop dropdown switcher */}
         {!isSuperAdmin && <ShopSwitcher />}
 

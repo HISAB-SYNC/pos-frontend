@@ -93,7 +93,7 @@ export function ShopSwitcher() {
           <span className="relative inline-flex size-2 rounded-full bg-[#82a823]" />
         </span>
         <Store className="size-3.5 text-zinc-500 shrink-0" />
-        <span className="max-w-[140px] truncate text-left font-medium text-zinc-900 sm:max-w-[180px]">
+        <span className="max-w-[90px] truncate text-left font-medium text-zinc-900 min-[400px]:max-w-[130px] sm:max-w-[180px]">
           {displayName}
         </span>
         <ChevronDown className="size-3.5 text-zinc-400 shrink-0 transition-transform duration-150" />

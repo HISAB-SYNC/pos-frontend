@@ -42,6 +42,7 @@ export type DashboardMetrics = {
     telebirr: number;
   };
   salesAndPurchase: Array<{ month: string; sales: number; purchase: number }>;
+  trendWeekly?: Array<{ month: string; sales: number; purchase: number }>;
   topSellingStock: Array<{
     name: string;
     soldQuantity: number;

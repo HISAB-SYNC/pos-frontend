@@ -23,7 +23,7 @@ export function AuthShell({
 
   if (isCentered) {
     return (
-      <div className="relative flex min-h-screen w-full items-center justify-center bg-[#fafbfc] px-4 py-12 text-zinc-900">
+      <div className="relative flex min-h-screen w-full items-center justify-center bg-[#fafbfc] px-4 py-8 sm:py-12 text-zinc-900">
         {/* Subtle decorative background glow */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute left-1/2 top-0 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-radial from-[#c0e763]/10 to-transparent blur-3xl" />
@@ -40,7 +40,7 @@ export function AuthShell({
             </Link>
           )}
 
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-7 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:p-9">
+          <div className="rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)] sm:p-8 md:p-9">
             {children}
           </div>
         </div>
@@ -49,7 +49,7 @@ export function AuthShell({
   }
 
   return (
-    <div className="min-h-screen w-full bg-white px-6 py-10 lg:px-10">
+    <div className="min-h-screen w-full bg-white px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
       <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-7xl items-center gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-16">
         <section className="hidden items-center justify-center lg:flex">
           {!hideAllLogos && (

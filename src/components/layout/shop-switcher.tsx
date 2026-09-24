@@ -80,6 +80,23 @@ export function ShopSwitcher() {
   const currentShop = shops.find((s) => s.id === activeShopId);
   const displayName = currentShop?.name || activeShopName || "Select Shop";
 
+  // Cashiers are strictly assigned to their single shop and cannot switch or register stores
+  if (user?.role === "SALES") {
+    return (
+      <div className="flex h-9 items-center gap-2 rounded-lg border border-zinc-200/90 bg-zinc-50/80 px-2.5 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs">
+        <span className="relative flex size-2 shrink-0">
+          <span className="relative inline-flex size-2 rounded-full bg-[#82a823]" />
+        </span>
+        <Store className="size-3.5 text-zinc-500 shrink-0" />
+        <span className="max-w-[120px] truncate text-left font-medium text-zinc-900 sm:max-w-[180px]">
+          {displayName}
+        </span>
+      </div>
+    );
+  }
+
+  const canRegisterStore = user?.role === "OWNER" || user?.role === "SUPER_ADMIN" || user?.role === "SYSTEM_ADMIN";
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -148,16 +165,18 @@ export function ShopSwitcher() {
             )}
           </div>
 
-          <div className="mt-1 border-t border-zinc-100 pt-1">
-            <Link
-              href="/onboarding"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-            >
-              <Plus className="size-3.5 text-zinc-400" />
-              <span>Register New Store</span>
-            </Link>
-          </div>
+          {canRegisterStore && (
+            <div className="mt-1 border-t border-zinc-100 pt-1">
+              <Link
+                href="/onboarding"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              >
+                <Plus className="size-3.5 text-zinc-400" />
+                <span>Register New Store</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

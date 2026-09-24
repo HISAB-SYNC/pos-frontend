@@ -46,6 +46,16 @@ type CartItem = {
 
 type PaymentMethodType = "CASH" | "CARD" | "BANK" | "BANK_TRANSFER" | "TELEBIRR" | "MOBILE" | "DEBT";
 
+const POPULAR_BANKS = [
+  "Commercial Bank of Ethiopia (CBE)",
+  "Awash Bank",
+  "Bank of Abyssinia (BOA)",
+  "Dashen Bank",
+  "Cooperative Bank of Oromia",
+  "Telebirr",
+  "Other Bank / Custom",
+];
+
 /* ------------------------------------------------------------------ */
 /* Modal: Quick Add Customer                                          */
 /* ------------------------------------------------------------------ */
@@ -295,6 +305,18 @@ function SaleReceiptModal({
               <span className="text-zinc-500">Tender Type:</span>
               <span className="font-semibold text-zinc-900">{methodLabel}</span>
             </div>
+            {sale.bankName && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Bank / Channel:</span>
+                <span className="font-semibold text-zinc-900">{sale.bankName}</span>
+              </div>
+            )}
+            {sale.paymentReference && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">TxID / Reference:</span>
+                <span className="font-mono font-semibold text-zinc-900">{sale.paymentReference}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-zinc-500">Collected:</span>
               <span className="font-mono font-bold text-emerald-600 tabular-nums">{paid.toLocaleString()} ETB</span>
@@ -387,6 +409,8 @@ export default function PosPage() {
   // Customer & Payment State (Cash, Bank, Telebirr only)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("CASH");
+  const [bankName, setBankName] = useState<string>("Commercial Bank of Ethiopia (CBE)");
+  const [paymentReference, setPaymentReference] = useState<string>("");
   const [amountPaidInput, setAmountPaidInput] = useState<string>("");
 
   // Modals
@@ -519,6 +543,7 @@ export default function PosPage() {
     setCart([]);
     setDiscountVal(0);
     setAmountPaidInput("");
+    setPaymentReference("");
     setValidationError("");
   }
 
@@ -572,6 +597,8 @@ export default function PosPage() {
         totalAmount: total,
         amountPaid: effectivePaid,
         paymentMethod,
+        bankName: paymentMethod === "CASH" ? undefined : bankName,
+        paymentReference: paymentMethod === "CASH" ? undefined : (paymentReference.trim() || undefined),
         notes: debtAdditionAmount > 0
           ? `Sale with ${paymentMethod} paid (${effectivePaid} ETB) + Remaining Debt (${debtAdditionAmount} ETB)`
           : `Full payment via ${paymentMethod}`,
@@ -892,7 +919,15 @@ export default function PosPage() {
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => setPaymentMethod(m.id as PaymentMethodType)}
+                    onClick={() => {
+                      const nextMethod = m.id as PaymentMethodType;
+                      setPaymentMethod(nextMethod);
+                      if (nextMethod === "TELEBIRR") {
+                        setBankName("Telebirr");
+                      } else if (nextMethod === "BANK" && bankName === "Telebirr") {
+                        setBankName("Commercial Bank of Ethiopia (CBE)");
+                      }
+                    }}
                     className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
                       isSelected
                         ? "border-zinc-950 bg-[#c0e763] text-zinc-950 shadow-sm ring-1 ring-zinc-950 font-bold"
@@ -905,6 +940,52 @@ export default function PosPage() {
                 );
               })}
             </div>
+
+            {/* Bank / Provider and TxID details when non-cash */}
+            {paymentMethod !== "CASH" && (
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-2.5 space-y-2 text-xs">
+                {paymentMethod === "BANK" ? (
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-600 block mb-1">
+                      Bank:
+                    </label>
+                    <select
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-xs font-medium text-zinc-800 focus:border-zinc-950 focus:outline-none"
+                    >
+                      {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-600 block mb-1">
+                      Channel:
+                    </label>
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
+                      <Smartphone className="size-3.5 text-emerald-600" />
+                      <span>Telebirr Mobile Payment</span>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[11px] font-semibold text-zinc-600 block mb-1">
+                    TxID / Reference (Optional):
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="e.g. FT2409... or Slip #"
+                    className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 font-mono text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Amount Paid / Workflow Input */}
             <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-3 space-y-2 text-xs">

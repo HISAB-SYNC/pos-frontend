@@ -30,6 +30,7 @@ import type {
 } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
+import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
 
@@ -429,6 +430,15 @@ export default function ProductDetailPage() {
 
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
+  const user = useAuthStore((state) => state.user);
+  const isCashier = user?.role === "SALES";
+
+  const availableTabs = useMemo(() => {
+    if (isCashier) {
+      return TABS.filter((t) => t.key === "overview" || t.key === "history");
+    }
+    return TABS;
+  }, [isCashier]);
 
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [product, setProduct] = useState<Product | null>(null);
@@ -707,14 +717,16 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowEditModal(true)}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3.5 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
-            >
-              <Pencil className="size-3.5" />
-              Edit
-            </button>
+            {!isCashier && (
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3.5 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+              >
+                <Pencil className="size-3.5" />
+                Edit
+              </button>
+            )}
             <button
               type="button"
               onClick={handleDownloadOverview}
@@ -723,20 +735,22 @@ export default function ProductDetailPage() {
               <Download className="size-3.5" />
               Download
             </button>
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(true)}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50/50 px-3.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
-            >
-              <Trash2 className="size-3.5" />
-              Delete
-            </button>
+            {!isCashier && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50/50 px-3.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
+              >
+                <Trash2 className="size-3.5" />
+                Delete
+              </button>
+            )}
           </div>
         </div>
 
         {/* Tabs Bar */}
         <div className="mb-6 flex border-b border-[#e5e7eb]">
-          {TABS.map((tab) => {
+          {availableTabs.map((tab) => {
             const isActive = activeTab === tab.key;
 
             return (

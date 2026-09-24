@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ProductAvatar } from "@/app/(dashboard)/products/page";
 import { LoadingState } from "@/components/shared/loading-state";
+import { RouteGuard } from "@/components/shared/route-guard";
 import {
   getCategories,
   getProducts,
@@ -355,7 +356,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <>
+    <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
       <StockAdjustModal
         product={productToAdjust}
         onClose={() => setProductToAdjust(null)}
@@ -641,6 +642,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

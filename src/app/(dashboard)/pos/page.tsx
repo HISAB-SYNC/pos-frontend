@@ -46,6 +46,16 @@ type CartItem = {
 
 type PaymentMethodType = "CASH" | "CARD" | "BANK" | "BANK_TRANSFER" | "TELEBIRR" | "MOBILE" | "DEBT";
 
+const POPULAR_BANKS = [
+  "Commercial Bank of Ethiopia (CBE)",
+  "Awash Bank",
+  "Bank of Abyssinia (BOA)",
+  "Dashen Bank",
+  "Cooperative Bank of Oromia",
+  "Telebirr",
+  "Other Bank / Custom",
+];
+
 /* ------------------------------------------------------------------ */
 /* Modal: Quick Add Customer                                          */
 /* ------------------------------------------------------------------ */
@@ -295,6 +305,18 @@ function SaleReceiptModal({
               <span className="text-zinc-500">Tender Type:</span>
               <span className="font-semibold text-zinc-900">{methodLabel}</span>
             </div>
+            {sale.bankName && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Bank / Channel:</span>
+                <span className="font-semibold text-zinc-900">{sale.bankName}</span>
+              </div>
+            )}
+            {sale.paymentReference && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">TxID / Reference:</span>
+                <span className="font-mono font-semibold text-zinc-900">{sale.paymentReference}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-zinc-500">Collected:</span>
               <span className="font-mono font-bold text-emerald-600 tabular-nums">{paid.toLocaleString()} ETB</span>
@@ -382,10 +404,13 @@ export default function PosPage() {
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discountVal, setDiscountVal] = useState<number>(0);
+  const [mobileTab, setMobileTab] = useState<"catalog" | "cart">("catalog");
 
   // Customer & Payment State (Cash, Bank, Telebirr only)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>("CASH");
+  const [bankName, setBankName] = useState<string>("Commercial Bank of Ethiopia (CBE)");
+  const [paymentReference, setPaymentReference] = useState<string>("");
   const [amountPaidInput, setAmountPaidInput] = useState<string>("");
 
   // Modals
@@ -518,6 +543,7 @@ export default function PosPage() {
     setCart([]);
     setDiscountVal(0);
     setAmountPaidInput("");
+    setPaymentReference("");
     setValidationError("");
   }
 
@@ -571,6 +597,8 @@ export default function PosPage() {
         totalAmount: total,
         amountPaid: effectivePaid,
         paymentMethod,
+        bankName: paymentMethod === "CASH" ? undefined : bankName,
+        paymentReference: paymentMethod === "CASH" ? undefined : (paymentReference.trim() || undefined),
         notes: debtAdditionAmount > 0
           ? `Sale with ${paymentMethod} paid (${effectivePaid} ETB) + Remaining Debt (${debtAdditionAmount} ETB)`
           : `Full payment via ${paymentMethod}`,
@@ -601,129 +629,172 @@ export default function PosPage() {
 
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px]">
-      {/* ================================================================= */}
-      {/* Left Column: Product Catalog & Category Filter                    */}
-      {/* ================================================================= */}
-      <div className="space-y-4">
-        {/* Catalog Header & Search */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-[#111827]">POS Checkout</h1>
-            <p className="text-xs text-[#6b7280]">Select items from catalog or scan SKU to add to cart</p>
-          </div>
-          <div className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9ca3af]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search product name or SKU..."
-              className="h-9 w-full rounded-xl border border-[#e5e7eb] bg-white pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                selectedCategory === cat
-                  ? "bg-[#c0e763] text-zinc-950 shadow-xs ring-1 ring-[#c0e763]"
-                  : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-              }`}
-            >
-              {cat === "ALL" ? "All Categories" : cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-          {filteredProducts.map((product) => {
-            const inCart = cart.find((it) => it.product.id === product.id);
-            const isOutOfStock = product.stockQuantity <= 0;
-
-            return (
-              <div
-                key={product.id}
-                className={`group flex flex-col justify-between rounded-2xl border bg-white p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:border-zinc-300 hover:shadow-md ${
-                  inCart ? "border-zinc-950 ring-2 ring-[#c0e763]" : "border-zinc-200"
-                }`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-1.5">
-                    <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-600">
-                      {product.sku}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold ${
-                        isOutOfStock
-                          ? "text-red-600"
-                          : product.stockQuantity < 10
-                          ? "text-amber-600"
-                          : "text-emerald-600"
-                      }`}
-                    >
-                      {isOutOfStock ? "Out of stock" : `${product.stockQuantity} in stock`}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-2.5 line-clamp-1 text-xs font-bold text-zinc-900">{product.name}</h3>
-                  <p className="text-[11px] font-medium text-zinc-400">{product.category?.name || "General"}</p>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
-                  <div className="font-mono font-bold text-zinc-950 tabular-nums text-sm">
-                    {parseFloat(product.price || "0").toLocaleString()} <span className="font-sans text-[10px] font-semibold text-zinc-500">ETB</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={isOutOfStock}
-                    onClick={() => addToCart(product)}
-                    className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-white transition-all hover:bg-[#c0e763] hover:text-zinc-950 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                    title="Add to cart"
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <div className="space-y-4">
+      {/* Mobile / Tablet Segmented Switcher (Catalog vs Cart) */}
+      <div className="flex rounded-xl bg-zinc-200/80 p-1 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileTab("catalog")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            mobileTab === "catalog"
+              ? "bg-white text-zinc-950 shadow-xs"
+              : "text-zinc-600 hover:text-zinc-950"
+          }`}
+        >
+          <Package className="size-3.5" />
+          <span>Products ({filteredProducts.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab("cart")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            mobileTab === "cart"
+              ? "bg-white text-zinc-950 shadow-xs"
+              : "text-zinc-600 hover:text-zinc-950"
+          }`}
+        >
+          <ShoppingCart className="size-3.5" />
+          <span>Cart ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
+          {cart.length > 0 && (
+            <span className="rounded-full bg-[#c0e763] px-1.5 py-0.2 font-mono text-[10px] font-bold text-zinc-950">
+              {total.toLocaleString()} ETB
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* ================================================================= */}
-      {/* Right Column: Active Cart & Debt Payment Panel                    */}
-      {/* ================================================================= */}
-      <div className="flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-        <div className="space-y-4">
-          {/* Cart Header */}
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
-                <ShoppingCart className="size-4" />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px]">
+        {/* ================================================================= */}
+        {/* Left Column: Product Catalog & Category Filter                    */}
+        {/* ================================================================= */}
+        <div className={`space-y-4 ${mobileTab === "cart" ? "hidden lg:block" : "block"}`}>
+          {/* Catalog Header & Search */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-[#111827]">POS Checkout</h1>
+              <p className="text-xs text-[#6b7280]">Select items from catalog or scan SKU to add to cart</p>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9ca3af]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search product name or SKU..."
+                className="h-9 w-full rounded-xl border border-[#e5e7eb] bg-white pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  selectedCategory === cat
+                    ? "bg-[#c0e763] text-zinc-950 shadow-xs ring-1 ring-[#c0e763]"
+                    : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                }`}
+              >
+                {cat === "ALL" ? "All Categories" : cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
+            {filteredProducts.map((product) => {
+              const inCart = cart.find((it) => it.product.id === product.id);
+              const isOutOfStock = product.stockQuantity <= 0;
+
+              return (
+                <div
+                  key={product.id}
+                  className={`group flex flex-col justify-between rounded-2xl border bg-white p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:border-zinc-300 hover:shadow-md ${
+                    inCart ? "border-zinc-950 ring-2 ring-[#c0e763]" : "border-zinc-200"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-1.5">
+                      <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-600">
+                        {product.sku}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold ${
+                          isOutOfStock
+                            ? "text-red-600"
+                            : product.stockQuantity < 10
+                            ? "text-amber-600"
+                            : "text-emerald-600"
+                        }`}
+                      >
+                        {isOutOfStock ? "Out of stock" : `${product.stockQuantity} in stock`}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-2.5 line-clamp-1 text-xs font-bold text-zinc-900">{product.name}</h3>
+                    <p className="text-[11px] font-medium text-zinc-400">{product.category?.name || "General"}</p>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                    <div className="font-mono font-bold text-zinc-950 tabular-nums text-sm">
+                      {parseFloat(product.price || "0").toLocaleString()} <span className="font-sans text-[10px] font-semibold text-zinc-500">ETB</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isOutOfStock}
+                      onClick={() => addToCart(product)}
+                      className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-white transition-all hover:bg-[#c0e763] hover:text-zinc-950 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                      title="Add to cart"
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ================================================================= */}
+        {/* Right Column: Active Cart & Debt Payment Panel                    */}
+        {/* ================================================================= */}
+        <div className={`flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-xs ${mobileTab === "catalog" ? "hidden lg:flex" : "flex"}`}>
+          <div className="space-y-4">
+            {/* Cart Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
+                  <ShoppingCart className="size-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold tracking-tight text-zinc-900">Current Order</h2>
+                  <span className="text-[11px] font-medium text-zinc-400">{cart.length} item types in cart</span>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-bold tracking-tight text-zinc-900">Current Order</h2>
-                <span className="text-[11px] font-medium text-zinc-400">{cart.length} item types in cart</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab("catalog")}
+                  className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50 lg:hidden"
+                >
+                  ← Catalog
+                </button>
+                {cart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearCart}
+                    className="text-[11px] font-semibold text-red-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
-            {cart.length > 0 && (
-              <button
-                type="button"
-                onClick={clearCart}
-                className="text-[11px] font-semibold text-red-600 hover:underline"
-              >
-                Clear Cart
-              </button>
-            )}
-          </div>
 
           {/* Validation Error Message */}
           {validationError && (
@@ -848,7 +919,15 @@ export default function PosPage() {
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => setPaymentMethod(m.id as PaymentMethodType)}
+                    onClick={() => {
+                      const nextMethod = m.id as PaymentMethodType;
+                      setPaymentMethod(nextMethod);
+                      if (nextMethod === "TELEBIRR") {
+                        setBankName("Telebirr");
+                      } else if (nextMethod === "BANK" && bankName === "Telebirr") {
+                        setBankName("Commercial Bank of Ethiopia (CBE)");
+                      }
+                    }}
                     className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
                       isSelected
                         ? "border-zinc-950 bg-[#c0e763] text-zinc-950 shadow-sm ring-1 ring-zinc-950 font-bold"
@@ -861,6 +940,52 @@ export default function PosPage() {
                 );
               })}
             </div>
+
+            {/* Bank / Provider and TxID details when non-cash */}
+            {paymentMethod !== "CASH" && (
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-2.5 space-y-2 text-xs">
+                {paymentMethod === "BANK" ? (
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-600 block mb-1">
+                      Bank:
+                    </label>
+                    <select
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-xs font-medium text-zinc-800 focus:border-zinc-950 focus:outline-none"
+                    >
+                      {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-600 block mb-1">
+                      Channel:
+                    </label>
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
+                      <Smartphone className="size-3.5 text-emerald-600" />
+                      <span>Telebirr Mobile Payment</span>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[11px] font-semibold text-zinc-600 block mb-1">
+                    TxID / Reference (Optional):
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="e.g. FT2409... or Slip #"
+                    className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 font-mono text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Amount Paid / Workflow Input */}
             <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-3 space-y-2 text-xs">
@@ -1009,6 +1134,29 @@ export default function PosPage() {
 
         </div>
       </div>
+    </div>
+
+    {/* Floating Bottom Cart Bar (Mobile/Tablet only when on catalog view and items in cart) */}
+    {cart.length > 0 && mobileTab === "catalog" && (
+      <div className="sticky bottom-3 z-30 flex items-center justify-between rounded-2xl border border-zinc-900/10 bg-zinc-950 p-3.5 text-white shadow-2xl animate-in slide-in-from-bottom-3 lg:hidden">
+        <div>
+          <span className="text-[11px] text-zinc-400">
+            {cart.reduce((s, i) => s + i.quantity, 0)} items in cart
+          </span>
+          <div className="font-mono text-base font-bold text-[#c0e763]">
+            {total.toLocaleString()} ETB
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setMobileTab("cart")}
+          className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all active:scale-95"
+        >
+          <span>Review &amp; Pay</span>
+          <ArrowRight className="size-3.5" />
+        </button>
+      </div>
+    )}
 
       {/* ================================================================= */}
       {/* Modals Container                                                  */}

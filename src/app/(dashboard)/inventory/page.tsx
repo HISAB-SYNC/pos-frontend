@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ProductAvatar } from "@/app/(dashboard)/products/page";
 import { LoadingState } from "@/components/shared/loading-state";
+import { RouteGuard } from "@/components/shared/route-guard";
 import {
   getCategories,
   getProducts,
@@ -88,7 +89,7 @@ function StockAdjustModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
           <div>
             <h2 className="text-base font-bold text-[#111827]">Adjust Stock</h2>
@@ -355,7 +356,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <>
+    <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
       <StockAdjustModal
         product={productToAdjust}
         onClose={() => setProductToAdjust(null)}
@@ -374,7 +375,7 @@ export default function InventoryPage() {
               Monitor product availability, low-stock alerts, and perform real-time inventory adjustments.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleExportCsv}
@@ -455,7 +456,7 @@ export default function InventoryPage() {
         {/* ------------------------------------------------------------------ */}
         <div className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-6 py-4">
+          <div className="flex flex-col gap-3 border-b border-[#e5e7eb] p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
             {/* Status Filter Tabs */}
             <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-1 text-xs font-medium">
               <button
@@ -493,15 +494,15 @@ export default function InventoryPage() {
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
               {/* Search */}
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9ca3af]" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search item / SKU..."
-                  className="h-9 w-48 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] pl-8 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+                  className="h-9 w-full sm:w-48 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] pl-8 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
                 />
               </div>
 
@@ -509,7 +510,7 @@ export default function InventoryPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-9 rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full sm:w-auto rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] focus:border-[#2563eb] focus:outline-none"
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((c) => (
@@ -641,6 +642,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

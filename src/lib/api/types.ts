@@ -73,6 +73,7 @@ export type Product = {
   name: string;
   description?: string;
   price: string;
+  buyingPrice?: number | string | null;
   stockQuantity: number;
   unit: string;
   lowStockThreshold: number;
@@ -172,14 +173,16 @@ export type Customer = {
 export type SaleItem = {
   id?: string;
   productId: string;
+  name?: string;
   quantity: number;
-  unitPrice?: string;
-  subtotal?: string;
+  unitPrice?: string | number;
+  subtotal?: string | number;
   product?: {
     id: string;
     name: string;
     sku: string;
     price?: string;
+    buyingPrice?: string | number | null;
   };
 };
 
@@ -206,6 +209,21 @@ export type Sale = {
   createdAt: string;
   items?: SaleItem[];
   customer?: Customer | null;
+  bankName?: string;
+  paymentReference?: string;
+  notes?: string;
+};
+
+export type ReturnItemInput = {
+  productId: string;
+  quantity: number;
+  refundAmount?: number;
+  reason?: string;
+};
+
+export type ProcessSaleReturnInput = {
+  items: ReturnItemInput[];
+  refundMethod?: "CASH" | "BANK" | "TELEBIRR" | string;
   notes?: string;
 };
 
@@ -240,6 +258,7 @@ export type Debt = {
   dueDate?: string;
   status: "PENDING" | "PARTIAL" | "PAID" | "pending" | "partial" | "paid" | "OVERDUE" | "overdue";
   notes?: string;
+  items?: Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }>;
   payments?: DebtPayment[];
   transactions?: DebtTransaction[];
   createdAt?: string;
@@ -460,6 +479,10 @@ export type TopSellingProductStat = {
   sku: string;
   totalQuantitySold: number;
   totalRevenue: number;
+  buyingPrice?: number | string | null;
+  sellingPrice?: number | string | null;
+  costPrice?: number | string | null;
+  price?: number | string | null;
 };
 
 export type TopCustomerStat = {

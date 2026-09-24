@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { DashboardCard, SeeAllLink } from "@/components/dashboard/dashboard-widgets";
 import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart";
 import { LoadingState } from "@/components/shared/loading-state";
+import { RouteGuard } from "@/components/shared/route-guard";
 import { getDashboardMetrics } from "@/lib/api/app-data";
 import type { DashboardMetrics } from "@/lib/mock/data";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -183,7 +184,8 @@ export default function DashboardPage() {
   const telebirrPct = totalCollected > 0 ? Math.round((metrics.paymentBreakdown.telebirr / totalCollected) * 100) : 0;
 
   return (
-    <div className="relative space-y-6">
+    <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
+      <div className="relative space-y-6">
       {/* Notifications panel (floating) */}
       <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
 
@@ -499,5 +501,6 @@ export default function DashboardPage() {
         </DashboardCard>
       </div>
     </div>
+    </RouteGuard>
   );
 }

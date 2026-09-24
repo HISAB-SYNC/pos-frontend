@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, Clock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
   AuthShell,
@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("Invalid email or password.");
+  const [isPendingActivation, setIsPendingActivation] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -86,7 +87,23 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error) {
       const apiError = error as ApiError;
-      setErrorMessage(apiError.message ?? "Invalid email or password.");
+      const rawMsg = apiError.message ?? "Invalid email or password.";
+      const rawCode = (apiError as any)?.code || (error as any)?.code;
+      if (
+        rawCode === "ACCOUNT_PENDING_APPROVAL" ||
+        rawMsg.toLowerCase().includes("pending") ||
+        rawMsg.toLowerCase().includes("activate") ||
+        rawMsg.toLowerCase().includes("activation") ||
+        rawMsg.toLowerCase().includes("approval")
+      ) {
+        setIsPendingActivation(true);
+        setErrorMessage(
+          "Your store owner account is awaiting SuperAdmin review and activation. You will be able to access your shops as soon as platform administrators approve your registration.",
+        );
+      } else {
+        setIsPendingActivation(false);
+        setErrorMessage(rawMsg);
+      }
       setStatus("error");
     }
   }
@@ -154,10 +171,20 @@ export default function LoginPage() {
         </div>
 
         {status === "error" && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/80 p-3 text-xs leading-relaxed text-red-700">
-            <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-500" />
-            <span>{errorMessage}</span>
-          </div>
+          isPendingActivation ? (
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/90 p-3.5 text-xs leading-relaxed text-amber-900">
+              <Clock className="mt-0.5 size-4 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-bold text-amber-950 mb-0.5">Account Pending Activation</p>
+                <p>{errorMessage}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/80 p-3 text-xs leading-relaxed text-red-700">
+              <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-500" />
+              <span>{errorMessage}</span>
+            </div>
+          )
         )}
 
         <button type="submit" disabled={status === "loading"} className={authButtonClassName}>

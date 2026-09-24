@@ -35,6 +35,7 @@ import {
 import type { Category, Product } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
+import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
 /* ------------------------------------------------------------------ */
@@ -199,8 +200,8 @@ function AddProductModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 backdrop-blur-xs">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-center justify-between border-b border-zinc-100 pb-3.5">
           <div>
             <h2 className="text-base font-bold text-zinc-900">Add New Product</h2>
@@ -430,6 +431,7 @@ function EditProductModal({
     name: "",
     sku: "",
     price: "",
+    buyingPrice: "",
     stockQuantity: "",
     categoryId: "",
     lowStockThreshold: "5",
@@ -442,6 +444,7 @@ function EditProductModal({
         name: product.name || "",
         sku: product.sku || "",
         price: String(product.price || "0"),
+        buyingPrice: product.buyingPrice !== undefined && product.buyingPrice !== null ? String(product.buyingPrice) : "",
         stockQuantity: String(product.stockQuantity || "0"),
         categoryId: product.categoryId || product.category?.id || "",
         lowStockThreshold: String(product.lowStockThreshold || "5"),
@@ -450,6 +453,14 @@ function EditProductModal({
   }, [product]);
 
   if (!product) return null;
+
+  const sellingNum = parseFloat(form.price) || 0;
+  const buyingNum = parseFloat(form.buyingPrice) || 0;
+  const markupEtb = sellingNum - buyingNum;
+  const profitMarginPct =
+    sellingNum > 0 && markupEtb > 0
+      ? ((markupEtb / sellingNum) * 100).toFixed(1)
+      : "0.0";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -460,7 +471,8 @@ function EditProductModal({
         name: form.name.trim(),
         sku: form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`,
         categoryId: form.categoryId || undefined,
-        price: parseFloat(form.price) || 0,
+        price: sellingNum,
+        buyingPrice: buyingNum > 0 ? buyingNum : undefined,
         stockQuantity: parseInt(form.stockQuantity, 10) || 0,
         lowStockThreshold: parseInt(form.lowStockThreshold, 10) || 5,
       });
@@ -474,10 +486,13 @@ function EditProductModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-3 sm:p-4 backdrop-blur-xs">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
-          <h3 className="text-base font-bold text-zinc-900">Edit Product</h3>
+          <div>
+            <h3 className="text-base font-bold text-zinc-900">Edit Product</h3>
+            <p className="text-[11px] text-zinc-500">Update pricing, cost, stock, and classification</p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -487,7 +502,7 @@ function EditProductModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
             <label className="mb-1 block font-medium text-zinc-600">Product Name</label>
             <input
@@ -498,20 +513,69 @@ function EditProductModal({
             />
           </div>
 
+          {/* Dual Price Editing: Selling Price & Buying Price */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block font-medium text-zinc-600">Price (ETB)</label>
+              <label className="mb-1 block font-semibold text-zinc-700">Selling Price (ETB) *</label>
               <input
                 type="number"
                 step="0.01"
+                min="0.01"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="h-9 w-full rounded-lg border border-zinc-200 px-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
+                className="h-9 w-full rounded-lg border border-zinc-200 px-3 font-mono font-bold text-zinc-900 focus:border-zinc-900 focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="mb-1 block font-medium text-zinc-600">Stock Qty</label>
+              <label className="mb-1 block font-semibold text-zinc-700">Buying / Cost Price (ETB)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.buyingPrice}
+                onChange={(e) => setForm({ ...form, buyingPrice: e.target.value })}
+                placeholder="0.00"
+                className="h-9 w-full rounded-lg border border-zinc-200 px-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Real-time Profit Margin and Markup Preview Banner */}
+          {sellingNum > 0 && (
+            <div className="flex items-center justify-between rounded-xl border border-zinc-200/90 bg-zinc-50/80 px-3.5 py-2.5">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Profit Analysis</span>
+                <div className="flex items-center gap-3 text-xs">
+                  <span>
+                    Markup:{" "}
+                    <strong className={markupEtb >= 0 ? "text-emerald-700 font-mono" : "text-red-600 font-mono"}>
+                      {markupEtb >= 0 ? `+${markupEtb.toFixed(2)}` : markupEtb.toFixed(2)} ETB
+                    </strong>
+                  </span>
+                  <span>•</span>
+                  <span>
+                    Margin:{" "}
+                    <strong className={parseFloat(profitMarginPct) > 0 ? "text-emerald-700 font-mono" : "text-zinc-600 font-mono"}>
+                      {profitMarginPct}%
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className={`rounded-lg px-2.5 py-1 text-center font-mono text-xs font-bold ${
+                  markupEtb >= 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"
+                }`}
+              >
+                {parseFloat(profitMarginPct)}% Margin
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block font-medium text-zinc-600">Stock Quantity</label>
               <input
                 type="number"
                 value={form.stockQuantity}
@@ -520,22 +584,21 @@ function EditProductModal({
                 required
               />
             </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block font-medium text-zinc-600">Category</label>
-            <select
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              className="h-9 w-full rounded-lg border border-zinc-200 px-3 text-zinc-900 focus:border-zinc-900 focus:outline-none"
-            >
-              <option value="">No Category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="mb-1 block font-medium text-zinc-600">Category</label>
+              <select
+                value={form.categoryId}
+                onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                className="h-9 w-full rounded-lg border border-zinc-200 px-3 text-zinc-900 focus:border-zinc-900 focus:outline-none"
+              >
+                <option value="">No Category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2.5 border-t border-zinc-100 pt-4">
@@ -595,8 +658,8 @@ function DeleteProductDialog({
   if (!product) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-3 sm:p-4 backdrop-blur-xs">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-red-50 text-red-600">
           <Trash2 className="size-5" />
         </div>
@@ -666,8 +729,8 @@ function CreateCategoryModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 backdrop-blur-xs">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-lg bg-[#c0e763]/20 text-zinc-950">
@@ -771,8 +834,8 @@ function EditCategoryModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 backdrop-blur-xs">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
@@ -865,8 +928,8 @@ function DeleteCategoryDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 backdrop-blur-xs">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
           <Trash2 className="size-5" />
         </div>
@@ -935,6 +998,8 @@ export default function ProductsPage() {
   const router = useRouter();
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
+  const user = useAuthStore((state) => state.user);
+  const isCashier = user?.role === "SALES";
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -1044,7 +1109,7 @@ export default function ProductsPage() {
   }
 
   function handleDownload() {
-    exportToCsv("products-catalog", filtered, [
+    const columns: Array<{ header: string; key?: any; formatter?: (item: Product) => any }> = [
       { header: "Product Name", key: "name" },
       { header: "SKU / Barcode", key: "sku" },
       {
@@ -1053,6 +1118,16 @@ export default function ProductsPage() {
       },
       { header: "Stock Quantity", key: "stockQuantity" },
       { header: "Unit", formatter: (item) => item.unit || "pcs" },
+    ];
+
+    if (!isCashier) {
+      columns.push({
+        header: "Buying Price (ETB)",
+        formatter: (item) => (item.buyingPrice ? parseFloat(String(item.buyingPrice)).toFixed(2) : "0.00"),
+      });
+    }
+
+    columns.push(
       {
         header: "Price (ETB)",
         formatter: (item) => (parseFloat(item.price || "0")).toFixed(2),
@@ -1062,7 +1137,9 @@ export default function ProductsPage() {
         formatter: (item) =>
           item.stockQuantity <= (item.lowStockThreshold || 5) ? "Low stock" : "Available",
       },
-    ]);
+    );
+
+    exportToCsv("products-catalog", filtered, columns);
   }
 
   return (
@@ -1151,7 +1228,7 @@ export default function ProductsPage() {
         {activeTab === "products" && (
           <div className="rounded-xl border border-zinc-200 bg-white shadow-xs">
             {/* Header Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-3.5 sm:px-5 py-3.5">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-base font-bold text-zinc-900 tracking-tight">Products</h1>
                 <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-zinc-600">
@@ -1250,14 +1327,16 @@ export default function ProductsPage() {
                 </button>
 
                 {/* Add Product Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(true)}
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
-                >
-                  <Plus className="size-3.5" />
-                  <span>Add Product</span>
-                </button>
+                {!isCashier && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(true)}
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Add Product</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1269,7 +1348,8 @@ export default function ProductsPage() {
                     <th className="px-5 py-3 font-semibold">Product</th>
                     <th className="px-5 py-3 font-semibold">Category</th>
                     <th className="px-5 py-3 font-semibold">Stock Quantity</th>
-                    <th className="px-5 py-3 font-semibold">Price (ETB)</th>
+                    {!isCashier && <th className="px-5 py-3 font-semibold">Buying Price (ETB)</th>}
+                    <th className="px-5 py-3 font-semibold">Selling Price (ETB)</th>
                     <th className="px-5 py-3 font-semibold">Status</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
@@ -1277,13 +1357,13 @@ export default function ProductsPage() {
                 <tbody className="divide-y divide-zinc-100">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-zinc-400">
+                      <td colSpan={isCashier ? 6 : 7} className="py-12 text-center text-zinc-400">
                         Loading products catalog...
                       </td>
                     </tr>
                   ) : products.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-zinc-400">
+                      <td colSpan={isCashier ? 6 : 7} className="py-12 text-center text-zinc-400">
                         No products found matching the criteria.
                       </td>
                     </tr>
@@ -1312,6 +1392,11 @@ export default function ProductsPage() {
                             {product.unit || "pcs"}
                           </span>
                         </td>
+                        {!isCashier && (
+                          <td className="px-5 py-3.5 font-mono text-zinc-500 tabular-nums">
+                            {product.buyingPrice ? formatPrice(product.buyingPrice) : "—"}
+                          </td>
+                        )}
                         <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 tabular-nums">
                           {formatPrice(product.price)}
                         </td>
@@ -1323,28 +1408,32 @@ export default function ProductsPage() {
                         </td>
                         <td className="px-5 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1 text-zinc-400">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setProductToEdit(product);
-                              }}
-                              title="Edit Product"
-                              className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-                            >
-                              <Edit2 className="size-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setProductToDelete(product);
-                              }}
-                              title="Delete Product"
-                              className="rounded p-1 hover:bg-red-50 hover:text-red-600 transition-colors"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
+                            {!isCashier && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setProductToEdit(product);
+                                  }}
+                                  title="Edit Product"
+                                  className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                                >
+                                  <Edit2 className="size-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setProductToDelete(product);
+                                  }}
+                                  title="Delete Product"
+                                  className="rounded p-1 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </>
+                            )}
                             <button
                               type="button"
                               onClick={() => router.push(`/products/${product.id}`)}
@@ -1402,7 +1491,7 @@ export default function ProductsPage() {
         {activeTab === "categories" && (
           <div className="rounded-xl border border-zinc-200 bg-white shadow-xs">
             {/* Header Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 px-3.5 sm:px-5 py-3.5">
               <div className="flex items-center gap-2.5">
                 <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
                   <Folder className="size-4" />
@@ -1426,14 +1515,16 @@ export default function ProductsPage() {
                     className="h-8 w-48 rounded-lg border border-zinc-200 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none"
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateCatModal(true)}
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
-                >
-                  <Plus className="size-3.5" />
-                  <span>Add Category</span>
-                </button>
+                {!isCashier && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateCatModal(true)}
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Add Category</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1445,13 +1536,13 @@ export default function ProductsPage() {
                     <th className="px-5 py-3 font-semibold">Category Name</th>
                     <th className="px-5 py-3 font-semibold">Products Assigned</th>
                     <th className="px-5 py-3 font-semibold">Identifier</th>
-                    <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                    {!isCashier && <th className="px-5 py-3 text-right font-semibold">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {filteredCategories.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-12 text-center">
+                      <td colSpan={isCashier ? 3 : 4} className="py-12 text-center">
                         <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
                           <Folder className="size-6" />
                         </div>
@@ -1459,7 +1550,7 @@ export default function ProductsPage() {
                         <p className="mt-1 text-[11px] text-zinc-400">
                           {catSearch ? "No categories match your search query." : "Get started by creating your first product category."}
                         </p>
-                        {!catSearch && (
+                        {!catSearch && !isCashier && (
                           <button
                             type="button"
                             onClick={() => setShowCreateCatModal(true)}
@@ -1494,26 +1585,28 @@ export default function ProductsPage() {
                           <td className="px-5 py-3.5 font-mono text-[11px] text-zinc-400">
                             #CAT-{cat.id.slice(0, 8).toUpperCase()}
                           </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => setCategoryToEdit(cat)}
-                                title="Rename Category"
-                                className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
-                              >
-                                <Edit2 className="size-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCategoryToDelete(cat)}
-                                title="Delete Category"
-                                className="rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </button>
-                            </div>
-                          </td>
+                          {!isCashier && (
+                            <td className="px-5 py-3.5 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setCategoryToEdit(cat)}
+                                  title="Rename Category"
+                                  className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+                                >
+                                  <Edit2 className="size-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCategoryToDelete(cat)}
+                                  title="Delete Category"
+                                  className="rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })

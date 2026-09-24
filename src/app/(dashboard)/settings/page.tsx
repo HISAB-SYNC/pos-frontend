@@ -166,7 +166,7 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* 2. Main Profile & Credentials Form                                 */}
       {/* ------------------------------------------------------------------ */}
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 sm:p-6 shadow-sm">
         <div className="mb-6 border-b border-[#f3f4f6] pb-4">
           <h2 className="text-sm font-bold text-[#111827]">Personal Profile Information</h2>
           <p className="text-xs text-[#6b7280]">Update your display name, contact email, and security password</p>
@@ -304,7 +304,7 @@ export default function SettingsPage() {
       {/* 3. Shop & Store Settings Form (PATCH /shops/:id)                  */}
       {/* ------------------------------------------------------------------ */}
       {(profile?.role === "OWNER" || authUser?.role === "OWNER" || profile?.ownedShops?.length) && (
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 sm:p-6 shadow-sm">
           <div className="mb-6 border-b border-[#f3f4f6] pb-4">
             <div className="flex items-center gap-2">
               <Store className="size-4 text-blue-600" />

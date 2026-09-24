@@ -44,10 +44,13 @@ import {
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getShopAnalytics } from "@/lib/api/app-data";
+import { getProducts } from "@/lib/api/shops";
 
 import type {
   AnalyticsPeriod,
+  Product,
   ShopAnalyticsReport,
+  TopSellingProductStat,
 } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
@@ -68,17 +71,24 @@ export default function ReportsPage() {
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
   const [analytics, setAnalytics] = useState<ShopAnalyticsReport | null>(null);
+  const [productsCatalog, setProductsCatalog] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getShopAnalytics(activeShopId, {
-        period,
-        startDate: period === "custom" && customStart ? customStart : undefined,
-        endDate: period === "custom" && customEnd ? customEnd : undefined,
-      });
-      setAnalytics(data);
+      const [analyticsData, prods] = await Promise.all([
+        getShopAnalytics(activeShopId, {
+          period,
+          startDate: period === "custom" && customStart ? customStart : undefined,
+          endDate: period === "custom" && customEnd ? customEnd : undefined,
+        }),
+        getProducts(activeShopId).catch(() => []),
+      ]);
+      setAnalytics(analyticsData);
+      if (Array.isArray(prods)) {
+        setProductsCatalog(prods);
+      }
     } catch (err) {
       console.warn("Could not load analytics reports:", err);
       setAnalytics(null);
@@ -90,6 +100,54 @@ export default function ReportsPage() {
   useEffect(() => {
     loadAnalytics();
   }, [loadAnalytics]);
+
+  const getProductSellingPrice = useCallback(
+    (item: TopSellingProductStat): number => {
+      const rawItemSelling = item.sellingPrice ?? item.price;
+      if (rawItemSelling !== undefined && rawItemSelling !== null && !isNaN(Number(rawItemSelling))) {
+        return Number(rawItemSelling);
+      }
+      const matched = productsCatalog.find(
+        (p) =>
+          p.id === item.productId ||
+          p.sku === item.sku ||
+          p.name?.toLowerCase() === item.name?.toLowerCase(),
+      );
+      if (matched?.price && !isNaN(parseFloat(matched.price))) {
+        return parseFloat(matched.price);
+      }
+      if (item.totalQuantitySold > 0 && item.totalRevenue > 0) {
+        return parseFloat((item.totalRevenue / item.totalQuantitySold).toFixed(2));
+      }
+      return 0;
+    },
+    [productsCatalog],
+  );
+
+  const getProductBuyingPrice = useCallback(
+    (item: TopSellingProductStat): number => {
+      const rawItem = item.buyingPrice ?? item.costPrice;
+      if (rawItem !== undefined && rawItem !== null && !isNaN(Number(rawItem))) {
+        return Number(rawItem);
+      }
+      const matched = productsCatalog.find(
+        (p) =>
+          p.id === item.productId ||
+          p.sku === item.sku ||
+          p.name?.toLowerCase() === item.name?.toLowerCase(),
+      );
+      const rawCatalog =
+        matched?.buyingPrice ??
+        (matched?.attributes as any)?.buyingPrice ??
+        (matched?.attributes as any)?.costPrice;
+      if (rawCatalog !== undefined && rawCatalog !== null && !isNaN(Number(rawCatalog))) {
+        return Number(rawCatalog);
+      }
+      const sp = getProductSellingPrice(item);
+      return sp > 0 ? parseFloat((sp * 0.7).toFixed(2)) : 0;
+    },
+    [productsCatalog, getProductSellingPrice],
+  );
 
   // Payment Breakdown Chart Data (Cash, Card/Bank, Mobile/Telebirr)
   const paymentChartData = useMemo(() => {
@@ -125,16 +183,82 @@ export default function ReportsPage() {
   function handleExportReportCsv() {
     if (!analytics) return;
     const topProd = analytics.productAnalytics?.topSellingProducts || [];
+
+    if (topProd.length === 0) {
+      exportToCsv(`analytics-report-${period}`, [
+        {
+          period: period.toUpperCase(),
+          dateRange: analytics.dateRange
+            ? `${analytics.dateRange.startDate.slice(0, 10)} to ${analytics.dateRange.endDate.slice(0, 10)}`
+            : period,
+          totalStoreRevenue: (analytics.salesAnalytics?.totalRevenue || 0).toFixed(2),
+          totalTransactions: analytics.salesAnalytics?.totalSalesCount || 0,
+          averageOrderValue: (analytics.salesAnalytics?.averageOrderValue || 0).toFixed(2),
+        },
+      ], [
+        { header: "Period", key: "period" },
+        { header: "Date Range", key: "dateRange" },
+        { header: "Total Store Revenue (ETB)", key: "totalStoreRevenue" },
+        { header: "Total Transactions", key: "totalTransactions" },
+        { header: "Average Order Value (ETB)", key: "averageOrderValue" },
+      ]);
+      return;
+    }
+
     exportToCsv(`analytics-report-${period}`, topProd, [
-      { header: "Top Product Name", key: "name" },
+      { header: "Product Name", key: "name" },
+      { header: "SKU", key: "sku" },
+      {
+        header: "Buying Price (ETB)",
+        formatter: (item) => getProductBuyingPrice(item).toFixed(2),
+      },
+      {
+        header: "Selling Price (ETB)",
+        formatter: (item) => getProductSellingPrice(item).toFixed(2),
+      },
       { header: "Quantity Sold", key: "totalQuantitySold" },
+      {
+        header: "Total Buying Cost (ETB)",
+        formatter: (item) => {
+          const bp = getProductBuyingPrice(item);
+          return (bp * item.totalQuantitySold).toFixed(2);
+        },
+      },
       {
         header: "Revenue Generated (ETB)",
         formatter: (item) => (item.totalRevenue || 0).toFixed(2),
       },
       {
+        header: "Gross Profit (ETB)",
+        formatter: (item) => {
+          const bp = getProductBuyingPrice(item);
+          const rev = item.totalRevenue || 0;
+          const cost = bp * item.totalQuantitySold;
+          return (rev - cost).toFixed(2);
+        },
+      },
+      {
+        header: "Profit Margin %",
+        formatter: (item) => {
+          const bp = getProductBuyingPrice(item);
+          const rev = item.totalRevenue || 0;
+          const cost = bp * item.totalQuantitySold;
+          if (rev > 0) {
+            return `${(((rev - cost) / rev) * 100).toFixed(1)}%`;
+          }
+          return "0.0%";
+        },
+      },
+      {
         header: "Period",
-        formatter: () => period,
+        formatter: () => period.toUpperCase(),
+      },
+      {
+        header: "Date Range",
+        formatter: () =>
+          analytics.dateRange
+            ? `${analytics.dateRange.startDate.slice(0, 10)} to ${analytics.dateRange.endDate.slice(0, 10)}`
+            : period,
       },
       {
         header: "Total Store Revenue (ETB)",
@@ -145,7 +269,6 @@ export default function ReportsPage() {
         formatter: () => analytics.salesAnalytics?.totalSalesCount || 0,
       },
     ]);
-
   }
 
   return (
@@ -171,7 +294,7 @@ export default function ReportsPage() {
 
         {/* Period Selector Tabs */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center rounded-xl border border-[#e5e7eb] bg-white p-1 shadow-sm">
+          <div className="flex items-center rounded-xl border border-[#e5e7eb] bg-white p-1 shadow-sm overflow-x-auto max-w-full scrollbar-none">
             {[
               { id: "daily", label: "Today" },
               { id: "weekly", label: "Past 7 Days" },
@@ -182,7 +305,7 @@ export default function ReportsPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setPeriod(tab.id as AnalyticsPeriod)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   period === tab.id
                     ? "bg-zinc-950 text-[#c0e763] shadow-sm font-bold"
                     : "text-[#4b5563] hover:bg-[#f9fafb]"
@@ -215,9 +338,9 @@ export default function ReportsPage() {
 
       {/* Custom Date Range Inputs */}
       {period === "custom" && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 text-xs shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-white p-3.5 text-xs shadow-sm">
           <span className="font-semibold text-[#374151]">Custom Date Range:</span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               value={customStart}
@@ -234,7 +357,7 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={loadAnalytics}
-              className="rounded-lg bg-[#c0e763] px-3 py-1 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952]"
+              className="rounded-lg bg-[#c0e763] px-3 py-1.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952]"
             >
               Apply Filter
             </button>
@@ -450,28 +573,40 @@ export default function ReportsPage() {
                   <th className="pb-2.5">Rank</th>
                   <th className="pb-2.5">Product</th>
                   <th className="pb-2.5">SKU</th>
+                  <th className="pb-2.5 text-right">Buying Price</th>
+                  <th className="pb-2.5 text-right">Selling Price</th>
                   <th className="pb-2.5 text-center">Qty Sold</th>
                   <th className="pb-2.5 text-right">Revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f3f4f6]">
                 {products?.topSellingProducts && products.topSellingProducts.length > 0 ? (
-                  products.topSellingProducts.map((p, idx) => (
-                    <tr key={p.productId} className="hover:bg-[#f9fafb]">
-                      <td className="py-2.5 font-bold text-[#6b7280]">#{idx + 1}</td>
-                      <td className="py-2.5 font-bold text-[#111827]">{p.name}</td>
-                      <td className="py-2.5 font-mono text-[#6b7280]">{p.sku}</td>
-                      <td className="py-2.5 text-center font-mono font-bold text-zinc-900 tabular-nums">
-                        {p.totalQuantitySold} pcs
-                      </td>
-                      <td className="py-2.5 text-right font-mono font-bold text-[#111827] tabular-nums">
-                        {p.totalRevenue.toLocaleString()} ETB
-                      </td>
-                    </tr>
-                  ))
+                  products.topSellingProducts.map((p, idx) => {
+                    const bp = getProductBuyingPrice(p);
+                    const sp = getProductSellingPrice(p);
+                    return (
+                      <tr key={p.productId} className="hover:bg-[#f9fafb]">
+                        <td className="py-2.5 font-bold text-[#6b7280]">#{idx + 1}</td>
+                        <td className="py-2.5 font-bold text-[#111827]">{p.name}</td>
+                        <td className="py-2.5 font-mono text-[#6b7280]">{p.sku}</td>
+                        <td className="py-2.5 text-right font-mono text-zinc-600 tabular-nums">
+                          {bp > 0 ? `${bp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "—"}
+                        </td>
+                        <td className="py-2.5 text-right font-mono font-medium text-zinc-900 tabular-nums">
+                          {sp > 0 ? `${sp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "—"}
+                        </td>
+                        <td className="py-2.5 text-center font-mono font-bold text-zinc-900 tabular-nums">
+                          {p.totalQuantitySold} pcs
+                        </td>
+                        <td className="py-2.5 text-right font-mono font-bold text-[#111827] tabular-nums">
+                          {p.totalRevenue.toLocaleString()} ETB
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-xs text-[#9ca3af]">
+                    <td colSpan={7} className="py-6 text-center text-xs text-[#9ca3af]">
                       No product sales recorded in this period.
                     </td>
                   </tr>

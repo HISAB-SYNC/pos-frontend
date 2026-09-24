@@ -29,6 +29,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AccessDenied } from "@/components/shared/access-denied";
+import { RouteGuard } from "@/components/shared/route-guard";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   createTeamMember,
@@ -46,7 +47,6 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
   getAllowedPermissionsToAssign,
   getAllowedRolesToCreate,
-  PERMISSION_GROUPS,
   canManageRole,
 } from "@/lib/permissions/rbac";
 import type { Role } from "@/lib/permissions/roles";
@@ -141,22 +141,11 @@ function AddTeamMemberModal({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role>(defaultRole);
-  const [selectedPermissions, setSelectedPermissions] = useState<AppPermission[]>(
-    DEFAULT_ROLE_PERMISSIONS[defaultRole] || [],
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Update permissions when role changes
   function handleRoleChange(newRole: Role) {
     setSelectedRole(newRole);
-    setSelectedPermissions(DEFAULT_ROLE_PERMISSIONS[newRole] || []);
-  }
-
-  function togglePermission(permId: AppPermission) {
-    setSelectedPermissions((prev) =>
-      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
-    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -180,7 +169,7 @@ function AddTeamMemberModal({
         status: "Active",
         joinedDate: new Date().toISOString().split("T")[0],
         lastLogin: "Never",
-        permissions: selectedPermissions,
+        permissions: DEFAULT_ROLE_PERMISSIONS[selectedRole] || [],
       };
 
       const auditLog: AuditLogRecord = {
@@ -191,8 +180,8 @@ function AddTeamMemberModal({
         action: "USER_CREATED",
         resource: `TeamMember: ${name.trim()}`,
         timestamp: new Date().toISOString(),
-        details: `Provisioned account with role ${selectedRole} and ${selectedPermissions.length} assigned permissions`,
-        newValue: `Status: Active (${selectedPermissions.length} permissions)`,
+        details: `Provisioned account with role ${selectedRole}`,
+        newValue: `Role: ${selectedRole} (Active)`,
       };
 
       await createTeamMember(shopId, {
@@ -216,15 +205,15 @@ function AddTeamMemberModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
           <div className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
               <UserPlus className="size-4.5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#111827]">Provision New Team Member</h2>
-              <p className="text-xs text-[#6b7280]">Assign role and customize granular operational permissions</p>
+              <h2 className="text-base font-bold text-[#111827]">Add Team Member</h2>
+              <p className="text-xs text-[#6b7280]">Create a new staff member and assign their role</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
@@ -329,54 +318,6 @@ function AddTeamMemberModal({
             )}
           </div>
 
-          {/* Granular Permissions Checklist */}
-          <div className="space-y-3 pt-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-bold text-[#111827]">Granular Operational Permissions</h3>
-                <p className="text-[11px] text-[#6b7280]">
-                  Customize which specific buttons, menus, and operations this user can perform ({selectedPermissions.length} selected)
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {PERMISSION_GROUPS.map((group) => (
-                <div key={group.id} className="rounded-xl border border-[#e5e7eb] p-3 space-y-2 bg-white">
-                  <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-1.5">
-                    <span className="font-bold text-[#111827] text-xs">{group.name}</span>
-                    <span className="text-[10px] text-[#9ca3af]">{group.description}</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {group.permissions.map((perm) => {
-                      const isChecked = selectedPermissions.includes(perm.id);
-                      return (
-                        <label
-                          key={perm.id}
-                          className={`flex items-start gap-2 rounded-lg p-2 cursor-pointer transition-colors ${
-                            isChecked ? "bg-blue-50/40" : "hover:bg-[#f9fafb]"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => togglePermission(perm.id)}
-                            className="mt-0.5 size-3.5 rounded border-[#d1d5db] text-[#2563eb]"
-                          />
-                          <div>
-                            <p className="font-semibold text-[#111827] text-[11px]">{perm.label}</p>
-                            <p className="text-[10px] text-[#6b7280]">{perm.description}</p>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="flex justify-end gap-2.5 border-t border-[#f3f4f6] pt-3.5">
             <button
               type="button"
@@ -390,130 +331,10 @@ function AddTeamMemberModal({
               disabled={isSubmitting}
               className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Provisioning..." : "Complete Provisioning"}
+              {isSubmitting ? "Adding Member..." : "Add Team Member"}
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Edit Permissions for Existing Member                        */
-/* ------------------------------------------------------------------ */
-function EditPermissionsModal({
-  member,
-  onClose,
-  onSaved,
-}: {
-  member: TeamMember;
-  onClose: () => void;
-  onSaved: (member: TeamMember, log: AuditLogRecord) => void;
-}) {
-  const [selectedPermissions, setSelectedPermissions] = useState<AppPermission[]>(
-    (member.permissions as AppPermission[]) || DEFAULT_ROLE_PERMISSIONS[member.role as Role] || [],
-  );
-
-  function togglePermission(permId: AppPermission) {
-    setSelectedPermissions((prev) =>
-      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
-    );
-  }
-
-  function handleSave() {
-    const updatedMember: TeamMember = {
-      ...member,
-      permissions: selectedPermissions,
-    };
-
-    const auditLog: AuditLogRecord = {
-      id: `aud-${Date.now()}`,
-      userId: "current-user",
-      userName: "You",
-      userRole: "ADMIN",
-      action: "PERMISSION_UPDATED",
-      resource: `TeamMember: ${member.name}`,
-      timestamp: new Date().toISOString(),
-      details: `Updated permissions (${selectedPermissions.length} total granted)`,
-      previousValue: `${member.permissions?.length || 0} permissions`,
-      newValue: `${selectedPermissions.length} permissions`,
-    };
-
-    onSaved(updatedMember, auditLog);
-    onClose();
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-              <Shield className="size-4.5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[#111827]">Edit Permissions — {member.name}</h2>
-              <p className="text-xs text-[#6b7280]">Role: {member.role} · Active permissions checklist</p>
-            </div>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <div className="my-4 space-y-3 text-xs">
-          {PERMISSION_GROUPS.map((group) => (
-            <div key={group.id} className="rounded-xl border border-[#e5e7eb] p-3 space-y-2 bg-white">
-              <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-1.5">
-                <span className="font-bold text-[#111827] text-xs">{group.name}</span>
-                <span className="text-[10px] text-[#9ca3af]">{group.description}</span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {group.permissions.map((perm) => {
-                  const isChecked = selectedPermissions.includes(perm.id);
-                  return (
-                    <label
-                      key={perm.id}
-                      className={`flex items-start gap-2 rounded-lg p-2 cursor-pointer transition-colors ${
-                        isChecked ? "bg-blue-50/40" : "hover:bg-[#f9fafb]"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => togglePermission(perm.id)}
-                        className="mt-0.5 size-3.5 rounded border-[#d1d5db] text-[#2563eb]"
-                      />
-                      <div>
-                        <p className="font-semibold text-[#111827] text-[11px]">{perm.label}</p>
-                        <p className="text-[10px] text-[#6b7280]">{perm.description}</p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-end gap-2.5 border-t border-[#f3f4f6] pt-3.5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
-          >
-            Save Permissions
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -558,7 +379,7 @@ function ResetPasswordModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center gap-2.5 border-b border-[#f3f4f6] pb-3.5">
           <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
             <KeyRound className="size-4.5" />
@@ -674,8 +495,7 @@ function EditMemberDetailsModal({
   return (
 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
           <h2 className="text-base font-bold text-[#111827]">Edit Employee Profile</h2>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
@@ -794,7 +614,7 @@ function DeleteStaffDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
           <Trash2 className="size-5" />
         </div>
@@ -843,7 +663,6 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [memberToEditDetails, setMemberToEditDetails] = useState<TeamMember | null>(null);
-  const [memberToEditPermissions, setMemberToEditPermissions] = useState<TeamMember | null>(null);
   const [memberToResetPassword, setMemberToResetPassword] = useState<TeamMember | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
@@ -961,7 +780,8 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
+      <div className="space-y-6">
       {/* Modals */}
       <AddTeamMemberModal
         open={isAddModalOpen}
@@ -987,20 +807,6 @@ export default function UsersPage() {
         }}
         shopId={activeShopId}
       />
-
-      {memberToEditPermissions && (
-        <EditPermissionsModal
-          member={memberToEditPermissions}
-          onClose={() => setMemberToEditPermissions(null)}
-          onSaved={(updatedM, log) => {
-            setMembers((prev) => prev.map((m) => (m.id === updatedM.id ? updatedM : m)));
-            setAuditLogs((prev) => [log, ...prev]);
-            setActionSuccessMsg(`Updated RBAC permissions for ${updatedM.name}`);
-            setTimeout(() => setActionSuccessMsg(""), 3500);
-          }}
-        />
-      )}
-
 
       {memberToResetPassword && (
         <ResetPasswordModal
@@ -1042,7 +848,7 @@ export default function UsersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={activeTab === "DIRECTORY" ? handleExportDirectory : handleExportAuditLogs}
@@ -1149,7 +955,7 @@ export default function UsersPage() {
         {/* Tab 1: Team Directory Table */}
         {activeTab === "DIRECTORY" && (
           <div className="space-y-3">
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {[
                 { id: "ALL", label: "All Roles" },
                 { id: "ADMIN", label: "Shop Admins" },
@@ -1176,7 +982,7 @@ export default function UsersPage() {
                   <tr>
                     <th className="pb-3">Employee</th>
                     <th className="pb-3">Role</th>
-                    <th className="pb-3">Permissions Scope</th>
+                    <th className="pb-3">Role Capabilities</th>
                     <th className="pb-3">Joined Date</th>
                     <th className="pb-3">Status</th>
                     <th className="pb-3 text-right">Actions &amp; Authorization</th>
@@ -1222,15 +1028,16 @@ export default function UsersPage() {
                             </span>
                           </td>
                           <td className="py-3">
-                            <button
-                              type="button"
-                              disabled={!canModify}
-                              onClick={() => setMemberToEditPermissions(m)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1 text-[11px] font-medium text-[#374151] hover:bg-slate-50 disabled:opacity-60"
-                            >
-                              <Shield className="size-3 text-purple-600" />
-                              <span>{m.permissions?.length || "Role Default"} permissions</span>
-                            </button>
+                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/90 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-700">
+                              <ShieldCheck className="size-3 text-emerald-600" />
+                              <span>
+                                {isOwner
+                                  ? "Full Shop & Staff Ownership"
+                                  : isAdmin
+                                  ? "Shop Operations & Inventory"
+                                  : "POS Sales & Customer Checkout"}
+                              </span>
+                            </span>
                           </td>
                           <td className="py-3 text-[#6b7280]">{m.joinedDate}</td>
                           <td className="py-3">
@@ -1388,19 +1195,6 @@ export default function UsersPage() {
         />
       )}
 
-      {memberToEditPermissions && (
-        <EditPermissionsModal
-          member={memberToEditPermissions}
-          onClose={() => setMemberToEditPermissions(null)}
-          onSaved={(updated, log) => {
-            setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-            setAuditLogs((prev) => [log, ...prev]);
-            setActionSuccessMsg(`Permissions updated for ${updated.name}`);
-            setTimeout(() => setActionSuccessMsg(""), 3500);
-          }}
-        />
-      )}
-
       {memberToResetPassword && (
         <ResetPasswordModal
           member={memberToResetPassword}
@@ -1412,6 +1206,7 @@ export default function UsersPage() {
           }}
         />
       )}
-    </div>
+      </div>
+    </RouteGuard>
   );
 }

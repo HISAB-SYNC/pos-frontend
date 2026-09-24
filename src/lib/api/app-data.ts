@@ -255,12 +255,29 @@ export async function getDebtSummary(shopId: string) {
 
 export async function createDebt(
   shopId: string,
-  input: { customerId: string; amount: number; dueDate?: string; notes?: string },
+  input: {
+    customerId: string;
+    amount: number;
+    dueDate?: string;
+    notes?: string;
+    items?: Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }>;
+  },
 ) {
   const store = getMockStore();
   const { seedCustomers, seedDebts } = await import("@/lib/mock/data");
 
   const customer = store.customers.find((c) => c.id === input.customerId) || seedCustomers.find((c) => c.id === input.customerId);
+
+  // Format item details into notes if items provided
+  let formattedNotes = input.notes || "";
+  if (input.items && input.items.length > 0) {
+    const itemsSummary = input.items
+      .map((it) => `${it.quantity}x ${it.name} (${it.totalPrice || (it.unitPrice || 0) * it.quantity} ETB)`)
+      .join(", ");
+    formattedNotes = formattedNotes
+      ? `Items: ${itemsSummary} | Note: ${formattedNotes}`
+      : `Items: ${itemsSummary}`;
+  }
 
   const newDebt: Debt = {
     id: `debt-${Date.now()}`,
@@ -273,7 +290,8 @@ export async function createDebt(
     remainingAmount: input.amount.toFixed(2),
     status: "PENDING",
     dueDate: input.dueDate,
-    notes: input.notes,
+    notes: formattedNotes,
+    items: input.items,
     payments: [],
     transactions: [],
     createdAt: new Date().toISOString(),
@@ -298,7 +316,8 @@ export async function createDebt(
           customerId: input.customerId,
           amount: input.amount,
           dueDate: input.dueDate || undefined,
-          notes: input.notes || undefined,
+          notes: formattedNotes || undefined,
+          items: input.items || undefined,
         },
       });
       if (backendCreated?.id) {
@@ -321,6 +340,7 @@ export async function recordDebtPayment(
     debtId?: string;
     amount: number;
     paymentMethod?: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
+    bankName?: string;
     notes?: string;
     reference?: string;
   },
@@ -361,12 +381,12 @@ export async function recordDebtPayment(
     remainingBalance: newCustomerBalance,
     date: dateStr,
     paymentMethod: input.paymentMethod || "Cash",
-    notes: input.notes || "Debt payment recorded",
+    notes: input.notes || `Partial repayment - ${ref}`,
   };
 
   if (customer) {
     customer.debtBalance = newCustomerBalance.toFixed(2);
-    customer.totalPaid = (parseFloat(String(customer.totalPaid || "0")) + input.amount).toFixed(0);
+    customer.totalPaid = (parseFloat(String(customer.totalPaid || "0")) + input.amount).toFixed(2);
     customer.lastTransactionDate = dateStr;
     if (!customer.debtHistory) customer.debtHistory = [];
     customer.debtHistory.unshift(transaction);
@@ -374,19 +394,19 @@ export async function recordDebtPayment(
 
   // Find or identify debt record in memory
   let debtRecord = store.debts.find(
-    (d) => (input.debtId && d.id === input.debtId) || (d.customerId === input.customerId && d.status !== "PAID"),
+    (d) => (input.debtId ? d.id === input.debtId : d.customerId === input.customerId && d.status !== "PAID"),
   );
-  if (!debtRecord) {
+  if (!debtRecord && Array.isArray(seedDebts)) {
     debtRecord = seedDebts.find(
-      (d) => (input.debtId && d.id === input.debtId) || (d.customerId === input.customerId && d.status !== "PAID"),
+      (d) => (input.debtId ? d.id === input.debtId : d.customerId === input.customerId && d.status !== "PAID"),
     );
   }
 
   if (debtRecord) {
-    const oldPaid = parseFloat(debtRecord.paidAmount || "0");
-    const newPaid = oldPaid + input.amount;
-    const totalOrig = parseFloat(debtRecord.amount || "0");
-    const remaining = Math.max(0, totalOrig - newPaid);
+    const prevPaid = parseFloat(debtRecord.paidAmount || "0");
+    const totalDue = parseFloat(debtRecord.amount || "0");
+    const newPaid = prevPaid + input.amount;
+    const remaining = Math.max(0, totalDue - newPaid);
 
     debtRecord.paidAmount = newPaid.toFixed(2);
     debtRecord.remainingAmount = remaining.toFixed(2);
@@ -416,7 +436,13 @@ export async function recordDebtPayment(
       if (debtIdToUse) {
         const updatedDebt = await apiRequest<Debt>(API_ENDPOINTS.shops.debtPayments(shopId, debtIdToUse), {
           method: "POST",
-          body: { amount: input.amount },
+          body: {
+            amount: input.amount,
+            paymentMethod: input.paymentMethod === "Bank Transfer" ? "CARD" : input.paymentMethod === "Mobile Payment" ? "MOBILE" : "CASH",
+            bankName: input.bankName || undefined,
+            reference: input.reference || undefined,
+            notes: input.notes || undefined,
+          },
         });
 
         return {
@@ -454,6 +480,8 @@ export async function createSale(
     totalAmount: number;
     amountPaid?: number;
     paymentMethod: "CASH" | "BANK" | "TELEBIRR" | string;
+    bankName?: string;
+    paymentReference?: string;
     splitDetails?: {
       cashAmount?: number;
       debtAmount?: number;
@@ -554,6 +582,8 @@ export async function createSale(
     discountAmount: input.discountAmount ? input.discountAmount.toFixed(2) : "0.00",
     taxAmount: input.taxAmount ? input.taxAmount.toFixed(2) : "0.00",
     paymentMethod: input.paymentMethod,
+    bankName: input.bankName,
+    paymentReference: input.paymentReference,
     splitDetails: {
       cashAmount: paid,
       debtAmount: debtPortion,
@@ -590,6 +620,8 @@ export async function createSale(
         paymentMethod: backendPaymentMethod,
         discountAmount: input.discountAmount || 0,
         isCredit: debtPortion > 0,
+        bankName: input.bankName || undefined,
+        paymentReference: input.paymentReference || undefined,
         items: input.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       },
     });
@@ -646,6 +678,41 @@ export async function getSaleDetail(shopId: string, saleId: string) {
   } catch {
     return seedSales.find((s) => s.id === saleId) || null;
   }
+}
+
+export async function processSaleReturn(
+  shopId: string,
+  saleId: string,
+  input: {
+    items: Array<{ productId: string; quantity: number; refundAmount?: number; reason?: string }>;
+    refundMethod?: string;
+    notes?: string;
+  },
+) {
+  if (!isMockApiEnabled()) {
+    return await apiRequest<{ success: boolean; data: any }>(
+      API_ENDPOINTS.shops.saleReturns(shopId, saleId),
+      {
+        method: "POST",
+        body: input,
+      },
+    );
+  }
+
+  const { seedSales, seedProducts } = await import("@/lib/mock/data");
+  const targetSale = seedSales.find((s) => s.id === saleId);
+  if (targetSale) {
+    targetSale.status = "REFUNDED";
+  }
+
+  for (const it of input.items) {
+    const prod = seedProducts.find((p) => p.id === it.productId);
+    if (prod) {
+      prod.stockQuantity += it.quantity;
+    }
+  }
+
+  return { success: true, message: "Sale return processed successfully" };
 }
 
 export async function voidSale(shopId: string, saleId: string) {
@@ -1346,12 +1413,23 @@ export async function getShopAnalytics(
 
     const topSellingProducts = sProducts.slice(0, 5).map((p, idx) => {
       const qtySold = totalSalesCount > 0 ? Math.max(1, 20 - idx * 4) : 0;
+      const rawBuying =
+        p.buyingPrice ??
+        (p.attributes as any)?.buyingPrice ??
+        (p.attributes as any)?.costPrice;
+      const bPrice =
+        rawBuying !== undefined && rawBuying !== null && !isNaN(Number(rawBuying))
+          ? Number(rawBuying)
+          : parseFloat(p.price || "0") * 0.7;
+      const sPrice = parseFloat(p.price || "0");
       return {
         productId: p.id,
         name: p.name,
         sku: p.sku,
         totalQuantitySold: qtySold,
-        totalRevenue: qtySold * parseFloat(p.price || "0"),
+        totalRevenue: qtySold * sPrice,
+        buyingPrice: bPrice,
+        sellingPrice: sPrice,
       };
     });
 
@@ -1431,6 +1509,37 @@ export async function getShopAnalytics(
         TELEBIRR: rawPmb.TELEBIRR || rawPmb.MOBILE || { count: 0, totalAmount: 0 },
       };
 
+      const rawTop = Array.isArray(p?.topSellingProducts) ? p.topSellingProducts : [];
+      const enrichedTop = rawTop.map((tp: any) => {
+        const matched = shopProducts.find(
+          (sp) => sp.id === tp.productId || sp.sku === tp.sku || sp.name?.toLowerCase() === tp.name?.toLowerCase(),
+        );
+        const rawBuying =
+          tp.buyingPrice ??
+          tp.costPrice ??
+          matched?.buyingPrice ??
+          (matched?.attributes as any)?.buyingPrice ??
+          (matched?.attributes as any)?.costPrice;
+        const bPrice =
+          rawBuying !== undefined && rawBuying !== null && !isNaN(Number(rawBuying))
+            ? Number(rawBuying)
+            : undefined;
+        const rawSelling =
+          tp.sellingPrice ??
+          tp.price ??
+          (matched?.price ? parseFloat(matched.price) : undefined) ??
+          (tp.totalQuantitySold ? tp.totalRevenue / tp.totalQuantitySold : undefined);
+        const sPrice =
+          rawSelling !== undefined && rawSelling !== null && !isNaN(Number(rawSelling))
+            ? Number(rawSelling)
+            : undefined;
+        return {
+          ...tp,
+          buyingPrice: bPrice,
+          sellingPrice: sPrice,
+        };
+      });
+
       return {
         period: live.period || period,
         dateRange: {
@@ -1447,7 +1556,7 @@ export async function getShopAnalytics(
           salesTrend: Array.isArray(s.salesTrend) ? s.salesTrend : [],
         },
         productAnalytics: {
-          topSellingProducts: Array.isArray(p?.topSellingProducts) ? p.topSellingProducts : [],
+          topSellingProducts: enrichedTop,
           lowStockCount: p?.lowStockCount ?? 0,
           totalProductsCount: p?.totalProductsCount ?? 0,
         },

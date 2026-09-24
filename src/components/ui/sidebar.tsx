@@ -63,6 +63,9 @@ export function Sidebar({ className, children }: React.HTMLAttributes<HTMLDivEle
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 p-0 lg:hidden">
+          <span className="sr-only">
+            <h2>Navigation Menu</h2>
+          </span>
           <div className="flex h-full flex-col overflow-hidden">{children}</div>
         </SheetContent>
       </Sheet>

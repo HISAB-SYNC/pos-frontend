@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
@@ -52,10 +53,6 @@ export default function RegisterPage() {
       });
 
       setStatus("success");
-      // Redirect to login with prefilled hint
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
     } catch (error) {
       const apiError = error as ApiError;
       setErrorMessage(apiError.message ?? "Failed to create store owner account.");
@@ -71,9 +68,24 @@ export default function RegisterPage() {
       </p>
 
       {status === "success" ? (
-        <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center text-emerald-800">
-          <p className="font-bold text-sm">Account created successfully!</p>
-          <p className="mt-1 text-xs text-emerald-600">Redirecting you to login...</p>
+        <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-6 text-center text-emerald-950 space-y-3">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <CheckCircle2 className="size-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <h3 className="font-bold text-base text-emerald-950">Registration Submitted!</h3>
+            <p className="mt-1 text-xs text-emerald-800 leading-relaxed max-w-sm mx-auto">
+              Your store owner profile has been submitted for platform activation. A SuperAdmin will review and activate your account shortly.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center rounded-xl bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-900 transition-colors"
+            >
+              Proceed to Sign In
+            </Link>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 space-y-3.5">

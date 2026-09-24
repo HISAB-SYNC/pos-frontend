@@ -40,5 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local audit docs
+# local audit and guide docs
 FRONTEND_MOCK_AUDIT_REPORT.md
+*_GUIDE*.md
+*GUIDE*.md
+CLAUDE.md
+.agents/

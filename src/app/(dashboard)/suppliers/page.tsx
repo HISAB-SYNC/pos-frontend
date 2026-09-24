@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { RouteGuard } from "@/components/shared/route-guard";
 import {
   createSupplier,
   deleteSupplier,
@@ -513,7 +514,7 @@ export default function SuppliersPage() {
   }
 
   return (
-    <>
+    <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
       <AddSupplierModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -747,6 +748,6 @@ export default function SuppliersPage() {
           </button>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

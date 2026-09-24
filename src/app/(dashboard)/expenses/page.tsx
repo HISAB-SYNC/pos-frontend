@@ -30,6 +30,14 @@ import { useShopStore } from "@/stores/shop-store";
 /* ------------------------------------------------------------------ */
 /* Modal: Add Expense                                                 */
 /* ------------------------------------------------------------------ */
+function getTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function AddExpenseModal({
   open,
   onClose,
@@ -42,7 +50,7 @@ function AddExpenseModal({
   shopId: string;
 }) {
   const [form, setForm] = useState({
-    date: "",
+    date: getTodayDateString(),
     description: "",
     category: "",
     amount: "",
@@ -50,6 +58,16 @@ function AddExpenseModal({
     status: "Paid",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sync date to today whenever modal opens
+  useEffect(() => {
+    if (open) {
+      setForm((f) => ({
+        ...f,
+        date: f.date || getTodayDateString(),
+      }));
+    }
+  }, [open]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -62,7 +80,7 @@ function AddExpenseModal({
     setIsSubmitting(true);
     try {
       await createExpense(shopId, {
-        date: form.date.trim() || new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        date: form.date.trim() || getTodayDateString(),
         description: form.description.trim(),
         category: form.category.trim() || "General",
         amount: Number(form.amount) || 0,
@@ -72,7 +90,7 @@ function AddExpenseModal({
       onCreated();
       onClose();
       setForm({
-        date: "",
+        date: getTodayDateString(),
         description: "",
         category: "",
         amount: "",
@@ -175,14 +193,16 @@ function AddExpenseModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Date</label>
+            <div className="flex items-center justify-between">
+              <label className="font-medium text-[#374151]">Expense Date</label>
+              <span className="text-[10px] text-zinc-400">Defaults to today</span>
+            </div>
             <input
               name="date"
-              type="text"
+              type="date"
               value={form.date}
               onChange={handleChange}
-              placeholder="e.g. Aug 15, 2025"
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
             />
           </div>
 

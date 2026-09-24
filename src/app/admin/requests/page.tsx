@@ -348,7 +348,7 @@ export default function AdminRequestsPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters & State
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"PENDING" | "ACTIVE" | "SUSPENDED" | "ALL">("PENDING");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [viewingOwner, setViewingOwner] = useState<AdminUser | null>(null);
@@ -375,10 +375,14 @@ export default function AdminRequestsPage() {
     loadData();
   }, [loadData]);
 
+  const ownerUsers = useMemo(() => users.filter((u) => u.role === "OWNER"), [users]);
+  const pendingCount = useMemo(() => ownerUsers.filter((u) => !u.isActive).length, [ownerUsers]);
+  const activeCount = useMemo(() => ownerUsers.filter((u) => u.isActive).length, [ownerUsers]);
+
   // Filtered list of Owners
   const filteredOwners = useMemo(() => {
-    return users.filter((u) => {
-      if (u.role !== "OWNER") return false;
+    return ownerUsers.filter((u) => {
+      if (statusFilter === "PENDING" && u.isActive) return false;
       if (statusFilter === "ACTIVE" && !u.isActive) return false;
       if (statusFilter === "SUSPENDED" && u.isActive) return false;
 
@@ -391,7 +395,7 @@ export default function AdminRequestsPage() {
       }
       return true;
     });
-  }, [users, statusFilter, searchQuery]);
+  }, [ownerUsers, statusFilter, searchQuery]);
 
   async function handleToggleStatus(owner: AdminUser) {
     try {
@@ -404,7 +408,7 @@ export default function AdminRequestsPage() {
         }
       } else {
         await activateUser(owner.id);
-        setActionSuccessMsg(`Owner ${owner.name} reactivated.`);
+        setActionSuccessMsg(`Owner ${owner.name} approved and activated successfully. They can now log in.`);
       }
       await loadData();
     } catch {
@@ -472,43 +476,75 @@ export default function AdminRequestsPage() {
 
       {/* Overview Metric Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-          <span className="text-xs font-semibold text-[#6b7280]">Total Registered Owners</span>
-          <div className="mt-2 text-2xl font-bold text-[#111827]">{users.length}</div>
-          <span className="text-[11px] text-[#6b7280]">Store owners registered platform-wide</span>
-        </div>
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-          <span className="text-xs font-semibold text-[#6b7280]">Active Store Owners</span>
-          <div className="mt-2 text-2xl font-bold text-[#16a34a]">
-            {users.filter((u) => u.isActive).length}
+        <div
+          onClick={() => setStatusFilter("PENDING")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "PENDING"
+              ? "border-amber-400 bg-amber-50/80 ring-2 ring-amber-400/20"
+              : "border-amber-200 bg-amber-50/40 hover:bg-amber-50/70"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-800">Pending Activation Requests</span>
+            {pendingCount > 0 && (
+              <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                Action Required
+              </span>
+            )}
           </div>
+          <div className="mt-2 text-2xl font-bold text-amber-950">{pendingCount}</div>
+          <span className="text-[11px] text-amber-700 font-medium">New owner registrations awaiting SuperAdmin review</span>
+        </div>
+
+        <div
+          onClick={() => setStatusFilter("ACTIVE")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "ACTIVE"
+              ? "border-emerald-400 bg-emerald-50/80 ring-2 ring-emerald-400/20"
+              : "border-[#e5e7eb] bg-white hover:bg-[#f9fafb]"
+          }`}
+        >
+          <span className="text-xs font-semibold text-[#6b7280]">Active Store Owners</span>
+          <div className="mt-2 text-2xl font-bold text-[#16a34a]">{activeCount}</div>
           <span className="text-[11px] text-emerald-600 font-medium">Authorized for shop operation</span>
         </div>
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-          <span className="text-xs font-semibold text-[#6b7280]">Suspended Store Owners</span>
-          <div className="mt-2 text-2xl font-bold text-[#dc2626]">
-            {users.filter((u) => !u.isActive).length}
-          </div>
-          <span className="text-[11px] text-red-600 font-medium">Frozen owner accounts</span>
+
+        <div
+          onClick={() => setStatusFilter("ALL")}
+          className={`cursor-pointer rounded-2xl border p-4 shadow-sm transition-all ${
+            statusFilter === "ALL"
+              ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
+              : "border-[#e5e7eb] bg-white hover:bg-[#f9fafb]"
+          }`}
+        >
+          <span className="text-xs font-semibold text-[#6b7280]">Total Registered Owners</span>
+          <div className="mt-2 text-2xl font-bold text-[#111827]">{ownerUsers.length}</div>
+          <span className="text-[11px] text-[#6b7280]">Store owners registered platform-wide</span>
         </div>
       </div>
 
       {/* Toolbar & Filters */}
       <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1.5">
-            {(["ALL", "ACTIVE", "SUSPENDED"] as const).map((tab) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: "PENDING", label: `Pending Requests (${pendingCount})` },
+              { id: "ACTIVE", label: `Active Owners (${activeCount})` },
+              { id: "ALL", label: `All Owners (${ownerUsers.length})` },
+            ].map((tab) => (
               <button
-                key={tab}
+                key={tab.id}
                 type="button"
-                onClick={() => setStatusFilter(tab)}
+                onClick={() => setStatusFilter(tab.id as any)}
                 className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  statusFilter === tab
-                    ? "bg-[#111827] text-white shadow-sm"
+                  statusFilter === tab.id
+                    ? tab.id === "PENDING"
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "bg-[#111827] text-white shadow-sm"
                     : "border border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]"
                 }`}
               >
-                {tab === "ALL" ? "All Owners" : tab === "ACTIVE" ? "Active Owners" : "Suspended"}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -574,15 +610,15 @@ export default function AdminRequestsPage() {
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                           owner.isActive
                             ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
+                            : "border border-amber-200 bg-amber-50 text-amber-800"
                         }`}
                       >
                         <span
                           className={`size-1.5 rounded-full ${
-                            owner.isActive ? "bg-emerald-500" : "bg-red-500"
+                            owner.isActive ? "bg-emerald-500" : "bg-amber-500"
                           }`}
                         />
-                        {owner.isActive ? "Active Account" : "Suspended"}
+                        {owner.isActive ? "Active Account" : "Pending Review"}
                       </span>
                     </td>
                     <td className="py-3 text-right">
@@ -600,13 +636,14 @@ export default function AdminRequestsPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(owner)}
-                          className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                          className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                             owner.isActive
                               ? "bg-red-50 text-red-700 hover:bg-red-100"
-                              : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
                           }`}
                         >
-                          {owner.isActive ? "Suspend" : "Activate"}
+                          {!owner.isActive && <CheckCircle2 className="size-3 text-white" />}
+                          {owner.isActive ? "Suspend" : "Approve & Activate"}
                         </button>
                       </div>
                     </td>

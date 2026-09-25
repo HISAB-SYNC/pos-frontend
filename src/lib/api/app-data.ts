@@ -10,12 +10,16 @@ import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 import type {
   AnalyticsPeriod,
+  AppNotification,
   BackendDashboardMetrics,
   Category,
   Customer,
   Debt,
   Expense,
   ExpensesSummary,
+  NotificationFeedResponse,
+  NotificationSeverity,
+  NotificationType,
   OrderRecord,
   OverallOrdersSummary,
   Product,
@@ -490,6 +494,7 @@ export async function createSale(
     notes?: string;
   },
 ) {
+  const store = getMockStore();
   const { seedCustomers, seedDebts, seedProducts, seedSales, seedProductHistory } = await import("@/lib/mock/data");
 
   const saleRef = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -531,6 +536,23 @@ export async function createSale(
       customerObj.totalCreditPurchases = parseFloat(String(customerObj.totalCreditPurchases || "0")) + debtPortion;
       customerObj.lastTransactionDate = dateStr;
 
+      // Format items breakdown
+      const debtItems = input.items.map((it) => ({
+        productId: it.productId,
+        name: it.name || "Product",
+        quantity: it.quantity,
+        unitPrice: it.unitPrice || 0,
+        totalPrice: (it.unitPrice || 0) * it.quantity,
+      }));
+
+      const itemsSummary = debtItems
+        .map((it) => `${it.quantity}x ${it.name} (${it.totalPrice.toFixed(2)} ETB)`)
+        .join(", ");
+
+      const debtNotes = input.notes
+        ? `Sale ${saleRef} (${itemsSummary}) - ${input.notes}`
+        : `Sale ${saleRef} (${itemsSummary})`;
+
       const debtTx: (typeof seedCustomers)[0]["debtHistory"] extends (infer T)[] | undefined ? T : never = {
         id: `dth-${Date.now()}`,
         customerId: customerObj.id,
@@ -541,32 +563,44 @@ export async function createSale(
         remainingBalance: newTotalDebt,
         date: dateStr,
         paymentMethod: paid > 0 ? `Partial ${input.paymentMethod}` : "Credit Sale",
-        notes: input.notes || `Sale ${saleRef} remaining ${debtPortion} ETB added to customer debt`,
+        notes: debtNotes,
+        items: debtItems,
       };
 
       if (!customerObj.debtHistory) customerObj.debtHistory = [];
       customerObj.debtHistory.unshift(debtTx);
 
-      // Sync with seedDebts list
-      let debtRecord = seedDebts.find((d) => d.customerId === customerObj!.id);
+      // Sync with seedDebts and mock store debts list
+      let debtRecord = store.debts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID") ||
+        seedDebts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID");
+
       if (debtRecord) {
         debtRecord.amount = String(newTotalDebt);
+        debtRecord.remainingAmount = String(newTotalDebt);
+        debtRecord.notes = debtNotes;
+        debtRecord.items = [...(debtRecord.items || []), ...debtItems];
         if (!debtRecord.transactions) debtRecord.transactions = [];
         debtRecord.transactions.unshift(debtTx);
       } else {
-        seedDebts.unshift({
+        const newDebtRecord: Debt = {
           id: `debt-${Date.now()}`,
           shopId,
           customerId: customerObj.id,
           customerName: customerObj.name,
           customerPhone: customerObj.phone,
           amount: String(newTotalDebt),
-          paidAmount: String(customerObj.totalPaid || 0),
+          paidAmount: String(customerObj.totalPaid || "0"),
+          remainingAmount: String(newTotalDebt),
           dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0],
-          status: "pending",
-          notes: `Debt created from sale ${saleRef}`,
+          status: "PENDING",
+          notes: debtNotes,
+          items: debtItems,
+          payments: [],
           transactions: [debtTx],
-        });
+          createdAt: new Date().toISOString(),
+        };
+        store.debts.unshift(newDebtRecord);
+        if (Array.isArray(seedDebts)) seedDebts.unshift(newDebtRecord);
       }
     }
   }
@@ -700,50 +734,107 @@ export async function processSaleReturn(
   }
 
   const { seedSales, seedProducts } = await import("@/lib/mock/data");
+  const store = getMockStore();
+  const targetStoreSale = store.sales.find((s) => s.id === saleId);
   const targetSale = seedSales.find((s) => s.id === saleId);
-  if (targetSale) {
-    targetSale.status = "REFUNDED";
-  }
+
+  const totalRefund = input.items.reduce((sum, it) => sum + (it.refundAmount || 0), 0);
+  const currentItems = targetStoreSale?.items || targetSale?.items || [];
+  const isFullReturn =
+    currentItems.length > 0 &&
+    currentItems.every((origIt) => {
+      const ret = input.items.find((it) => it.productId === origIt.productId);
+      return ret && ret.quantity >= origIt.quantity;
+    });
+
+  const resolvedStatus = isFullReturn ? "RETURNED" : "PARTIAL_RETURN";
+
+  const updateSaleRecord = (s: Sale) => {
+    s.status = resolvedStatus;
+    if (!isFullReturn) {
+      s.totalAmount = Math.max(0, parseFloat(s.totalAmount || "0") - totalRefund).toFixed(2);
+      if (s.items) {
+        s.items = s.items.map((it) => {
+          const ret = input.items.find((r) => r.productId === it.productId);
+          return ret ? { ...it, quantity: Math.max(0, it.quantity - ret.quantity) } : it;
+        });
+      }
+    }
+  };
+
+  if (targetStoreSale) updateSaleRecord(targetStoreSale);
+  if (targetSale) updateSaleRecord(targetSale);
 
   for (const it of input.items) {
     const prod = seedProducts.find((p) => p.id === it.productId);
     if (prod) {
       prod.stockQuantity += it.quantity;
     }
+    const storeProd = store.products.find((p) => p.id === it.productId);
+    if (storeProd) {
+      storeProd.stockQuantity += it.quantity;
+    }
   }
 
-  return { success: true, message: "Sale return processed successfully" };
+  return {
+    success: true,
+    message: "Sale return processed successfully",
+    data: { sale: targetStoreSale || targetSale },
+  };
 }
 
 export async function voidSale(shopId: string, saleId: string) {
+  if (!isMockApiEnabled()) {
+    return await apiRequest<{ success: boolean; message: string }>(
+      API_ENDPOINTS.shops.saleDetail(shopId, saleId),
+      { method: "DELETE" },
+    );
+  }
+
   const { seedSales, seedProducts, seedCustomers, seedDebts } = await import("@/lib/mock/data");
+  const store = getMockStore();
 
   const sale = seedSales.find((s) => s.id === saleId);
-  if (sale) {
-    sale.status = "CANCELLED";
+  const storeSale = store.sales.find((s) => s.id === saleId);
+  const target = storeSale || sale;
 
-    // 1. Restore product inventory stock
-    if (sale.items) {
-      sale.items.forEach((it) => {
-        const prod = seedProducts.find((p) => p.id === it.productId);
-        if (prod) {
-          prod.stockQuantity += it.quantity;
-        }
-      });
-    }
+  if (storeSale) storeSale.status = "CANCELLED";
+  if (sale) sale.status = "CANCELLED";
 
-    // 2. Reverse customer debt if applicable
-    if (sale.customerId) {
-      const customer = seedCustomers.find((c) => c.id === sale.customerId);
-      const debtAmount = sale.paymentMethod === "DEBT" ? parseFloat(sale.totalAmount) : (sale.splitDetails?.debtAmount || 0);
+  if (target?.items) {
+    target.items.forEach((it) => {
+      const prod = seedProducts.find((p) => p.id === it.productId);
+      if (prod) prod.stockQuantity += it.quantity;
+      const storeProd = store.products.find((p) => p.id === it.productId);
+      if (storeProd) storeProd.stockQuantity += it.quantity;
+    });
+  }
 
-      if (customer && debtAmount > 0) {
+  if (target?.customerId) {
+    const debtAmount =
+      target.paymentMethod === "DEBT"
+        ? parseFloat(target.totalAmount || "0")
+        : (target.splitDetails?.debtAmount || 0);
+
+    if (debtAmount > 0) {
+      const customer = seedCustomers.find((c) => c.id === target.customerId);
+      if (customer) {
         const curDebt = parseFloat(customer.debtBalance || "0");
         customer.debtBalance = String(Math.max(0, curDebt - debtAmount));
-        const debtRecord = seedDebts.find((d) => d.customerId === sale.customerId);
-        if (debtRecord) {
-          debtRecord.amount = customer.debtBalance;
-        }
+      }
+      const storeCustomer = store.customers.find((c) => c.id === target.customerId);
+      if (storeCustomer) {
+        const curDebt = parseFloat(storeCustomer.debtBalance || "0");
+        storeCustomer.debtBalance = String(Math.max(0, curDebt - debtAmount));
+      }
+
+      const debtRecord = seedDebts.find((d) => d.customerId === target.customerId);
+      if (debtRecord) {
+        debtRecord.amount = String(Math.max(0, parseFloat(debtRecord.amount || "0") - debtAmount));
+      }
+      const storeDebt = store.debts.find((d) => d.customerId === target.customerId);
+      if (storeDebt) {
+        storeDebt.amount = String(Math.max(0, parseFloat(storeDebt.amount || "0") - debtAmount));
       }
     }
   }
@@ -940,7 +1031,10 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
   const store = getMockStore();
 
   const computeMockDashboardMetrics = (targetShopId: string): DashboardMetrics => {
-    const shopSales = store.sales.filter((s) => (!s.shopId || s.shopId === targetShopId) && s.status !== "CANCELLED");
+    const shopSales = store.sales.filter((s) => {
+      const st = (s.status || "COMPLETED").toUpperCase();
+      return (!s.shopId || s.shopId === targetShopId) && st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+    });
     const shopProducts = store.products.filter((p) => p.shopId === targetShopId);
     const shopExpenses = store.expenses.filter((e) => (!e.shopId || e.shopId === targetShopId) && e.status === "Paid");
     const shopCustomers = store.customers.filter((c) => !c.shopId || c.shopId === targetShopId);
@@ -1095,7 +1189,10 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     const prods = products.status === "fulfilled" && Array.isArray(products.value) ? products.value : [];
     const lowStockLive = lowStock.status === "fulfilled" && Array.isArray(lowStock.value) ? lowStock.value : [];
     const salesList = liveSales.status === "fulfilled" && Array.isArray(liveSales.value) ? liveSales.value : [];
-    const validSales = salesList.filter((s) => s.status !== "CANCELLED");
+    const validSales = salesList.filter((s) => {
+      const st = (s.status || "COMPLETED").toUpperCase();
+      return st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+    });
 
     const rawExp = liveExpenses.status === "fulfilled" && Array.isArray(liveExpenses.value)
       ? liveExpenses.value
@@ -1373,7 +1470,10 @@ export async function getShopAnalytics(
     sCustomers: Customer[],
     sDebts: Debt[],
   ): ShopAnalyticsReport => {
-    const validSales = sSales.filter((s) => s.status !== "CANCELLED");
+    const validSales = sSales.filter((s) => {
+      const st = (s.status || "COMPLETED").toUpperCase();
+      return st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+    });
     const totalRev = validSales.reduce((sum, s) => sum + parseFloat(s.totalAmount || "0"), 0);
     const totalSalesCount = validSales.length;
     const avgOrderValue = totalSalesCount > 0 ? parseFloat((totalRev / totalSalesCount).toFixed(2)) : 0;
@@ -1476,7 +1576,10 @@ export async function getShopAnalytics(
     };
   };
 
-  const shopSales = store.sales.filter((s) => (!s.shopId || s.shopId === shopId) && s.status !== "CANCELLED");
+  const shopSales = store.sales.filter((s) => {
+    const st = (s.status || "COMPLETED").toUpperCase();
+    return (!s.shopId || s.shopId === shopId) && st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+  });
   const shopProducts = store.products.filter((p) => p.shopId === shopId);
   const shopCustomers = store.customers.filter((c) => !c.shopId || c.shopId === shopId);
   const shopDebts = store.debts.filter((d) => !d.shopId || d.shopId === shopId);
@@ -1897,6 +2000,307 @@ export async function deleteTeamMember(shopId: string, memberId: string) {
   return { success: true, message: "Team member deleted" };
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Shop Notifications API                                             */
+/* ------------------------------------------------------------------ */
+export async function getShopNotifications(
+  shopId: string,
+  params?: {
+    isRead?: boolean;
+    type?: NotificationType;
+    severity?: NotificationSeverity;
+    page?: number;
+    limit?: number;
+  },
+): Promise<NotificationFeedResponse> {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 20;
+
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    let notifs = (store.notifications || []).filter((n) => !n.shopId || n.shopId === shopId);
+
+    if (notifs.length === 0) {
+      const now = new Date();
+      const in7Days = new Date(now.getTime() + 7 * 86400000);
+
+      store.products.forEach((p) => {
+        if (!p.shopId || p.shopId === shopId) {
+          if (p.stockQuantity <= (p.lowStockThreshold || 5)) {
+            notifs.push({
+              id: `notif-stock-${p.id}`,
+              shopId,
+              type: "LOW_STOCK",
+              severity: p.stockQuantity === 0 ? "CRITICAL" : "WARNING",
+              title: `Low Stock Alert: ${p.name}`,
+              message: `${p.name} (SKU: ${p.sku}) has ${p.stockQuantity} ${p.unit || "pcs"} remaining (threshold: ${p.lowStockThreshold || 5}).`,
+              entityId: p.id,
+              metadata: { stockQuantity: p.stockQuantity, threshold: p.lowStockThreshold, unit: p.unit },
+              isRead: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+          if (p.expiryDate) {
+            const exp = new Date(p.expiryDate);
+            if (!isNaN(exp.getTime())) {
+              if (exp <= now) {
+                notifs.push({
+                  id: `notif-exp-${p.id}`,
+                  shopId,
+                  type: "PRODUCT_EXPIRED",
+                  severity: "CRITICAL",
+                  title: `Product Expired: ${p.name}`,
+                  message: `${p.name} (SKU: ${p.sku}) expired on ${exp.toLocaleDateString()}.`,
+                  entityId: p.id,
+                  metadata: { expiryDate: p.expiryDate },
+                  isRead: false,
+                  createdAt: new Date().toISOString(),
+                });
+              } else if (exp <= in7Days) {
+                const diffDays = Math.ceil((exp.getTime() - now.getTime()) / 86400000);
+                notifs.push({
+                  id: `notif-exp-soon-${p.id}`,
+                  shopId,
+                  type: "PRODUCT_EXPIRING_SOON",
+                  severity: "WARNING",
+                  title: `Expiring Soon: ${p.name}`,
+                  message: `${p.name} (SKU: ${p.sku}) will expire in ${diffDays} day${diffDays === 1 ? "" : "s"} (${exp.toLocaleDateString()}).`,
+                  entityId: p.id,
+                  metadata: { expiryDate: p.expiryDate, daysRemaining: diffDays },
+                  isRead: false,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          }
+        }
+      });
+      store.notifications = notifs;
+    }
+
+    if (params?.isRead !== undefined) {
+      notifs = notifs.filter((n) => n.isRead === params.isRead);
+    }
+    if (params?.type) {
+      notifs = notifs.filter((n) => n.type === params.type);
+    }
+    if (params?.severity) {
+      notifs = notifs.filter((n) => n.severity === params.severity);
+    }
+
+    const total = notifs.length;
+    const unreadCount = notifs.filter((n) => !n.isRead).length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paginated = notifs.slice((page - 1) * limit, page * limit);
+
+    return {
+      notifications: paginated,
+      total,
+      page,
+      limit,
+      totalPages,
+      unreadCount,
+    };
+  }
+
+  const query = new URLSearchParams();
+  if (params?.isRead !== undefined) query.set("isRead", String(params.isRead));
+  if (params?.type) query.set("type", params.type);
+  if (params?.severity) query.set("severity", params.severity);
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  try {
+    const res = await apiRequest<any>(`${API_ENDPOINTS.shops.notifications(shopId)}${suffix}`);
+    if (res && res.notifications) {
+      return res as NotificationFeedResponse;
+    }
+    if (Array.isArray(res)) {
+      return {
+        notifications: res,
+        total: res.length,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        unreadCount: res.filter((r: any) => !r.isRead).length,
+      };
+    }
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  } catch (err) {
+    console.warn("Could not fetch shop notifications live:", err);
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  }
+}
+
+export async function getShopUnreadNotificationCount(shopId: string): Promise<number> {
+  if (isMockApiEnabled()) {
+    const feed = await getShopNotifications(shopId);
+    return feed.unreadCount;
+  }
+
+  try {
+    const res = await apiRequest<{ count: number }>(API_ENDPOINTS.shops.notificationsUnreadCount(shopId));
+    return typeof res?.count === "number" ? res.count : 0;
+  } catch {
+    const feed = await getShopNotifications(shopId);
+    return feed.unreadCount;
+  }
+}
+
+export async function markShopNotificationAsRead(shopId: string, id: string): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    const item = (store.notifications || []).find((n) => n.id === id);
+    if (item) {
+      item.isRead = true;
+      item.readAt = new Date().toISOString();
+    }
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.shops.markNotificationRead(shopId, id), { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark shop notification as read:", err);
+  }
+}
+
+export async function markAllShopNotificationsAsRead(shopId: string): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    (store.notifications || []).forEach((n) => {
+      if (!n.shopId || n.shopId === shopId) {
+        n.isRead = true;
+        n.readAt = new Date().toISOString();
+      }
+    });
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.shops.markAllNotificationsRead(shopId), { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark all shop notifications as read:", err);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* SuperAdmin Notifications API                                       */
+/* ------------------------------------------------------------------ */
+export async function getAdminNotifications(params?: {
+  isRead?: boolean;
+  page?: number;
+  limit?: number;
+}): Promise<NotificationFeedResponse> {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 20;
+
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    let notifs = (store.notifications || []).filter((n) => !n.shopId);
+    if (notifs.length === 0) {
+      notifs = [
+        {
+          id: "notif-adm-01",
+          shopId: null,
+          type: "PENDING_OWNER_APPROVAL",
+          severity: "INFO",
+          title: "Pending Owner Approval",
+          message: "New shop owner registration awaiting approval.",
+          entityId: "owner-pending-id",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+      store.notifications = notifs;
+    }
+    if (params?.isRead !== undefined) {
+      notifs = notifs.filter((n) => n.isRead === params.isRead);
+    }
+    const total = notifs.length;
+    const unreadCount = notifs.filter((n) => !n.isRead).length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    return {
+      notifications: notifs.slice((page - 1) * limit, page * limit),
+      total,
+      page,
+      limit,
+      totalPages,
+      unreadCount,
+    };
+  }
+
+  const query = new URLSearchParams();
+  if (params?.isRead !== undefined) query.set("isRead", String(params.isRead));
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  try {
+    const res = await apiRequest<any>(`${API_ENDPOINTS.admin.notifications}${suffix}`);
+    if (res && res.notifications) {
+      return res as NotificationFeedResponse;
+    }
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  } catch (err) {
+    console.warn("Could not fetch admin notifications:", err);
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  }
+}
+
+export async function getAdminUnreadNotificationCount(): Promise<number> {
+  if (isMockApiEnabled()) {
+    const feed = await getAdminNotifications();
+    return feed.unreadCount;
+  }
+
+  try {
+    const res = await apiRequest<{ count: number }>(API_ENDPOINTS.admin.notificationsUnreadCount);
+    return typeof res?.count === "number" ? res.count : 0;
+  } catch {
+    const feed = await getAdminNotifications();
+    return feed.unreadCount;
+  }
+}
+
+export async function markAdminNotificationAsRead(id: string): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    const item = (store.notifications || []).find((n) => n.id === id);
+    if (item) {
+      item.isRead = true;
+      item.readAt = new Date().toISOString();
+    }
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.admin.markNotificationRead(id), { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark admin notification as read:", err);
+  }
+}
+
+export async function markAllAdminNotificationsAsRead(): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    (store.notifications || []).forEach((n) => {
+      if (!n.shopId) {
+        n.isRead = true;
+        n.readAt = new Date().toISOString();
+      }
+    });
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.admin.markAllNotificationsRead, { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark all admin notifications as read:", err);
+  }
+}
 
 export type {
   DashboardMetrics,

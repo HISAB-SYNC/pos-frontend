@@ -215,8 +215,18 @@ function DebtDetailModal({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-zinc-400">
-                      No payments recorded yet for this debt.
+                    <td colSpan={4} className="py-7 text-center text-zinc-400">
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <div className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-400">
+                          <Coins className="size-4" />
+                        </div>
+                        <p className="font-semibold text-xs text-zinc-700">No repayment installments recorded yet</p>
+                        <p className="text-[11px] text-zinc-400 max-w-xs text-center">
+                          {isPaid
+                            ? "This debt voucher is already settled in full."
+                            : "Installments will appear here automatically when payments are recorded."}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -269,8 +279,6 @@ function CustomerDebtHistoryModal({
   onOpenPayment: (customer: Customer, debt?: Debt) => void;
   onOpenAddDebt: (customer: Customer) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<"debts" | "ledger">("debts");
-
   if (!customer) return null;
 
   // Aggregate stats
@@ -378,43 +386,19 @@ function CustomerDebtHistoryModal({
           </div>
         </div>
 
-        {/* Sub-Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-zinc-200 mb-4">
-          <button
-            type="button"
-            onClick={() => setActiveTab("debts")}
-            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-all ${
-              activeTab === "debts"
-                ? "border-zinc-900 text-zinc-900"
-                : "border-transparent text-zinc-400 hover:text-zinc-700"
-            }`}
-          >
-            <Receipt className="size-3.5" />
-            <span>Chronological Debt Vouchers</span>
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-mono text-zinc-700">
-              {sortedDebts.length}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("ledger")}
-            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-all ${
-              activeTab === "ledger"
-                ? "border-zinc-900 text-zinc-900"
-                : "border-transparent text-zinc-400 hover:text-zinc-700"
-            }`}
-          >
-            <Clock className="size-3.5" />
-            <span>Account Transactions Ledger</span>
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-mono text-zinc-700">
-              {transactions.length}
-            </span>
-          </button>
+        {/* Chronological Debt Vouchers Header */}
+        <div className="mb-3.5 flex items-center justify-between border-t border-zinc-100 pt-4">
+          <div className="flex items-center gap-2">
+            <Receipt className="size-4 text-zinc-700" />
+            <h3 className="text-xs font-bold text-zinc-900">
+              Chronological Debt Vouchers &amp; Purchases ({sortedDebts.length})
+            </h3>
+          </div>
+          <span className="text-[11px] text-zinc-400">All credit vouchers &amp; repayments</span>
         </div>
 
-        {/* Tab 1: Chronological Debt Vouchers */}
-        {activeTab === "debts" && (
-          <div className="space-y-3.5">
+        {/* Chronological Debt Vouchers List */}
+        <div className="space-y-3.5">
             {sortedDebts.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-zinc-200 p-8 text-center text-zinc-400 text-xs">
                 No debt vouchers recorded for {customer.name}.
@@ -537,70 +521,7 @@ function CustomerDebtHistoryModal({
                 );
               })
             )}
-          </div>
-        )}
-
-        {/* Tab 2: Account Transactions Ledger */}
-        {activeTab === "ledger" && (
-          <div className="max-h-[360px] overflow-y-auto rounded-xl border border-zinc-200">
-            <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 border-b border-zinc-200 bg-zinc-50 font-medium text-zinc-600">
-                <tr>
-                  <th className="px-4 py-2.5">Date</th>
-                  <th className="px-4 py-2.5">Type</th>
-                  <th className="px-4 py-2.5">Reference</th>
-                  <th className="px-4 py-2.5">Method / Note</th>
-                  <th className="px-4 py-2.5 text-right">Amount</th>
-                  <th className="px-4 py-2.5 text-right">Balance</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {transactions.length > 0 ? (
-                  transactions.map((tx) => {
-                    const isSale = tx.type === "Debt Sale" || tx.type === "DEBT_SALE" || tx.amount > 0;
-                    return (
-                      <tr key={tx.id} className="hover:bg-zinc-50/80">
-                        <td className="whitespace-nowrap px-4 py-3 text-zinc-700">{tx.date}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                              isSale ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
-                            }`}
-                          >
-                            {isSale ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
-                            {isSale ? "Debt Sale" : "Debt Repayment"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-[11px] font-semibold text-zinc-900">
-                          {tx.reference}
-                        </td>
-                        <td className="px-4 py-3 text-zinc-600">
-                          <span className="font-medium text-zinc-900">{tx.paymentMethod || "Debt"}</span>
-                          {tx.notes && <p className="truncate text-[10px] text-zinc-400">{tx.notes}</p>}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">
-                          <span className={isSale ? "text-red-600" : "text-emerald-600"}>
-                            {isSale ? `+${Math.abs(tx.amount).toLocaleString()}` : `-${Math.abs(tx.amount).toLocaleString()}`}{" "}
-                            ETB
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-zinc-900 font-mono">
-                          {tx.remainingBalance.toLocaleString()} ETB
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-zinc-400">
-                      No account transactions recorded for this customer.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        </div>
 
         <div className="mt-5 flex justify-end border-t border-zinc-100 pt-4">
           <button

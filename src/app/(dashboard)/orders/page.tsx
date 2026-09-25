@@ -37,9 +37,32 @@ const PAGE_SIZE = 10;
 type DatePreset = "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH" | "CUSTOM";
 
 /* ------------------------------------------------------------------ */
-/* Financial Helpers                                                  */
+/* Financial & Status Helpers                                         */
 /* ------------------------------------------------------------------ */
+function isSaleReturned(status?: string): boolean {
+  const s = (status || "").toUpperCase();
+  return s === "RETURNED" || s === "REFUNDED";
+}
+
+function isSalePartiallyReturned(status?: string): boolean {
+  const s = (status || "").toUpperCase();
+  return s === "PARTIAL_RETURN" || s === "PARTIALLY_REFUNDED";
+}
+
+function isSaleCancelled(status?: string): boolean {
+  const s = (status || "").toUpperCase();
+  return s === "CANCELLED" || s === "VOIDED";
+}
+
+function isSaleActive(status?: string): boolean {
+  return !isSaleCancelled(status) && !isSaleReturned(status);
+}
+
 function computeSaleFinancials(sale: Sale) {
+  if (isSaleCancelled(sale.status) || isSaleReturned(sale.status)) {
+    return { revenue: 0, cogs: 0, netProfit: 0, marginPct: 0, hasCostData: false };
+  }
+
   const revenue = parseFloat(String(sale.totalAmount || "0")) || 0;
   let cogs = 0;
   let hasCostData = false;
@@ -200,7 +223,7 @@ function SaleReturnModal({
           reason: it.reason,
         }));
 
-      await processSaleReturn(shopId, sale.id, {
+      const res = await processSaleReturn(shopId, sale.id, {
         items: activeReturns,
         refundMethod,
         notes: generalNotes || `Return for Receipt #${sale.id.slice(0, 8)}`,
@@ -209,9 +232,31 @@ function SaleReturnModal({
       const isAllReturned = returnItems.every(
         (it) => it.returnQty === it.soldQty,
       );
+      const backendSale =
+        res && typeof res === "object" && "data" in res && (res as any).data?.sale
+          ? (res as any).data.sale
+          : null;
+      const resolvedStatus =
+        backendSale?.status || (isAllReturned ? "RETURNED" : "PARTIAL_RETURN");
+
+      const totalRefunded = activeReturns.reduce((sum, it) => sum + it.refundAmount, 0);
+      const remainingTotal = Math.max(0, (parseFloat(String(sale.totalAmount || "0")) || 0) - totalRefunded);
+
+      const remainingItems = (sale.items || []).map((it) => {
+        const ret = activeReturns.find((r) => r.productId === it.productId);
+        if (!ret) return it;
+        return {
+          ...it,
+          quantity: Math.max(0, it.quantity - ret.quantity),
+        };
+      });
+
       const updated: Sale = {
         ...sale,
-        status: isAllReturned ? "REFUNDED" : "PARTIALLY_REFUNDED",
+        ...(backendSale || {}),
+        status: resolvedStatus,
+        totalAmount: backendSale?.totalAmount ?? (isAllReturned ? sale.totalAmount : remainingTotal.toFixed(2)),
+        items: backendSale?.items ?? (isAllReturned ? sale.items : remainingItems),
       };
 
       onSuccess(updated);
@@ -573,9 +618,29 @@ function SaleReceiptModal({
                 </span>
               </div>
             )}
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-zinc-500">Status:</span>
-              <span className="font-bold text-zinc-900">{sale.status || "COMPLETED"}</span>
+              {isSaleCancelled(sale.status) ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                  <span className="size-1.5 rounded-full bg-red-600" />
+                  Voided
+                </span>
+              ) : isSaleReturned(sale.status) ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700">
+                  <span className="size-1.5 rounded-full bg-purple-600" />
+                  Refunded
+                </span>
+              ) : isSalePartiallyReturned(sale.status) ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                  <span className="size-1.5 rounded-full bg-amber-600" />
+                  Part-Refunded
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  <span className="size-1.5 rounded-full bg-emerald-600" />
+                  Completed
+                </span>
+              )}
             </div>
           </div>
 
@@ -598,7 +663,7 @@ function SaleReceiptModal({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
-          {!isCashier && onOpenReturn && sale.status !== "CANCELLED" && sale.status !== "REFUNDED" ? (
+          {!isCashier && onOpenReturn && !isSaleCancelled(sale.status) && !isSaleReturned(sale.status) ? (
             <button
               type="button"
               onClick={() => onOpenReturn(sale)}
@@ -650,7 +715,7 @@ function FinancialAuditReportModal({
   isCashier: boolean;
   onClose: () => void;
 }) {
-  const activeSales = sales.filter((s) => s.status !== "CANCELLED");
+  const activeSales = sales.filter((s) => isSaleActive(s.status));
 
   const totalRevenue = activeSales.reduce(
     (sum, s) => sum + (parseFloat(String(s.totalAmount || "0")) || 0),
@@ -948,7 +1013,7 @@ export default function SalesHistoryPage() {
 
   function handleReturnSuccess(updatedSale: Sale) {
     setSales((prev) =>
-      prev.map((s) => (s.id === updatedSale.id ? { ...s, status: updatedSale.status } : s)),
+      prev.map((s) => (s.id === updatedSale.id ? { ...s, ...updatedSale, status: updatedSale.status } : s)),
     );
     setNotificationToast(
       `Return processed successfully for Receipt #RCP-${updatedSale.id.slice(0, 8).toUpperCase()}. Products restocked.`,
@@ -992,9 +1057,17 @@ export default function SalesHistoryPage() {
         matchesMethod = methodUpper === "TELEBIRR" || methodUpper === "MOBILE";
 
       // 3. Status Filter
-      const matchesStatus =
-        selectedStatus === "ALL" ||
-        (s.status || "COMPLETED").toUpperCase() === selectedStatus;
+      const statusUpper = (s.status || "COMPLETED").toUpperCase();
+      let matchesStatus = selectedStatus === "ALL";
+      if (selectedStatus === "COMPLETED") {
+        matchesStatus = statusUpper === "COMPLETED";
+      } else if (selectedStatus === "REFUNDED" || selectedStatus === "RETURNED") {
+        matchesStatus = statusUpper === "REFUNDED" || statusUpper === "RETURNED";
+      } else if (selectedStatus === "PARTIALLY_REFUNDED" || selectedStatus === "PARTIAL_RETURN") {
+        matchesStatus = statusUpper === "PARTIALLY_REFUNDED" || statusUpper === "PARTIAL_RETURN";
+      } else if (selectedStatus === "CANCELLED" || selectedStatus === "VOIDED") {
+        matchesStatus = statusUpper === "CANCELLED" || statusUpper === "VOIDED";
+      }
 
       // 4. Date Range Filter
       const matchesDate = isDateInFilter(
@@ -1024,7 +1097,7 @@ export default function SalesHistoryPage() {
 
   // Financial Summary Metrics
   const activeFilteredSales = useMemo(
-    () => filteredSales.filter((s) => s.status !== "CANCELLED"),
+    () => filteredSales.filter((s) => isSaleActive(s.status)),
     [filteredSales],
   );
 
@@ -1055,7 +1128,7 @@ export default function SalesHistoryPage() {
       sales.filter(
         (s) =>
           new Date(s.createdAt).toDateString() === todayDateStr &&
-          s.status !== "CANCELLED",
+          isSaleActive(s.status),
       ),
     [sales, todayDateStr],
   );
@@ -1468,7 +1541,7 @@ export default function SalesHistoryPage() {
                           <option value="ALL">All Statuses</option>
                           <option value="COMPLETED">Completed</option>
                           <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
-                          <option value="REFUNDED">Refunded</option>
+                          <option value="REFUNDED">Refunded / Returned</option>
                           <option value="CANCELLED">Voided / Cancelled</option>
                         </select>
                       </div>
@@ -1645,7 +1718,9 @@ export default function SalesHistoryPage() {
                         </td>
                         {!isCashier && (
                           <td className="px-5 py-3.5 font-mono tabular-nums">
-                            {f.netProfit !== undefined ? (
+                            {isSaleCancelled(sale.status) || isSaleReturned(sale.status) ? (
+                              <span className="text-zinc-400 text-[11px]">—</span>
+                            ) : f.netProfit !== undefined ? (
                               <div>
                                 <span className="font-bold text-emerald-700">
                                   +{f.netProfit.toFixed(2)} ETB
@@ -1660,17 +1735,17 @@ export default function SalesHistoryPage() {
                           </td>
                         )}
                         <td className="px-5 py-3.5">
-                          {sale.status === "CANCELLED" ? (
+                          {isSaleCancelled(sale.status) ? (
                             <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
                               <span className="size-1.5 rounded-full bg-red-600" />
                               Voided
                             </span>
-                          ) : sale.status === "REFUNDED" ? (
+                          ) : isSaleReturned(sale.status) ? (
                             <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700">
                               <span className="size-1.5 rounded-full bg-purple-600" />
                               Refunded
                             </span>
-                          ) : sale.status === "PARTIALLY_REFUNDED" ? (
+                          ) : isSalePartiallyReturned(sale.status) ? (
                             <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                               <span className="size-1.5 rounded-full bg-amber-600" />
                               Part-Refunded
@@ -1693,8 +1768,8 @@ export default function SalesHistoryPage() {
                               <span>Receipt</span>
                             </button>
                             {!isCashier &&
-                              sale.status !== "CANCELLED" &&
-                              sale.status !== "REFUNDED" && (
+                              !isSaleCancelled(sale.status) &&
+                              !isSaleReturned(sale.status) && (
                                 <button
                                   type="button"
                                   onClick={() => setReturnTargetSale(sale)}

@@ -1,23 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  getAdminUnreadNotificationCount,
+  getShopUnreadNotificationCount,
+} from "@/lib/api/app-data";
 import { useAuthStore } from "@/stores/auth-store";
+import { useShopStore } from "@/stores/shop-store";
 import { useUiStore } from "@/stores/ui-store";
-import { ShopSwitcher } from "./shop-switcher";
 
-const NOTIF_COUNT = 3;
+import { NotificationsPanel } from "./notifications-panel";
+import { ShopSwitcher } from "./shop-switcher";
 
 export function DashboardHeader() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const user = useAuthStore((state) => state.user);
+  const shopId = useShopStore((state) => state.activeShopId) || user?.shopId || "";
   const toggleNotificationPanel = useUiStore(
     (state) => state.toggleNotificationPanel,
   );
   const notifOpen = useUiStore((state) => state.notificationPanelOpen);
+  const setNotifOpen = useUiStore((state) => state.setNotificationPanelOpen);
 
   const initials =
     user?.name
@@ -29,6 +37,26 @@ export function DashboardHeader() {
 
   const isSuperAdmin =
     user?.role === "SUPER_ADMIN" || user?.role === "SYSTEM_ADMIN";
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      if (isSuperAdmin) {
+        const count = await getAdminUnreadNotificationCount();
+        setUnreadCount(count);
+      } else if (shopId) {
+        const count = await getShopUnreadNotificationCount(shopId);
+        setUnreadCount(count);
+      }
+    } catch {
+      // Graceful fallback
+    }
+  }, [isSuperAdmin, shopId]);
+
+  useEffect(() => {
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 30000); // 30s poll
+    return () => clearInterval(interval);
+  }, [loadUnreadCount]);
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-2 sm:gap-4 border-b border-zinc-200/80 bg-white/95 px-3 sm:px-6 backdrop-blur-md">
@@ -71,7 +99,7 @@ export function DashboardHeader() {
         </div>
       )}
 
-      <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-3 relative">
         {/* Mobile Search Icon */}
         <button
           type="button"
@@ -86,20 +114,29 @@ export function DashboardHeader() {
         {!isSuperAdmin && <ShopSwitcher />}
 
         {/* Notifications button */}
-        <button
-          type="button"
-          onClick={toggleNotificationPanel}
-          className="relative flex size-9 items-center justify-center rounded-lg border border-zinc-200/90 bg-white text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-95"
-          aria-label="Notifications"
-          aria-expanded={notifOpen}
-        >
-          <Bell className="size-4" />
-          {NOTIF_COUNT > 0 && (
-            <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[#c0e763] text-[10px] font-bold text-zinc-950 shadow-xs ring-2 ring-white">
-              {NOTIF_COUNT}
-            </span>
-          )}
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={toggleNotificationPanel}
+            className="relative flex size-9 items-center justify-center rounded-lg border border-zinc-200/90 bg-white text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-95"
+            aria-label="Notifications"
+            aria-expanded={notifOpen}
+          >
+            <Bell className="size-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[#c0e763] text-[10px] font-bold text-zinc-950 shadow-xs ring-2 ring-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Floating Notifications Panel */}
+          <NotificationsPanel
+            open={notifOpen}
+            onClose={() => setNotifOpen(false)}
+            onUnreadCountChange={(c) => setUnreadCount(c)}
+          />
+        </div>
 
         {/* User avatar & role */}
         <div className="flex items-center gap-2 pl-1">

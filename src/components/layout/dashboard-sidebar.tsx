@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import {
   Activity,
   BarChart3,
+  Bell,
   Building2,
   HandCoins,
   LayoutDashboard,
@@ -52,6 +53,7 @@ const mainNav: NavItem[] = [
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Debts / Credit", href: "/debts", icon: HandCoins },
   { label: "Expenses", href: "/expenses", icon: Wallet },
+  { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Manage Team", href: "/users", icon: UserCog },
 ];
 

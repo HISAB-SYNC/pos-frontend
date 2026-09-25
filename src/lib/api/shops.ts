@@ -209,6 +209,22 @@ export async function getLowStockProducts(shopId: string) {
   return apiRequest<Product[]>(API_ENDPOINTS.shops.lowStockProducts(shopId));
 }
 
+export async function getExpiringProducts(
+  shopId: string,
+  params?: { days?: number; status?: "all" | "expired" | "expiring_soon" },
+) {
+  if (isMockApiEnabled()) {
+    return mockShops.mockGetExpiringProducts(shopId, params);
+  }
+
+  const query = new URLSearchParams();
+  if (params?.days !== undefined) query.set("days", String(params.days));
+  if (params?.status) query.set("status", params.status);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  return apiRequest<Product[]>(`${API_ENDPOINTS.shops.expiringProducts(shopId)}${suffix}`);
+}
+
 export async function createProduct(
   shopId: string,
   input: Omit<Product, "id" | "shopId" | "price"> & { price: number },

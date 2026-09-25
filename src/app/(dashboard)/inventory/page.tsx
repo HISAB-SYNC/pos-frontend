@@ -21,7 +21,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ProductAvatar } from "@/app/(dashboard)/products/page";
+import { ProductAvatar, ExpiryBadge } from "@/app/(dashboard)/products/page";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
@@ -232,7 +232,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
-  const [selectedStatus, setSelectedStatus] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "EXPIRING">("ALL");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -275,6 +275,7 @@ export default function InventoryPage() {
     let totalItems = 0;
     let lowStockCount = 0;
     let outOfStockCount = 0;
+    let expiringCount = 0;
     let totalValuation = 0;
 
     for (const p of products) {
@@ -288,6 +289,13 @@ export default function InventoryPage() {
       } else if (qty <= (p.lowStockThreshold || 5)) {
         lowStockCount++;
       }
+
+      if (p.expiryDate) {
+        const expTime = new Date(p.expiryDate).getTime();
+        if (!isNaN(expTime) && expTime <= Date.now() + 7 * 86400000) {
+          expiringCount++;
+        }
+      }
     }
 
     return {
@@ -295,6 +303,7 @@ export default function InventoryPage() {
       totalItems,
       lowStockCount,
       outOfStockCount,
+      expiringCount,
       totalValuation,
     };
   }, [products]);
@@ -313,6 +322,11 @@ export default function InventoryPage() {
       if (selectedStatus === "OUT_OF_STOCK" && qty > 0) return false;
       if (selectedStatus === "LOW_STOCK" && (qty === 0 || qty > threshold)) return false;
       if (selectedStatus === "IN_STOCK" && qty <= threshold) return false;
+      if (selectedStatus === "EXPIRING") {
+        if (!p.expiryDate) return false;
+        const expTime = new Date(p.expiryDate).getTime();
+        if (isNaN(expTime) || expTime > Date.now() + 7 * 86400000) return false;
+      }
 
       return true;
     });
@@ -492,6 +506,17 @@ export default function InventoryPage() {
               >
                 Out of Stock ({metrics.outOfStockCount})
               </button>
+              <button
+                type="button"
+                onClick={() => setSelectedStatus("EXPIRING")}
+                className={`rounded-lg px-3 py-1.5 transition-all ${
+                  selectedStatus === "EXPIRING"
+                    ? "bg-purple-600 text-white shadow-sm font-semibold"
+                    : "text-[#6b7280] hover:text-purple-600"
+                }`}
+              >
+                Expiring Soon ({metrics.expiringCount})
+              </button>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
@@ -533,6 +558,7 @@ export default function InventoryPage() {
                   <th className="px-4 py-3 font-medium">In-Stock Quantity</th>
                   <th className="px-4 py-3 font-medium">Unit Price</th>
                   <th className="px-4 py-3 font-medium">Asset Valuation</th>
+                  <th className="px-4 py-3 font-medium">Expiry Date</th>
                   <th className="px-4 py-3 font-medium">Stock Status</th>
                   <th className="px-6 py-3 font-medium text-right">Stock Action</th>
                 </tr>
@@ -540,13 +566,13 @@ export default function InventoryPage() {
               <tbody className="divide-y divide-[#f9fafb]">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12">
+                    <td colSpan={9} className="px-6 py-12">
                       <LoadingState />
                     </td>
                   </tr>
                 ) : currentRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-[#9ca3af]">
+                    <td colSpan={9} className="px-6 py-12 text-center text-[#9ca3af]">
                       No inventory items found matching filters.
                     </td>
                   </tr>
@@ -566,12 +592,9 @@ export default function InventoryPage() {
                           <div className="flex items-center gap-3">
                             <ProductAvatar name={product.name} className="size-8 text-sm" />
                             <div>
-                              <Link
-                                href={`/products/${product.id}`}
-                                className="font-semibold text-[#111827] hover:text-[#2563eb]"
-                              >
+                              <span className="font-semibold text-[#111827]">
                                 {product.name}
-                              </Link>
+                              </span>
                               <p className="text-[10px] text-[#9ca3af]">Min alert: {threshold} pcs</p>
                             </div>
                           </div>
@@ -584,6 +607,9 @@ export default function InventoryPage() {
                         <td className="px-4 py-3.5 text-[#374151]">{price.toLocaleString()} ETB</td>
                         <td className="px-4 py-3.5 font-semibold text-[#111827]">
                           {val.toLocaleString()} ETB
+                        </td>
+                        <td className="px-4 py-3.5 font-mono">
+                          <ExpiryBadge expiryDate={product.expiryDate} />
                         </td>
                         <td className="px-4 py-3.5">
                           <span

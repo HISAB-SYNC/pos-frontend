@@ -61,6 +61,44 @@ export function ProductAvatar({ name, className }: { name: string; className?: s
   );
 }
 
+export function ExpiryBadge({ expiryDate }: { expiryDate?: string | null }) {
+  if (!expiryDate) {
+    return <span className="text-zinc-400 text-[11px]">—</span>;
+  }
+  const exp = new Date(expiryDate);
+  if (isNaN(exp.getTime())) {
+    return <span className="text-zinc-400 text-[11px]">—</span>;
+  }
+
+  const now = new Date();
+  const diffTime = exp.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+        <span className="size-1.5 rounded-full bg-red-600" />
+        Expired
+      </span>
+    );
+  }
+
+  if (diffDays <= 7) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+        <span className="size-1.5 rounded-full bg-amber-600" />
+        {diffDays}d left
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
+      {exp.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+    </span>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Add Product Modal                                                  */
 /* ------------------------------------------------------------------ */
@@ -86,6 +124,7 @@ function AddProductModal({
     quantity: "",
     unit: "pcs",
     threshold: "5",
+    expiryDate: "",
     location: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -169,6 +208,7 @@ function AddProductModal({
         stockQuantity: parseInt(form.quantity, 10) || 0,
         unit: form.unit,
         lowStockThreshold: parseInt(form.threshold, 10) || 5,
+        expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : undefined,
         attributes: {
           buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : undefined,
           location: form.location || undefined,
@@ -186,6 +226,7 @@ function AddProductModal({
         quantity: "",
         unit: "pcs",
         threshold: "5",
+        expiryDate: "",
         location: "",
       });
     } catch (err: unknown) {
@@ -356,7 +397,7 @@ function AddProductModal({
             </div>
           </div>
 
-          {/* Optional Cost & Low Stock Alert */}
+          {/* Cost & Low Stock Alert */}
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block font-medium text-zinc-500">
@@ -383,6 +424,33 @@ function AddProductModal({
                 value={form.threshold}
                 onChange={handleChange}
                 placeholder="5"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 font-mono text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              />
+            </div>
+          </div>
+
+          {/* Unit & Expiry Date */}
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block font-semibold text-zinc-700">Measurement Unit</label>
+              <input
+                name="unit"
+                value={form.unit}
+                onChange={handleChange}
+                placeholder="pcs, kg, bottle, etc."
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block font-medium text-zinc-600">
+                Expiry Date <span className="text-[10px] text-zinc-400 font-normal">(optional)</span>
+              </label>
+              <input
+                name="expiryDate"
+                type="date"
+                value={form.expiryDate}
+                onChange={handleChange}
                 className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 font-mono text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
@@ -435,6 +503,7 @@ function EditProductModal({
     stockQuantity: "",
     categoryId: "",
     lowStockThreshold: "5",
+    expiryDate: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -448,6 +517,7 @@ function EditProductModal({
         stockQuantity: String(product.stockQuantity || "0"),
         categoryId: product.categoryId || product.category?.id || "",
         lowStockThreshold: String(product.lowStockThreshold || "5"),
+        expiryDate: product.expiryDate ? product.expiryDate.split("T")[0] : "",
       });
     }
   }, [product]);
@@ -475,6 +545,7 @@ function EditProductModal({
         buyingPrice: buyingNum > 0 ? buyingNum : undefined,
         stockQuantity: parseInt(form.stockQuantity, 10) || 0,
         lowStockThreshold: parseInt(form.lowStockThreshold, 10) || 5,
+        expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : null,
       });
       onUpdated();
       onClose();
@@ -599,6 +670,18 @@ function EditProductModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium text-zinc-600">
+              Expiry Date <span className="text-[10px] text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={form.expiryDate}
+              onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+              className="h-9 w-full rounded-lg border border-zinc-200 px-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
+            />
           </div>
 
           <div className="flex justify-end gap-2.5 border-t border-zinc-100 pt-4">
@@ -1019,7 +1102,9 @@ export default function ProductsPage() {
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [selectedStatus, setSelectedStatus] = useState<"ALL" | "AVAILABLE" | "LOW_STOCK">("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "ALL" | "AVAILABLE" | "LOW_STOCK" | "EXPIRING_SOON" | "EXPIRED"
+  >("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   // Modals
@@ -1091,10 +1176,16 @@ export default function ProductsPage() {
         p.categoryId === selectedCategory;
 
       const isLow = p.stockQuantity <= (p.lowStockThreshold || 5);
-      const matchesStatus =
-        selectedStatus === "ALL" ||
-        (selectedStatus === "LOW_STOCK" && isLow) ||
-        (selectedStatus === "AVAILABLE" && !isLow);
+      const nowTime = Date.now();
+      const expTime = p.expiryDate ? new Date(p.expiryDate).getTime() : NaN;
+      const isExpiringSoon = !isNaN(expTime) && expTime > nowTime && expTime <= nowTime + 7 * 86400000;
+      const isExpired = !isNaN(expTime) && expTime <= nowTime;
+
+      let matchesStatus = selectedStatus === "ALL";
+      if (selectedStatus === "LOW_STOCK") matchesStatus = isLow;
+      else if (selectedStatus === "AVAILABLE") matchesStatus = !isLow;
+      else if (selectedStatus === "EXPIRING_SOON") matchesStatus = isExpiringSoon;
+      else if (selectedStatus === "EXPIRED") matchesStatus = isExpired;
 
       return matchesSearch && matchesCat && matchesStatus;
     });
@@ -1310,6 +1401,8 @@ export default function ProductsPage() {
                           <option value="ALL">All Statuses</option>
                           <option value="AVAILABLE">Available</option>
                           <option value="LOW_STOCK">Low stock</option>
+                          <option value="EXPIRING_SOON">Expiring soon (≤7d)</option>
+                          <option value="EXPIRED">Expired</option>
                         </select>
                       </div>
                     </div>
@@ -1350,6 +1443,7 @@ export default function ProductsPage() {
                     <th className="px-5 py-3 font-semibold">Stock Quantity</th>
                     {!isCashier && <th className="px-5 py-3 font-semibold">Buying Price (ETB)</th>}
                     <th className="px-5 py-3 font-semibold">Selling Price (ETB)</th>
+                    <th className="px-5 py-3 font-semibold">Expiry Date</th>
                     <th className="px-5 py-3 font-semibold">Status</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
@@ -1357,13 +1451,13 @@ export default function ProductsPage() {
                 <tbody className="divide-y divide-zinc-100">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={isCashier ? 6 : 7} className="py-12 text-center text-zinc-400">
+                      <td colSpan={isCashier ? 7 : 8} className="py-12 text-center text-zinc-400">
                         Loading products catalog...
                       </td>
                     </tr>
                   ) : products.length === 0 ? (
                     <tr>
-                      <td colSpan={isCashier ? 6 : 7} className="py-12 text-center text-zinc-400">
+                      <td colSpan={isCashier ? 7 : 8} className="py-12 text-center text-zinc-400">
                         No products found matching the criteria.
                       </td>
                     </tr>
@@ -1371,7 +1465,9 @@ export default function ProductsPage() {
                     products.map((product) => (
                       <tr
                         key={product.id}
-                        onClick={() => router.push(`/products/${product.id}`)}
+                        onClick={() => {
+                          if (!isCashier) setProductToEdit(product);
+                        }}
                         className="cursor-pointer transition-colors hover:bg-zinc-50/80"
                       >
                         <td className="px-5 py-3.5">
@@ -1399,6 +1495,9 @@ export default function ProductsPage() {
                         )}
                         <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 tabular-nums">
                           {formatPrice(product.price)}
+                        </td>
+                        <td className="px-5 py-3.5 font-mono">
+                          <ExpiryBadge expiryDate={product.expiryDate} />
                         </td>
                         <td className="px-5 py-3.5">
                           <StatusBadge
@@ -1434,14 +1533,6 @@ export default function ProductsPage() {
                                 </button>
                               </>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/products/${product.id}`)}
-                              title="View Details"
-                              className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-                            >
-                              <ChevronRight className="size-3.5" />
-                            </button>
                           </div>
                         </td>
                       </tr>

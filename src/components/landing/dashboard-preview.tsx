@@ -9,6 +9,7 @@ import {
   Printer,
   ShoppingCart,
   Smartphone,
+  Sparkles,
   Store,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export function DashboardPreview() {
   ]);
   const [paymentMethod, setPaymentMethod] = useState<"telebirr" | "cbe" | "cash">("telebirr");
   const [isCompleted, setIsCompleted] = useState(false);
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
 
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
   const vat = Math.round(subtotal * 0.15);
@@ -45,6 +47,9 @@ export function DashboardPreview() {
 
   function addItem(product: ProductItem) {
     setIsCompleted(false);
+    setLastAddedId(product.id);
+    setTimeout(() => setLastAddedId(null), 300);
+
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -85,65 +90,75 @@ export function DashboardPreview() {
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-[660px]">
+    <div className="relative mx-auto w-full max-w-full">
       {/* Outer Device Frame (Modern Retail POS Terminal) */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#0c1017] shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
+      <div className="relative overflow-hidden rounded-xl border border-neutral-800 bg-[#090D14] text-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-neutral-700/80">
         {/* Terminal Header Bar */}
-        <div className="flex items-center justify-between border-b border-zinc-800/80 bg-[#121824] px-4 py-2.5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-2 rounded-full bg-[#c0e763] animate-pulse" />
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
-              <Store className="size-3.5 text-[#c0e763]" />
-              <span>Andalus Mart • Bole Medhanealem</span>
+        <div className="flex items-center justify-between border-b border-neutral-800/90 bg-[#0D121B] px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5B4FE9] opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-[#5B4FE9]" />
+            </span>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-200">
+              <Store className="size-3.5 text-[#5B4FE9]" />
+              <span>Andalus Counter • Bole Branch</span>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-400">
-            <span className="hidden sm:inline-block rounded bg-zinc-800 px-2 py-0.5 text-zinc-300">
+          <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-400">
+            <span className="hidden rounded bg-neutral-800/80 px-2 py-0.5 text-neutral-300 sm:inline-block">
               REG #01
             </span>
-            <span className="text-[#c0e763]">0.18s scan</span>
+            <span className="text-[#5B4FE9] font-medium flex items-center gap-1">
+              <Sparkles className="size-3" /> 0.18s latency
+            </span>
           </div>
         </div>
 
         {/* Terminal Content Split */}
         <div className="grid grid-cols-1 md:grid-cols-12">
-          {/* Left: Quick Tap Catalog (7 cols) */}
-          <div className="border-b border-zinc-800 p-4 md:col-span-7 md:border-b-0 md:border-r">
+          {/* Left: Quick Catalog (7 cols) */}
+          <div className="border-b border-neutral-800 p-4 md:col-span-7 md:border-b-0 md:border-r">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                Tap to Ring Up Item
+              <span className="text-xs font-semibold tracking-wider text-neutral-400">
+                QUICK-RING CATALOG
               </span>
-              <span className="text-[10px] font-mono text-zinc-500">Touch / Barcode Ready</span>
+              <span className="font-mono text-[10px] text-neutral-500">Tap to Scan &amp; Add</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2">
               {SAMPLE_PRODUCTS.map((product) => {
                 const inCart = cart.find((i) => i.product.id === product.id);
+                const isJustAdded = lastAddedId === product.id;
                 return (
                   <button
                     key={product.id}
                     onClick={() => addItem(product)}
                     type="button"
-                    className="group relative flex flex-col justify-between rounded-xl border border-zinc-800/90 bg-[#141b27] p-2.5 text-left transition hover:border-[#c0e763]/60 hover:bg-[#1a2333] active:scale-[0.98]"
+                    className={`group relative flex flex-col justify-between rounded-lg border p-2.5 text-left transition-all duration-150 active:scale-[0.97] ${
+                      isJustAdded
+                        ? "border-[#5B4FE9] bg-[#5B4FE9]/15"
+                        : "border-neutral-800/80 bg-[#111722] hover:border-[#5B4FE9]/50 hover:bg-[#161e2c]"
+                    }`}
                   >
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-zinc-500">{product.sku}</span>
+                        <span className="font-mono text-[10px] text-neutral-500">{product.sku}</span>
                         {inCart && (
-                          <span className="rounded bg-[#c0e763] px-1.5 py-0.2 text-[10px] font-bold text-zinc-950">
+                          <span className="rounded bg-[#5B4FE9] px-1.5 py-0.2 font-mono text-[10px] font-bold text-white animate-in zoom-in-75 duration-150">
                             {inCart.quantity}x
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 line-clamp-1 text-xs font-semibold text-zinc-200 group-hover:text-white">
+                      <div className="mt-1 line-clamp-1 text-xs font-medium text-neutral-200 group-hover:text-white">
                         {product.name}
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between pt-1">
-                      <span className="text-xs font-bold font-mono text-[#c0e763]">
-                        {product.price} <span className="text-[9px] font-normal text-zinc-400">ETB</span>
+                      <span className="font-mono text-xs font-bold text-white">
+                        {product.price} <span className="text-[9px] font-normal text-neutral-400">ETB</span>
                       </span>
-                      <span className="text-[10px] text-zinc-500">{product.stock} in stock</span>
+                      <span className="text-[10px] text-neutral-500">{product.stock} pcs</span>
                     </div>
                   </button>
                 );
@@ -151,67 +166,67 @@ export function DashboardPreview() {
             </div>
 
             {/* Quick Metrics Strip */}
-            <div className="mt-4 flex items-center justify-between rounded-lg border border-zinc-800/80 bg-[#0e141f] p-2 text-[11px] text-zinc-400">
-              <span>Today&apos;s Total Sales</span>
-              <span className="font-mono font-bold text-zinc-100">ETB 42,850.00</span>
-              <span className="rounded bg-[#c0e763]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#c0e763]">
-                +18.4%
+            <div className="mt-4 flex items-center justify-between rounded-md border border-neutral-800/80 bg-[#0B0F15] p-2.5 text-[11px] text-neutral-400">
+              <span>Shift Register Sales</span>
+              <span className="font-mono font-semibold text-white">ETB 42,850.00</span>
+              <span className="rounded bg-[#5B4FE9]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#5B4FE9]">
+                RECONCILED
               </span>
             </div>
           </div>
 
           {/* Right: Active Ticket & Payment (5 cols) */}
-          <div className="flex flex-col justify-between bg-[#0e1420] p-4 md:col-span-5">
+          <div className="flex flex-col justify-between bg-[#0B0F16] p-4 md:col-span-5">
             <div>
-              <div className="mb-2 flex items-center justify-between border-b border-zinc-800 pb-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
-                  <ShoppingCart className="size-3.5 text-[#c0e763]" />
-                  <span>Current Cart ({cart.reduce((a, c) => a + c.quantity, 0)})</span>
+              <div className="mb-2 flex items-center justify-between border-b border-neutral-800 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-200">
+                  <ShoppingCart className="size-3.5 text-[#5B4FE9]" />
+                  <span>Current Bill ({cart.reduce((a, c) => a + c.quantity, 0)})</span>
                 </div>
                 {cart.length > 0 && (
                   <button
                     onClick={() => setCart([])}
                     type="button"
-                    className="text-[10px] text-zinc-500 hover:text-red-400"
+                    className="text-[10px] text-neutral-500 transition-colors hover:text-red-400"
                   >
                     Clear
                   </button>
                 )}
               </div>
 
-              {/* Cart List */}
-              <div className="max-h-[160px] space-y-2 overflow-y-auto pr-1">
+              {/* Cart Items List */}
+              <div className="max-h-[160px] space-y-1.5 overflow-y-auto pr-1">
                 {cart.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-zinc-500">
+                  <div className="py-8 text-center text-xs text-neutral-500">
                     Cart empty. Tap products to add.
                   </div>
                 ) : (
                   cart.map(({ product, quantity }) => (
                     <div
                       key={product.id}
-                      className="flex items-center justify-between rounded-lg bg-[#141b27] px-2 py-1.5 text-xs"
+                      className="flex items-center justify-between rounded-md bg-[#121824] px-2.5 py-1.5 text-xs transition-colors"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium text-zinc-200">{product.name}</div>
-                        <div className="text-[10px] font-mono text-zinc-500">
-                          {product.price} ETB x {quantity}
+                        <div className="truncate font-medium text-neutral-200">{product.name}</div>
+                        <div className="font-mono text-[10px] text-neutral-500">
+                          {product.price} ETB × {quantity}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => updateQuantity(product.id, -1)}
                           type="button"
-                          className="flex size-5 items-center justify-center rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                          className="flex size-5 items-center justify-center rounded bg-neutral-800 text-neutral-300 transition-all hover:bg-neutral-700 active:scale-90"
                         >
                           <Minus className="size-3" />
                         </button>
-                        <span className="w-4 text-center font-mono font-bold text-white text-xs">
+                        <span className="w-4 text-center font-mono text-xs font-bold text-white">
                           {quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(product.id, 1)}
                           type="button"
-                          className="flex size-5 items-center justify-center rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                          className="flex size-5 items-center justify-center rounded bg-neutral-800 text-neutral-300 transition-all hover:bg-neutral-700 active:scale-90"
                         >
                           <Plus className="size-3" />
                         </button>
@@ -222,18 +237,18 @@ export function DashboardPreview() {
               </div>
 
               {/* Payment Rail Selectors */}
-              <div className="mt-3 border-t border-zinc-800 pt-2.5">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                  Payment Method
+              <div className="mt-3 border-t border-neutral-800 pt-2.5">
+                <span className="mb-1.5 block text-[10px] font-semibold tracking-wider text-neutral-400">
+                  PAYMENT TENDER
                 </span>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod("telebirr")}
-                    className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-semibold transition ${
+                    className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-95 ${
                       paymentMethod === "telebirr"
-                        ? "bg-[#c0e763] text-zinc-950 shadow-xs"
-                        : "bg-[#161f2e] text-zinc-400 hover:text-white"
+                        ? "bg-[#5B4FE9] text-white shadow-sm shadow-[#5B4FE9]/30"
+                        : "bg-[#141b26] text-neutral-400 hover:text-white"
                     }`}
                   >
                     <Smartphone className="size-3 shrink-0" />
@@ -242,10 +257,10 @@ export function DashboardPreview() {
                   <button
                     type="button"
                     onClick={() => setPaymentMethod("cbe")}
-                    className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-semibold transition ${
+                    className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-95 ${
                       paymentMethod === "cbe"
-                        ? "bg-[#c0e763] text-zinc-950 shadow-xs"
-                        : "bg-[#161f2e] text-zinc-400 hover:text-white"
+                        ? "bg-[#5B4FE9] text-white shadow-sm shadow-[#5B4FE9]/30"
+                        : "bg-[#141b26] text-neutral-400 hover:text-white"
                     }`}
                   >
                     <CreditCard className="size-3 shrink-0" />
@@ -254,10 +269,10 @@ export function DashboardPreview() {
                   <button
                     type="button"
                     onClick={() => setPaymentMethod("cash")}
-                    className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-semibold transition ${
+                    className={`flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-95 ${
                       paymentMethod === "cash"
-                        ? "bg-[#c0e763] text-zinc-950 shadow-xs"
-                        : "bg-[#161f2e] text-zinc-400 hover:text-white"
+                        ? "bg-[#5B4FE9] text-white shadow-sm shadow-[#5B4FE9]/30"
+                        : "bg-[#141b26] text-neutral-400 hover:text-white"
                     }`}
                   >
                     <span>Cash</span>
@@ -266,34 +281,34 @@ export function DashboardPreview() {
               </div>
             </div>
 
-            {/* Total & Checkout Button */}
-            <div className="mt-3 border-t border-zinc-800 pt-2.5">
-              <div className="flex items-center justify-between text-xs text-zinc-400">
+            {/* Total & Checkout */}
+            <div className="mt-3 border-t border-neutral-800 pt-2.5">
+              <div className="flex items-center justify-between text-xs text-neutral-400">
                 <span>Subtotal</span>
-                <span className="font-mono text-zinc-300">{subtotal} ETB</span>
+                <span className="font-mono text-neutral-300">{subtotal} ETB</span>
               </div>
-              <div className="flex items-center justify-between text-xs text-zinc-400">
-                <span>VAT (15%)</span>
-                <span className="font-mono text-zinc-300">{vat} ETB</span>
+              <div className="flex items-center justify-between text-xs text-neutral-400">
+                <span>Tax (15%)</span>
+                <span className="font-mono text-neutral-300">{vat} ETB</span>
               </div>
-              <div className="mt-1 flex items-center justify-between border-t border-zinc-800/80 pt-1 text-sm font-bold">
-                <span className="text-white">Grand Total</span>
-                <span className="font-mono text-base text-[#c0e763]">{total} ETB</span>
+              <div className="mt-1 flex items-center justify-between border-t border-neutral-800/80 pt-1 text-sm font-bold">
+                <span className="text-white">Total</span>
+                <span className="font-mono text-base text-[#5B4FE9]">{total} ETB</span>
               </div>
 
               {isCompleted ? (
-                <div className="mt-2.5 rounded-lg border border-[#c0e763]/40 bg-[#c0e763]/10 p-2.5 text-center">
-                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#c0e763]">
-                    <CheckCircle2 className="size-4" />
-                    <span>Sale Completed & Receipt Printed!</span>
+                <div className="mt-2.5 rounded-lg border border-[#5B4FE9]/40 bg-[#5B4FE9]/10 p-2.5 text-center animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#5B4FE9]">
+                    <CheckCircle2 className="size-4 animate-in spin-in-90 duration-300" />
+                    <span>Transaction Recorded & Receipt Printed</span>
                   </div>
-                  <div className="mt-1 font-mono text-[10px] text-zinc-400">
-                    Paid via {paymentMethod.toUpperCase()} • Instant Sync
+                  <div className="mt-1 font-mono text-[10px] text-neutral-400">
+                    Paid via {paymentMethod.toUpperCase()} • Synced to Cloud
                   </div>
                   <button
                     onClick={handleReset}
                     type="button"
-                    className="mt-2 text-xs font-semibold text-zinc-300 underline hover:text-white"
+                    className="mt-2 text-xs font-medium text-neutral-300 underline transition hover:text-white"
                   >
                     Next Customer
                   </button>
@@ -303,10 +318,10 @@ export function DashboardPreview() {
                   type="button"
                   onClick={handleCheckout}
                   disabled={cart.length === 0}
-                  className="mt-2.5 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#c0e763] text-xs font-bold text-zinc-950 shadow-xs transition hover:bg-[#b0d952] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-2.5 flex h-9.5 w-full items-center justify-center gap-2 rounded-lg bg-[#5B4FE9] text-xs font-semibold text-white shadow-md shadow-[#5B4FE9]/25 transition-all hover:bg-[#4d42c7] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Printer className="size-3.5" />
-                  <span>Complete Sale & Print (F12)</span>
+                  <span>Process Checkout (F12)</span>
                 </button>
               )}
             </div>
@@ -314,17 +329,16 @@ export function DashboardPreview() {
         </div>
 
         {/* Live Thermal Receipt Footer Strip */}
-        <div className="border-t border-zinc-800 bg-[#090d14] px-4 py-2 font-mono text-[11px] text-zinc-500">
+        <div className="border-t border-neutral-800 bg-[#070A0F] px-4 py-2 font-mono text-[11px] text-neutral-500">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-zinc-400">
-              <span className="size-1.5 rounded-full bg-[#c0e763]" />
-              THERMAL ROLL: 80MM OK
+            <span className="flex items-center gap-1.5 text-neutral-400">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              THERMAL PRINTER: 80MM READY
             </span>
-            <span>ANDALUS OS v2.4 • ETH-ADDIS</span>
+            <span>ANDALUS OS · ETH-ADDIS</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

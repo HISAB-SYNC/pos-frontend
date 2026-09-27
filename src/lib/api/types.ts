@@ -254,6 +254,18 @@ export type Debt = {
     debtBalance?: string | number;
   };
   saleId?: string;
+  sale?: {
+    id?: string;
+    totalAmount?: number | string;
+    createdAt?: string;
+    items?: Array<{
+      productId?: string;
+      quantity: number;
+      unitPrice?: number | string;
+      subtotal?: number | string;
+      product?: { id?: string; name: string; sku?: string };
+    }>;
+  };
   amount: string;
   paidAmount?: string;
   remainingAmount?: string;

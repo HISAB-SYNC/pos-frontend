@@ -31,7 +31,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
-import { createCustomer, createSale, getCustomers } from "@/lib/api/app-data";
+import { createCustomer, createSale, getCustomers, saveCreditSaleItems } from "@/lib/api/app-data";
 import { getProducts } from "@/lib/api/shops";
 import type { Customer, Product, Sale } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -603,6 +603,23 @@ export default function PosPage() {
           ? `Sale with ${paymentMethod} paid (${effectivePaid} ETB) + Remaining Debt (${debtAdditionAmount} ETB)`
           : `Full payment via ${paymentMethod}`,
       });
+
+      // Save itemized credit items for instant ledger and debt voucher display
+      if (debtAdditionAmount > 0 && selectedCustomer) {
+        const debtItems = cart.map((it) => ({
+          productId: it.product.id,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          totalPrice: it.unitPrice * it.quantity,
+          name: it.product.name,
+        }));
+        if (sale && sale.id) {
+          saveCreditSaleItems(sale.id, debtItems);
+        }
+        if (selectedCustomer.id) {
+          saveCreditSaleItems(selectedCustomer.id, debtItems);
+        }
+      }
 
       // Reload products & customers state
       await loadData();

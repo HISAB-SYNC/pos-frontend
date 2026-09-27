@@ -19,6 +19,7 @@ import {
   Filter,
   HandCoins,
   Landmark,
+  Package,
   Plus,
   Receipt,
   Search,
@@ -412,6 +413,10 @@ function CustomerDebtHistoryModal({
                 const isOverdue = d.status === "OVERDUE" || (!isPaid && d.dueDate && new Date(d.dueDate) < new Date());
                 const debtPayments = d.payments || [];
 
+                const shortVoucherId = d.id.includes("-")
+                  ? `Voucher #${d.id.split("-").pop()?.toUpperCase()}`
+                  : `Voucher #${d.id.slice(-6).toUpperCase()}`;
+
                 return (
                   <div
                     key={d.id}
@@ -419,7 +424,13 @@ function CustomerDebtHistoryModal({
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-zinc-900">{d.id}</span>
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-xs font-bold text-zinc-800"
+                          title={`Full Debt ID: ${d.id}`}
+                        >
+                          <Receipt className="size-3 text-zinc-500" />
+                          {shortVoucherId}
+                        </span>
                         <span className="text-[11px] text-zinc-400">
                           {d.createdAt ? new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                         </span>
@@ -480,16 +491,57 @@ function CustomerDebtHistoryModal({
                     </div>
 
                     {/* Itemized Goods (if any) */}
-                    {d.items && d.items.length > 0 && (
-                      <div className="mt-3 rounded-lg bg-zinc-50 p-2.5 text-xs text-zinc-700">
-                        <span className="font-semibold text-zinc-900">Items: </span>
-                        {d.items.map((it) => `${it.quantity}x ${it.name}`).join(", ")}
+                    {d.items && d.items.length > 0 ? (
+                      <div className="mt-3 rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2.5">
+                        <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-zinc-700">
+                          <span className="flex items-center gap-1.5">
+                            <Package className="size-3.5 text-zinc-500" />
+                            <span>Purchased Items ({d.items.length})</span>
+                          </span>
+                        </div>
+                        <div className="divide-y divide-zinc-200/60 rounded-lg border border-zinc-200/70 bg-white text-xs">
+                          {d.items.map((it, idx) => {
+                            const itemName = it.name && it.name !== "Product" ? it.name : (it as any).product?.name || it.name || "Item";
+                            const unitPrice = typeof it.unitPrice === "number" ? it.unitPrice : parseFloat(String(it.unitPrice || 0));
+                            const lineTotal = typeof it.totalPrice === "number" ? it.totalPrice : (unitPrice * (it.quantity || 1));
+                            return (
+                              <div key={idx} className="flex items-center justify-between px-2.5 py-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-zinc-900">{itemName}</span>
+                                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600">
+                                    {it.quantity}x
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-mono font-bold text-zinc-900">
+                                    {lineTotal > 0 ? `${lineTotal.toLocaleString()} ETB` : "—"}
+                                  </span>
+                                  {unitPrice > 0 && it.quantity > 1 && (
+                                    <span className="block text-[10px] text-zinc-400">
+                                      (@ {unitPrice.toLocaleString()} ETB)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    )}
+                    ) : d.notes ? (
+                      <div className="mt-3 rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2.5 text-xs text-zinc-700">
+                        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold text-zinc-700">
+                          <Package className="size-3.5 text-zinc-500" />
+                          <span>Purchased Goods &amp; Notes</span>
+                        </div>
+                        <p className="rounded-lg border border-zinc-200/60 bg-white p-2 font-mono text-[11px] text-zinc-800">
+                          {d.notes}
+                        </p>
+                      </div>
+                    ) : null}
 
-                    {/* Notes (if any) */}
-                    {d.notes && !d.items && (
-                      <p className="mt-2 text-xs text-zinc-600 italic">“{d.notes}”</p>
+                    {/* Additional Notes when items also present */}
+                    {d.notes && d.items && d.items.length > 0 && (
+                      <p className="mt-2 text-xs text-zinc-500 italic">“{d.notes}”</p>
                     )}
 
                     {/* Payment Audit Trail per Debt */}

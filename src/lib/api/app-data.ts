@@ -136,6 +136,63 @@ export async function deleteCustomer(_shopId: string, customerId: string) {
 
 
 /* ------------------------------------------------------------------ */
+/* Client-side Persistence Helpers for Offline/Hybrid Synchronization  */
+/* ------------------------------------------------------------------ */
+const CREDIT_ITEMS_STORAGE_KEY = "pos_credit_debt_items";
+const STAFF_OVERRIDES_STORAGE_KEY = "pos_staff_overrides";
+
+export function saveCreditSaleItems(
+  identifier: string,
+  items: Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }>,
+) {
+  if (typeof window === "undefined" || !identifier || !items || items.length === 0) return;
+  try {
+    const raw = localStorage.getItem(CREDIT_ITEMS_STORAGE_KEY);
+    const map: Record<string, typeof items> = raw ? JSON.parse(raw) : {};
+    map[identifier] = items;
+    localStorage.setItem(CREDIT_ITEMS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.warn("Failed to persist credit sale items:", e);
+  }
+}
+
+export function getCachedCreditSaleItems(
+  identifier?: string,
+): Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }> | null {
+  if (typeof window === "undefined" || !identifier) return null;
+  try {
+    const raw = localStorage.getItem(CREDIT_ITEMS_STORAGE_KEY);
+    if (!raw) return null;
+    const map = JSON.parse(raw);
+    return map[identifier] || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveStaffOverride(memberId: string, override: Partial<TeamMember>) {
+  if (typeof window === "undefined" || !memberId) return;
+  try {
+    const raw = localStorage.getItem(STAFF_OVERRIDES_STORAGE_KEY);
+    const map: Record<string, Partial<TeamMember>> = raw ? JSON.parse(raw) : {};
+    map[memberId] = { ...(map[memberId] || {}), ...override };
+    localStorage.setItem(STAFF_OVERRIDES_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.warn("Failed to persist staff override:", e);
+  }
+}
+
+export function getStaffOverrides(): Record<string, Partial<TeamMember>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(STAFF_OVERRIDES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Debts API & Debt Management                                         */
 /* ------------------------------------------------------------------ */
 export async function getDebts(shopId: string, params?: { status?: string; customerId?: string; search?: string }) {
@@ -169,6 +226,39 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
     const customerName = d.customer?.name || d.customerName || cust?.name || "Customer";
     const customerPhone = d.customer?.phone || d.customerPhone || cust?.phone || "—";
 
+    // Extract item breakdown from:
+    // 1. d.items
+    // 2. d.sale?.items
+    // 3. Cached credit sale items via d.saleId, d.id, or customer-keyed storage
+    let items = d.items;
+    if ((!items || items.length === 0) && d.sale?.items && Array.isArray(d.sale.items)) {
+      items = d.sale.items.map((it) => ({
+        productId: it.productId,
+        name: it.product?.name || "Product",
+        quantity: it.quantity,
+        unitPrice: parseFloat(String(it.unitPrice || 0)),
+        totalPrice: parseFloat(String(it.subtotal || (Number(it.unitPrice || 0) * it.quantity))),
+      }));
+    }
+    if ((!items || items.length === 0) && d.saleId) {
+      const cached = getCachedCreditSaleItems(d.saleId);
+      if (cached && cached.length > 0) {
+        items = cached;
+      }
+    }
+    if ((!items || items.length === 0) && d.id) {
+      const cached = getCachedCreditSaleItems(d.id);
+      if (cached && cached.length > 0) {
+        items = cached;
+      }
+    }
+    if ((!items || items.length === 0) && d.customerId) {
+      const cached = getCachedCreditSaleItems(d.customerId);
+      if (cached && cached.length > 0) {
+        items = cached;
+      }
+    }
+
     return {
       ...d,
       customerName,
@@ -177,6 +267,7 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
       paidAmount: totalPaid.toFixed(2),
       remainingAmount: remaining.toFixed(2),
       status: computedStatus,
+      items: items || [],
       payments: d.payments || [],
       transactions: d.transactions || cust?.debtHistory || [],
     };
@@ -212,7 +303,35 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
 
     const liveData = await apiRequest<Debt[]>(`${API_ENDPOINTS.shops.debts(shopId)}${suffix}`);
     if (Array.isArray(liveData)) {
-      let mapped = liveData.map(normalizeDebt);
+      // If some debts have saleId but no items, attempt to resolve them from sales list
+      const needsSaleHydration = liveData.some((d) => d.saleId && (!d.items || d.items.length === 0) && !d.sale?.items);
+      let salesMap: Record<string, any> = {};
+      if (needsSaleHydration) {
+        try {
+          const allSales = await getSales(shopId);
+          if (Array.isArray(allSales)) {
+            allSales.forEach((s) => {
+              if (s.id) salesMap[s.id] = s;
+            });
+          }
+        } catch {
+          // ignore sales fetch error
+        }
+      }
+
+      let mapped = liveData.map((d) => {
+        if (d.saleId && salesMap[d.saleId] && (!d.items || d.items.length === 0) && !d.sale?.items) {
+          const matchedSale = salesMap[d.saleId];
+          d.sale = {
+            id: matchedSale.id,
+            totalAmount: matchedSale.totalAmount,
+            createdAt: matchedSale.createdAt,
+            items: matchedSale.items,
+          };
+        }
+        return normalizeDebt(d);
+      });
+
       if (params?.search) {
         const q = params.search.toLowerCase();
         mapped = mapped.filter(
@@ -1751,14 +1870,11 @@ export async function getUserProfile(): Promise<UserProfile> {
 
 export async function updateUserProfile(input: UpdateProfileInput): Promise<UserProfile> {
   if (isMockApiEnabled()) {
+    const existing = await getUserProfile();
     return {
-      id: "u-profile-1",
-      email: input.email || "owner@example.com",
-      name: input.name || "Alex Owner Updated",
-      role: "OWNER",
-      shopId: null,
-      isActive: true,
-      createdAt: "2026-08-12T08:50:41.994Z",
+      ...existing,
+      email: input.email || existing.email,
+      name: input.name || existing.name,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -1889,31 +2005,48 @@ export async function getTeamSummary(shopId: string): Promise<TeamSummary> {
 
 export async function getTeamMembers(shopId: string): Promise<TeamMember[]> {
   const store = getMockStore();
+  const overrides = getStaffOverrides();
+
+  let members: TeamMember[] = [];
 
   if (isMockApiEnabled()) {
-    return store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+    members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+  } else {
+    try {
+      const live = await apiRequest<any[]>(API_ENDPOINTS.shops.staff(shopId));
+      if (Array.isArray(live)) {
+        members = live.map((s) => ({
+          id: s.id,
+          shopId: s.shopId || shopId,
+          name: s.name,
+          email: s.email,
+          role: s.role === "ADMIN" ? "Shop Admin" : "Shop Sale",
+          status: s.isActive ? "Active" : "Suspended",
+          joinedDate: s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB") : "Recent",
+          lastLogin: s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-GB") : "Recent",
+          phone: s.phone || "+251911223344",
+          permissions: s.role === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS", "View Products"],
+        }));
+      } else {
+        members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+      }
+    } catch {
+      members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+    }
   }
 
-  try {
-    const live = await apiRequest<any[]>(API_ENDPOINTS.shops.staff(shopId));
-    if (Array.isArray(live)) {
-      return live.map((s) => ({
-        id: s.id,
-        shopId: s.shopId || shopId,
-        name: s.name,
-        email: s.email,
-        role: s.role === "ADMIN" ? "Shop Admin" : "Shop Sale",
-        status: s.isActive ? "Active" : "Suspended",
-        joinedDate: s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB") : "Recent",
-        lastLogin: s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-GB") : "Recent",
-        phone: s.phone || "+251911223344",
-        permissions: s.role === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS", "View Products"],
-      }));
+  // Merge any local overrides (so role and profile updates persist cleanly)
+  return members.map((m) => {
+    if (overrides[m.id]) {
+      const ov = overrides[m.id];
+      return {
+        ...m,
+        ...ov,
+        role: ov.role || m.role,
+      };
     }
-    return store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
-  } catch {
-    return store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
-  }
+    return m;
+  });
 }
 
 export async function createTeamMember(
@@ -1941,6 +2074,9 @@ export async function createTeamMember(
     permissions: input.permissions || (roleNormalized === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS"]),
   };
 
+  const store = getMockStore();
+  store.teamMembers.unshift(newMember);
+
   const { seedTeamMembers } = await import("@/lib/mock/data");
   seedTeamMembers.unshift(newMember);
 
@@ -1967,17 +2103,79 @@ export async function createTeamMember(
 }
 
 export async function updateTeamMember(
-  _shopId: string,
+  shopId: string,
   memberId: string,
   input: Partial<Omit<TeamMember, "id">>,
 ) {
+  const store = getMockStore();
   const { seedTeamMembers } = await import("@/lib/mock/data");
-  const member = seedTeamMembers.find((m) => m.id === memberId);
-  if (member) {
-    Object.assign(member, input);
-    return member;
+
+  // Format role string for display & storage
+  const roleFormatted =
+    input.role === "ADMIN" || input.role === "Shop Admin"
+      ? "Shop Admin"
+      : input.role === "SALES" || input.role === "Shop Sale"
+      ? "Shop Sale"
+      : input.role;
+
+  const updatePayload = {
+    ...input,
+    ...(roleFormatted ? { role: roleFormatted } : {}),
+  };
+
+  // 1. Update in mock store
+  const storeMember = store.teamMembers.find((m) => m.id === memberId);
+  if (storeMember) {
+    Object.assign(storeMember, updatePayload);
   }
-  return { id: memberId, ...input } as TeamMember;
+
+  // 2. Update in seed data
+  const seedMember = seedTeamMembers.find((m) => m.id === memberId);
+  if (seedMember) {
+    Object.assign(seedMember, updatePayload);
+  }
+
+  // 3. Save persistent override in client storage
+  saveStaffOverride(memberId, updatePayload);
+
+  // 4. Try live backend
+  if (!isMockApiEnabled()) {
+    try {
+      const response = await apiRequest<{ success: boolean; data: any } | any>(
+        API_ENDPOINTS.shops.staffMember(shopId, memberId),
+        {
+          method: "PUT",
+          body: {
+            name: input.name,
+            email: input.email,
+            phone: input.phone,
+            role: input.role?.includes("Admin") || input.role === "ADMIN" ? "ADMIN" : "SALES",
+            isActive: input.status !== undefined ? input.status === "Active" : undefined,
+          },
+        }
+      );
+      if (response && (response.data || response.id)) {
+        const data = response.data || response;
+        const updated: TeamMember = {
+          id: data.id || memberId,
+          shopId: data.shopId || shopId,
+          name: data.name || input.name || storeMember?.name || "",
+          email: data.email || input.email || storeMember?.email || "",
+          phone: data.phone || input.phone || storeMember?.phone || "",
+          role: data.role === "ADMIN" ? "Shop Admin" : data.role === "SALES" ? "Shop Sale" : (roleFormatted || "Shop Sale"),
+          status: data.isActive === false ? "Suspended" : (storeMember?.status || "Active"),
+          joinedDate: storeMember?.joinedDate || new Date().toLocaleDateString("en-GB"),
+          lastLogin: storeMember?.lastLogin || "Just now",
+          permissions: storeMember?.permissions || [],
+        };
+        return updated;
+      }
+    } catch (err) {
+      console.warn("Backend updateTeamMember failed, using optimistic state:", err);
+    }
+  }
+
+  return (storeMember || seedMember || { id: memberId, ...updatePayload }) as TeamMember;
 }
 
 export async function deleteTeamMember(shopId: string, memberId: string) {

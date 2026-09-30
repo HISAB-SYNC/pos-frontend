@@ -386,7 +386,7 @@ function SaleReturnModal({
                   onClick={() => setRefundMethod(m.id)}
                   className={`rounded-xl border py-2 text-center text-xs font-semibold transition-all ${
                     refundMethod === m.id
-                      ? "border-zinc-950 bg-zinc-900 text-white shadow-xs"
+                      ? "border-slate-900 bg-slate-800 text-white shadow-xs"
                       : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
                   }`}
                 >
@@ -406,7 +406,7 @@ function SaleReturnModal({
               value={generalNotes}
               onChange={(e) => setGeneralNotes(e.target.value)}
               placeholder="e.g. Return approved by manager"
-              className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
+              className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-slate-900 focus:outline-none"
             />
           </div>
 
@@ -687,7 +687,7 @@ function SaleReceiptModal({
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-zinc-800 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-slate-800 transition-colors"
             >
               <Printer className="size-3.5" />
               <span>Print Receipt</span>
@@ -754,7 +754,7 @@ function FinancialAuditReportModal({
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-950 text-white">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 text-white">
               <FileText className="size-4" />
             </div>
             <div>
@@ -953,7 +953,7 @@ function FinancialAuditReportModal({
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-zinc-800"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-slate-800"
           >
             <Printer className="size-3.5" />
             <span>Print Audit Statement</span>
@@ -1419,9 +1419,9 @@ export default function SalesHistoryPage() {
 
                 <Link
                   href="/pos"
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+                  className="flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
                 >
-                  <ShoppingCart className="size-3.5" />
+                  <ShoppingCart className="size-3.5 text-indigo-400" />
                   <span>New Sale</span>
                 </Link>
               </div>
@@ -1449,7 +1449,7 @@ export default function SalesHistoryPage() {
                     }}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                       dateFilter === preset.id
-                        ? "bg-zinc-900 text-white shadow-xs"
+                        ? "bg-slate-800 text-white shadow-xs"
                         : "border border-zinc-200 bg-zinc-50/80 text-zinc-600 hover:bg-zinc-100"
                     }`}
                   >
@@ -1479,14 +1479,14 @@ export default function SalesHistoryPage() {
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                     className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
                       selectedMethod !== "ALL" || selectedStatus !== "ALL"
-                        ? "border-[#c0e763] bg-[#c0e763]/20 text-zinc-950 font-semibold"
+                        ? "border-[#5B4FE9] bg-[#5B4FE9]/10 text-zinc-950 font-semibold"
                         : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                     }`}
                   >
                     <Filter className="size-3.5" />
                     <span>Filters</span>
                     {(selectedMethod !== "ALL" || selectedStatus !== "ALL") && (
-                      <span className="size-1.5 rounded-full bg-[#82a823]" />
+                      <span className="size-1.5 rounded-full bg-[#5B4FE9]" />
                     )}
                   </button>
 
@@ -1629,7 +1629,7 @@ export default function SalesHistoryPage() {
                       </p>
                       <Link
                         href="/pos"
-                        className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-colors"
+                        className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
                       >
                         <Plus className="size-3.5" />
                         <span>Go to POS Register</span>

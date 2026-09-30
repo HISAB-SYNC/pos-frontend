@@ -18,7 +18,7 @@ export default function NotFound() {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50/60 p-4 text-zinc-900 selection:bg-[#c0e763] selection:text-zinc-950">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50/60 p-4 text-zinc-900 selection:bg-[#5B4FE9]/20 selection:text-zinc-950">
       <div className="w-full max-w-lg text-center animate-in fade-in zoom-in-95 duration-200">
         {/* Logo / Brand */}
         <div className="mb-6 flex justify-center">
@@ -33,8 +33,8 @@ export default function NotFound() {
         {/* 404 Card */}
         <div className="rounded-3xl border border-zinc-200 bg-white p-8 sm:p-10 shadow-xl shadow-zinc-200/50">
           {/* Visual Icon Badge */}
-          <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-[#c0e763]/25 text-zinc-950 shadow-inner">
-            <FileQuestion className="size-8 text-zinc-900" />
+          <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/30">
+            <FileQuestion className="size-8 text-[#5B4FE9]" />
           </div>
 
           <span className="inline-block rounded-full bg-zinc-100 px-3 py-1 font-mono text-xs font-bold text-zinc-700">
@@ -61,9 +61,9 @@ export default function NotFound() {
             </button>
             <Link
               href="/dashboard"
-              className="flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#c0e763] px-5 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+              className="flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
             >
-              <LayoutDashboard className="size-3.5" />
+              <LayoutDashboard className="size-3.5 text-indigo-400" />
               Back to Dashboard
             </Link>
           </div>

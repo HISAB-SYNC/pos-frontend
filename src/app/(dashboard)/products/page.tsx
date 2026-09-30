@@ -348,7 +348,7 @@ function AddProductModal({
                   type="button"
                   disabled={isCreatingCat || !newCatName.trim()}
                   onClick={handleCreateCategory}
-                  className="h-9 rounded-lg bg-zinc-900 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 disabled:opacity-50 transition-all"
+                  className="h-9 rounded-lg bg-slate-800 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-all"
                 >
                   {isCreatingCat ? "Saving..." : "Save"}
                 </button>
@@ -468,7 +468,7 @@ function AddProductModal({
             <button
               type="submit"
               disabled={isSubmitting || !form.name.trim() || !form.salingPrice}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Save Product"}
             </button>
@@ -695,7 +695,7 @@ function EditProductModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -816,7 +816,7 @@ function CreateCategoryModal({
       <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#c0e763]/20 text-zinc-950">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9]">
               <FolderPlus className="size-4" />
             </div>
             <h3 className="text-sm font-bold text-zinc-900">Add New Category</h3>
@@ -862,7 +862,7 @@ function CreateCategoryModal({
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="rounded-xl bg-[#c0e763] px-4 py-2 font-bold text-zinc-950 shadow-xs hover:bg-[#b0d952] disabled:opacity-50 transition-all"
+              className="rounded-xl bg-slate-900 px-4 py-2 font-bold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-all"
             >
               {isSubmitting ? "Creating..." : "Save Category"}
             </button>
@@ -964,7 +964,7 @@ function EditCategoryModal({
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="rounded-xl bg-zinc-900 px-4 py-2 font-bold text-white shadow-xs hover:bg-zinc-800 disabled:opacity-50 transition-all"
+              className="rounded-xl bg-slate-800 px-4 py-2 font-bold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-all"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -1346,14 +1346,14 @@ export default function ProductsPage() {
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                     className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
                       selectedCategory !== "ALL" || selectedStatus !== "ALL"
-                        ? "border-[#c0e763] bg-[#c0e763]/20 text-zinc-950 font-semibold"
+                        ? "border-[#5B4FE9] bg-[#5B4FE9]/10 text-zinc-950 font-semibold"
                         : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                     }`}
                   >
                     <Filter className="size-3.5" />
                     <span>Filters</span>
                     {(selectedCategory !== "ALL" || selectedStatus !== "ALL") && (
-                      <span className="size-1.5 rounded-full bg-[#82a823]" />
+                      <span className="size-1.5 rounded-full bg-[#5B4FE9]" />
                     )}
                   </button>
 
@@ -1424,9 +1424,9 @@ export default function ProductsPage() {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
                   >
-                    <Plus className="size-3.5" />
+                    <Plus className="size-3.5 text-indigo-400" />
                     <span>Add Product</span>
                   </button>
                 )}
@@ -1610,9 +1610,9 @@ export default function ProductsPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreateCatModal(true)}
-                    className="flex h-8 items-center gap-1.5 rounded-lg bg-[#c0e763] px-3 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
                   >
-                    <Plus className="size-3.5" />
+                    <Plus className="size-3.5 text-indigo-400" />
                     <span>Add Category</span>
                   </button>
                 )}
@@ -1645,7 +1645,7 @@ export default function ProductsPage() {
                           <button
                             type="button"
                             onClick={() => setShowCreateCatModal(true)}
-                            className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800 transition-colors"
+                            className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
                           >
                             <Plus className="size-3.5" />
                             <span>Create Category</span>

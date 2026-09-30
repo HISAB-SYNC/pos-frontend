@@ -122,8 +122,8 @@ export default function DashboardPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
               Total Revenue
             </span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
-              <TrendingUp className="size-4 text-zinc-900" />
+            <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <TrendingUp className="size-4" />
             </div>
           </div>
           <div className="mt-3">
@@ -146,12 +146,12 @@ export default function DashboardPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
               Net Profit (Live)
             </span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-[#c0e763]">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white">
               <Wallet className="size-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="font-mono text-2xl font-bold tracking-tight text-[#c0e763] tabular-nums">
+            <div className="font-mono text-2xl font-bold tracking-tight text-white tabular-nums">
               {metrics.netProfit.toLocaleString()}{" "}
               <span className="text-xs font-semibold text-zinc-400">ETB</span>
             </div>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
               <span className="text-xs font-semibold text-zinc-500">ETB</span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="inline-flex items-center rounded-md bg-[#f3fad9] px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-900">
+              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-indigo-700">
                 {metrics.todaySalesCount} sales today
               </span>
             </div>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
                 <div
-                  className="h-full rounded-full bg-[#c0e763] transition-all duration-500"
+                  className="h-full rounded-full bg-[#5B4FE9] transition-all duration-500"
                   style={{ width: `${cashPct}%` }}
                 />
               </div>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
                 <div
-                  className="h-full rounded-full bg-zinc-900 transition-all duration-500"
+                  className="h-full rounded-full bg-slate-800 transition-all duration-500"
                   style={{ width: `${bankPct}%` }}
                 />
               </div>

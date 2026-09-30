@@ -206,7 +206,7 @@ function StockAdjustModal({
             <button
               type="submit"
               disabled={isSubmitting || !quantity || parseInt(quantity, 10) <= 0}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adjusting..." : "Apply Adjustment"}
             </button>
@@ -400,9 +400,9 @@ export default function InventoryPage() {
             </button>
             <Link
               href="/products"
-              className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
             >
-              <Package className="size-3.5" />
+              <Package className="size-3.5 text-indigo-400" />
               Manage Catalog
             </Link>
           </div>
@@ -415,7 +415,7 @@ export default function InventoryPage() {
           <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Total Units in Stock</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
                 <Package className="size-4" />
               </div>
             </div>

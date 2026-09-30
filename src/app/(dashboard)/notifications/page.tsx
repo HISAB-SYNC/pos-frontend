@@ -235,9 +235,9 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={loadNotifications}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-3.5 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all hover:bg-[#b0d952] active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
           >
-            <RotateCcw className="size-3.5" />
+            <RotateCcw className="size-3.5 text-indigo-400" />
             <span>Refresh</span>
           </button>
         </div>
@@ -252,8 +252,8 @@ export default function NotificationsPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
               Unread Alerts
             </span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
-              <Bell className="size-4 text-zinc-900" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <Bell className="size-4 text-[#5B4FE9]" />
             </div>
           </div>
           <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
@@ -328,7 +328,7 @@ export default function NotificationsPage() {
               }}
               className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
                 readFilter === "UNREAD"
-                  ? "bg-[#c0e763] text-zinc-950 font-bold shadow-xs"
+                  ? "bg-slate-900 text-white font-bold shadow-xs"
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >

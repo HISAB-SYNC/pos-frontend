@@ -217,7 +217,7 @@ function AddExpenseModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Expense"}
             </button>
@@ -388,7 +388,7 @@ function EditExpenseModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -779,9 +779,9 @@ export default function ExpensesPage() {
               <button
                 type="button"
                 onClick={() => setShowAddModal(true)}
-                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
               >
-                <Plus className="size-3.5 text-zinc-950" />
+                <Plus className="size-3.5 text-indigo-400" />
                 Add Expense
               </button>
             </div>

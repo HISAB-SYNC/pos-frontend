@@ -190,7 +190,7 @@ export default function LoginPage() {
         <button type="submit" disabled={status === "loading"} className={authButtonClassName}>
           {status === "loading" ? (
             <>
-              <Loader2 className="size-4 animate-spin text-[#c0e763]" />
+              <Loader2 className="size-4 animate-spin text-[#5B4FE9]" />
               <span>Signing in...</span>
             </>
           ) : (
@@ -203,7 +203,7 @@ export default function LoginPage() {
             New store owner?{" "}
             <Link
               href="/register"
-              className="font-semibold text-zinc-900 transition-colors hover:text-[#5c7f12] hover:underline"
+              className="font-semibold text-zinc-900 transition-colors hover:text-[#5B4FE9] hover:underline"
             >
               Create an Account
             </Link>

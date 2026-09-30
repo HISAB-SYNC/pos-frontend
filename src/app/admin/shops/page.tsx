@@ -82,8 +82,8 @@ export default function AdminShopsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
-              <Building2 className="size-4 text-[#c0e763]" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+              <Building2 className="size-4 text-indigo-400" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Registered Shops Oversight</h1>
           </div>
@@ -156,7 +156,7 @@ export default function AdminShopsPage() {
                 onClick={() => setStatusFilter(tab)}
                 className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === tab
-                    ? "bg-zinc-950 text-[#c0e763] shadow-sm"
+                    ? "bg-slate-900 text-white shadow-sm"
                     : "border border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]"
                 }`}
               >

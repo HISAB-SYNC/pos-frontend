@@ -29,79 +29,6 @@ import { useShopStore } from "@/stores/shop-store";
 import { useUiStore } from "@/stores/ui-store";
 
 /* ------------------------------------------------------------------ */
-/* Notifications panel                                                */
-/* ------------------------------------------------------------------ */
-type Notification = { id: string; message: string; type: "alert" | "warning" | "info" };
-
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  { id: "1", message: "Low stock alert for Sun Chips (< 5 items)", type: "warning" },
-  { id: "2", message: "Customer debt overdue notice (2 accounts)", type: "alert" },
-  { id: "3", message: "Daily cash register reconciliation pending", type: "info" },
-];
-
-function NotificationsPanel({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [items, setItems] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
-
-  useEffect(() => {
-    if (!open) return;
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      ref={ref}
-      className="absolute right-4 top-14 z-50 w-84 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xl shadow-black/10 animate-in fade-in zoom-in-95 duration-150"
-    >
-      <div className="mb-3 flex items-center justify-between border-b border-zinc-100 pb-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900">Notifications</h3>
-        <span className="rounded-full bg-[#f3fad9] px-2 py-0.5 text-[10px] font-bold text-zinc-900">
-          {items.length} new
-        </span>
-      </div>
-
-      <div className="space-y-2.5">
-        {items.map((n) => (
-          <div
-            key={n.id}
-            className="flex items-start justify-between gap-2.5 rounded-xl border border-zinc-100 bg-zinc-50/70 p-2.5 transition-colors hover:bg-zinc-100/70"
-          >
-            <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex size-2 rounded-full bg-[#c0e763] ring-2 ring-[#c0e763]/30" />
-              <span className="text-xs font-medium leading-snug text-zinc-800">{n.message}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setItems((prev) => prev.filter((x) => x.id !== n.id))}
-              className="text-zinc-400 transition-colors hover:text-zinc-700"
-              title="Dismiss"
-            >
-              <X className="size-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {items.length === 0 && (
-        <p className="py-4 text-center text-xs text-zinc-400">All notifications cleared</p>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Low Quantity Stock item without emoji                              */
 /* ------------------------------------------------------------------ */
 function LowStockItem({
@@ -148,8 +75,6 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [trendPeriod, setTrendPeriod] = useState<"monthly" | "weekly">("monthly");
-  const notifOpen = useUiStore((state) => state.notificationPanelOpen);
-  const setNotifOpen = useUiStore((state) => state.setNotificationPanelOpen);
 
   useEffect(() => {
     let mounted = true;
@@ -186,8 +111,6 @@ export default function DashboardPage() {
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
       <div className="relative space-y-6">
-      {/* Notifications panel (floating) */}
-      <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
 
       {/* ================================================================= */}
       {/* 1. Core Financial & Business KPI Cards                            */}
@@ -199,8 +122,8 @@ export default function DashboardPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
               Total Revenue
             </span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
-              <TrendingUp className="size-4 text-zinc-900" />
+            <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <TrendingUp className="size-4" />
             </div>
           </div>
           <div className="mt-3">
@@ -223,12 +146,12 @@ export default function DashboardPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
               Net Profit (Live)
             </span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-[#c0e763]">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white">
               <Wallet className="size-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="font-mono text-2xl font-bold tracking-tight text-[#c0e763] tabular-nums">
+            <div className="font-mono text-2xl font-bold tracking-tight text-white tabular-nums">
               {metrics.netProfit.toLocaleString()}{" "}
               <span className="text-xs font-semibold text-zinc-400">ETB</span>
             </div>
@@ -284,7 +207,7 @@ export default function DashboardPage() {
               <span className="text-xs font-semibold text-zinc-500">ETB</span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="inline-flex items-center rounded-md bg-[#f3fad9] px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-900">
+              <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-indigo-700">
                 {metrics.todaySalesCount} sales today
               </span>
             </div>
@@ -362,7 +285,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
                 <div
-                  className="h-full rounded-full bg-[#c0e763] transition-all duration-500"
+                  className="h-full rounded-full bg-[#5B4FE9] transition-all duration-500"
                   style={{ width: `${cashPct}%` }}
                 />
               </div>
@@ -382,7 +305,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
                 <div
-                  className="h-full rounded-full bg-zinc-900 transition-all duration-500"
+                  className="h-full rounded-full bg-slate-800 transition-all duration-500"
                   style={{ width: `${bankPct}%` }}
                 />
               </div>

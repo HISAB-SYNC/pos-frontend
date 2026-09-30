@@ -26,7 +26,7 @@ export function AuthShell({
       <div className="relative flex min-h-screen w-full items-center justify-center bg-[#fafbfc] px-4 py-8 sm:py-12 text-zinc-900">
         {/* Subtle decorative background glow */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-0 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-radial from-[#c0e763]/10 to-transparent blur-3xl" />
+          <div className="absolute left-1/2 top-0 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-radial from-[#5B4FE9]/5 to-transparent blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-[420px]">
@@ -90,7 +90,7 @@ export function AuthShell({
 }
 
 export const authInputClassName =
-  "h-11 w-full rounded-xl border border-zinc-300 bg-white px-3.5 text-[14px] text-zinc-900 placeholder:text-zinc-400 outline-none transition duration-150 focus:border-[#7ea521] focus:ring-2 focus:ring-[#c0e763]/25 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-11 w-full rounded-xl border border-zinc-300 bg-white px-3.5 text-[14px] text-zinc-900 placeholder:text-zinc-400 outline-none transition duration-150 focus:border-[#5B4FE9] focus:ring-2 focus:ring-[#5B4FE9]/20 disabled:cursor-not-allowed disabled:opacity-60";
 
 export const authButtonClassName =
   "mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0c1017] text-[14px] font-semibold text-white shadow-xs transition duration-150 hover:bg-[#1a2436] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60";

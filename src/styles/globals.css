@@ -11,30 +11,30 @@
   --card-foreground: 222.2 47.4% 11.2%;
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 47.4% 11.2%;
-  --primary: 78 73% 65%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: 245 78% 61%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 210 20% 95%;
   --secondary-foreground: 222.2 47.4% 11.2%;
   --muted: 210 20% 95%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 78 73% 92%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 245 78% 96%;
+  --accent-foreground: 245 78% 30%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 20% 90%;
   --input: 214.3 20% 90%;
-  --ring: 78 73% 50%;
+  --ring: 245 78% 61%;
   --radius: 0.85rem;
 
   /* Pro Dark Obsidian Sidebar (Option A) */
   --sidebar-background: 216 32% 7%;
   --sidebar-foreground: 215 20% 75%;
-  --sidebar-primary: 78 73% 65%;
-  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-primary: 245 78% 61%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 218 29% 13%;
   --sidebar-accent-foreground: 0 0% 100%;
   --sidebar-border: 218 25% 15%;
-  --sidebar-ring: 78 73% 65%;
+  --sidebar-ring: 245 78% 61%;
 }
 
 .dark {
@@ -44,28 +44,28 @@
   --card-foreground: 210 40% 98%;
   --popover: 222 47% 9%;
   --popover-foreground: 210 40% 98%;
-  --primary: 78 73% 65%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: 245 78% 65%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 245 40% 18%;
+  --accent-foreground: 245 80% 90%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
-  --ring: 78 73% 65%;
+  --ring: 245 78% 65%;
 
   --sidebar-background: 216 32% 7%;
   --sidebar-foreground: 215 20% 75%;
-  --sidebar-primary: 78 73% 65%;
-  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-primary: 245 78% 65%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 218 29% 13%;
   --sidebar-accent-foreground: 0 0% 100%;
   --sidebar-border: 218 25% 15%;
-  --sidebar-ring: 78 73% 65%;
+  --sidebar-ring: 245 78% 65%;
 }
 
 @theme inline {
@@ -100,9 +100,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-lime: #c0e763;
-  --color-lime-hover: #b0d952;
-  --color-lime-subtle: #f3fad9;
+  --color-indigo-brand: #5B4FE9;
+  --color-indigo-brand-hover: #4D40D9;
+  --color-indigo-brand-subtle: #EEF2FF;
   --color-obsidian: #0c1017;
   --color-obsidian-border: #1e293b;
 }

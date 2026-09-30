@@ -282,8 +282,8 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
-              <BarChart3 className="size-4 text-[#c0e763]" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-indigo-400 shadow-sm">
+              <BarChart3 className="size-4 text-indigo-400" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Shop Analytics &amp; Reports</h1>
           </div>
@@ -307,7 +307,7 @@ export default function ReportsPage() {
                 onClick={() => setPeriod(tab.id as AnalyticsPeriod)}
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   period === tab.id
-                    ? "bg-zinc-950 text-[#c0e763] shadow-sm font-bold"
+                    ? "bg-slate-900 text-white shadow-sm font-bold"
                     : "text-[#4b5563] hover:bg-[#f9fafb]"
                 }`}
               >
@@ -345,19 +345,19 @@ export default function ReportsPage() {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-zinc-950 focus:outline-none"
+              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-slate-900 focus:outline-none"
             />
             <span className="text-[#9ca3af]">to</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-zinc-950 focus:outline-none"
+              className="h-8 rounded-lg border border-[#e5e7eb] px-2 text-xs focus:border-slate-900 focus:outline-none"
             />
             <button
               type="button"
               onClick={loadAnalytics}
-              className="rounded-lg bg-[#c0e763] px-3 py-1.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952]"
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800"
             >
               Apply Filter
             </button>
@@ -373,8 +373,8 @@ export default function ReportsPage() {
         <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Total Revenue</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-950 text-[#c0e763]">
-              <DollarSign className="size-4 text-[#c0e763]" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-slate-900 text-indigo-400">
+              <DollarSign className="size-4 text-indigo-400" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
@@ -466,8 +466,8 @@ export default function ReportsPage() {
               >
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#c0e763" stopOpacity={0.65} />
-                    <stop offset="95%" stopColor="#c0e763" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#5B4FE9" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#5B4FE9" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -496,7 +496,7 @@ export default function ReportsPage() {
                 <Area
                   type="monotone"
                   dataKey="totalRevenue"
-                  stroke="#0c1017"
+                  stroke="#5B4FE9"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorRevenue)"

@@ -1,4 +1,5 @@
 import type {
+  AppNotification,
   Category,
   Customer,
   Debt,
@@ -329,6 +330,7 @@ export const seedProducts: Product[] = [
     stockQuantity: 24,
     unit: "pcs",
     lowStockThreshold: 10,
+    expiryDate: new Date(Date.now() + 90 * 86400000).toISOString(),
     categoryId: MOCK_IDS.categoryBeverages,
     supplierId: MOCK_IDS.supplier,
     category: { id: MOCK_IDS.categoryBeverages, name: "Soft drink" },
@@ -362,6 +364,7 @@ export const seedProducts: Product[] = [
     stockQuantity: 30,
     unit: "pcs",
     lowStockThreshold: 8,
+    expiryDate: new Date(Date.now() + 3 * 86400000).toISOString(),
     categoryId: MOCK_IDS.categoryBeverages,
     supplierId: MOCK_IDS.supplier,
     category: { id: MOCK_IDS.categoryBeverages, name: "drink" },
@@ -1472,6 +1475,33 @@ export const seedSales: Sale[] = [
   },
 ];
 
+export const seedNotifications: AppNotification[] = [
+  {
+    id: "notif-seed-01",
+    shopId: MOCK_IDS.shop,
+    type: "PRODUCT_EXPIRING_SOON",
+    severity: "WARNING",
+    title: "Expiring Soon: Mango Juice",
+    message: "Mango Juice (SKU: MNJ-200) will expire in 3 days.",
+    entityId: "prod-mango-juice",
+    metadata: { daysRemaining: 3 },
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "notif-seed-02",
+    shopId: MOCK_IDS.shop,
+    type: "LOW_STOCK",
+    severity: "WARNING",
+    title: "Low Stock Alert: Whole Milk 1L",
+    message: "Whole Milk 1L (SKU: MILK-1L) has 2 pcs remaining (threshold: 5).",
+    entityId: "prod-milk",
+    metadata: { stockQuantity: 2, threshold: 5, unit: "pcs" },
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  },
+];
+
 export type MockStore = {
   users: User[];
   shops: Shop[];
@@ -1487,6 +1517,7 @@ export type MockStore = {
   sales: Sale[];
   orders: OrderRecord[];
   teamMembers: TeamMember[];
+  notifications: AppNotification[];
   resetTokens: Record<string, string>;
   passwords: Record<string, string>;
 };
@@ -1507,6 +1538,7 @@ export function createSeedStore(): MockStore {
     sales: structuredClone(seedSales),
     orders: structuredClone(seedOrders),
     teamMembers: structuredClone(seedTeamMembers),
+    notifications: structuredClone(seedNotifications),
     resetTokens: {},
     passwords: {
       "owner@demo.com": "demo1234",

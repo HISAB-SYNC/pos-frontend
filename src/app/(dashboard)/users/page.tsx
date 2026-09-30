@@ -329,7 +329,7 @@ function AddTeamMemberModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding Member..." : "Add Team Member"}
             </button>
@@ -414,7 +414,7 @@ function ResetPasswordModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+              className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
             >
               Update Password
             </button>
@@ -433,24 +433,37 @@ function EditMemberDetailsModal({
   onClose,
   onUpdated,
   shopId,
+  currentUserRole,
 }: {
   member: TeamMember | null;
   onClose: () => void;
-  onUpdated: (log: AuditLogRecord) => void;
+  onUpdated: (log: AuditLogRecord, updatedMember?: TeamMember) => void;
   shopId: string;
+  currentUserRole: Role;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState("Shop Sale");
+  const [role, setRole] = useState<Role>("SALES");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const allowedRoles = useMemo(
+    () => getAllowedRolesToCreate(currentUserRole),
+    [currentUserRole]
+  );
 
   useEffect(() => {
     if (member) {
       setName(member.name || "");
       setEmail(member.email || "");
       setPhone(member.phone || "");
-      setRole(member.role || "Shop Sale");
+      const normalizedRole: Role =
+        member.role === "Shop Sale" || member.role === "SALES"
+          ? "SALES"
+          : member.role === "Shop Admin" || member.role === "ADMIN"
+          ? "ADMIN"
+          : (member.role as Role) || "SALES";
+      setRole(normalizedRole);
     }
   }, [member]);
 
@@ -460,19 +473,18 @@ function EditMemberDetailsModal({
 
     setIsSubmitting(true);
     try {
-      await updateTeamMember(shopId, member.id, {
+      const updated = await updateTeamMember(shopId, member.id, {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
         role,
       });
 
-
       const auditLog: AuditLogRecord = {
         id: `aud-${Date.now()}`,
         userId: "current-user",
         userName: "You",
-        userRole: "ADMIN",
+        userRole: currentUserRole,
         action: "ROLE_CHANGED",
         resource: `TeamMember: ${name}`,
         timestamp: new Date().toISOString(),
@@ -481,7 +493,7 @@ function EditMemberDetailsModal({
         newValue: role,
       };
 
-      onUpdated(auditLog);
+      onUpdated(auditLog, updated);
       onClose();
     } catch {
       onClose();
@@ -493,7 +505,6 @@ function EditMemberDetailsModal({
   if (!member) return null;
 
   return (
-
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
       <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-3.5">
@@ -537,11 +548,21 @@ function EditMemberDetailsModal({
             <label className="mb-1 block font-semibold text-[#374151]">Assigned System Role</label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 font-semibold text-[#111827] focus:border-[#2563eb] focus:outline-none"
             >
-              <option value="Shop Sale">Shop Sale (POS & Checkout)</option>
-              <option value="Shop Admin">Shop Admin (Management)</option>
+              {allowedRoles.length > 0 ? (
+                allowedRoles.map((r) => (
+                  <option key={r.role} value={r.role}>
+                    {r.label} ({r.role})
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="SALES">Seller / Cashier (SALES)</option>
+                  <option value="ADMIN">Shop Admin (ADMIN)</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -556,7 +577,7 @@ function EditMemberDetailsModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -799,7 +820,32 @@ export default function UsersPage() {
       <EditMemberDetailsModal
         member={memberToEditDetails}
         onClose={() => setMemberToEditDetails(null)}
-        onUpdated={(log) => {
+        currentUserRole={(authUser?.role as Role) || "OWNER"}
+        onUpdated={(log, updated) => {
+          if (updated) {
+            setMembers((prev) =>
+              prev.map((m) =>
+                m.id === updated.id
+                  ? {
+                      ...m,
+                      ...updated,
+                      role: updated.role || m.role,
+                    }
+                  : m
+              )
+            );
+          } else if (memberToEditDetails) {
+            setMembers((prev) =>
+              prev.map((m) =>
+                m.id === memberToEditDetails.id
+                  ? {
+                      ...m,
+                      role: log.newValue === "ADMIN" ? "Shop Admin" : log.newValue === "SALES" ? "Shop Sale" : (log.newValue || m.role),
+                    }
+                  : m
+              )
+            );
+          }
           loadData();
           setAuditLogs((prev) => [log, ...prev]);
           setActionSuccessMsg(`Updated profile details`);
@@ -838,8 +884,8 @@ export default function UsersPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
-              <UserCog className="size-4 text-[#c0e763]" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+              <UserCog className="size-4 text-indigo-400" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Employee RBAC &amp; Access Control</h1>
           </div>
@@ -860,9 +906,9 @@ export default function UsersPage() {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
           >
-            <UserPlus className="size-4 text-zinc-950" />
+            <UserPlus className="size-4 text-indigo-400" />
             + Provision Team Member
           </button>
         </div>
@@ -918,7 +964,7 @@ export default function UsersPage() {
               onClick={() => setActiveTab("DIRECTORY")}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeTab === "DIRECTORY"
-                  ? "bg-zinc-950 text-[#c0e763] shadow-sm"
+                  ? "bg-slate-900 text-white shadow-sm"
                   : "bg-white text-[#4b5563] hover:bg-[#f9fafb] border border-[#e5e7eb]"
               }`}
             >
@@ -931,7 +977,7 @@ export default function UsersPage() {
               onClick={() => setActiveTab("AUDIT_LOGS")}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeTab === "AUDIT_LOGS"
-                  ? "bg-zinc-950 text-[#c0e763] shadow-sm"
+                  ? "bg-slate-900 text-white shadow-sm"
                   : "bg-white text-[#4b5563] hover:bg-[#f9fafb] border border-[#e5e7eb]"
               }`}
             >

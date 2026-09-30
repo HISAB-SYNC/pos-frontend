@@ -77,6 +77,7 @@ export type Product = {
   stockQuantity: number;
   unit: string;
   lowStockThreshold: number;
+  expiryDate?: string | null;
   categoryId?: string;
   supplierId?: string;
   attributes?: Record<string, unknown> | null;
@@ -130,6 +131,7 @@ export type DebtTransaction = {
   date: string;
   paymentMethod?: string;
   notes?: string;
+  items?: Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }>;
 };
 
 export type DebtSummary = {
@@ -205,7 +207,7 @@ export type Sale = {
     debtAmount?: number;
     paymentMethod?: string;
   };
-  status: "COMPLETED" | "CANCELLED" | "PENDING" | string;
+  status: "COMPLETED" | "CANCELLED" | "VOIDED" | "REFUNDED" | "RETURNED" | "PARTIAL_RETURN" | "PARTIALLY_REFUNDED" | "PENDING" | string;
   createdAt: string;
   items?: SaleItem[];
   customer?: Customer | null;
@@ -252,6 +254,18 @@ export type Debt = {
     debtBalance?: string | number;
   };
   saleId?: string;
+  sale?: {
+    id?: string;
+    totalAmount?: number | string;
+    createdAt?: string;
+    items?: Array<{
+      productId?: string;
+      quantity: number;
+      unitPrice?: number | string;
+      subtotal?: number | string;
+      product?: { id?: string; name: string; sku?: string };
+    }>;
+  };
   amount: string;
   paidAmount?: string;
   remainingAmount?: string;
@@ -568,4 +582,40 @@ export type UpdateProfileInput = {
   email?: string;
   currentPassword?: string;
   newPassword?: string;
+};
+
+/* ------------------------------------------------------------------ */
+/* Notification Types                                                 */
+/* ------------------------------------------------------------------ */
+export type NotificationType =
+  | "LOW_STOCK"
+  | "PRODUCT_EXPIRED"
+  | "PRODUCT_EXPIRING_SOON"
+  | "OVERDUE_DEBT"
+  | "SYSTEM"
+  | "PENDING_OWNER_APPROVAL";
+
+export type NotificationSeverity = "INFO" | "WARNING" | "CRITICAL";
+
+export type AppNotification = {
+  id: string;
+  shopId?: string | null;
+  type: NotificationType;
+  severity: NotificationSeverity;
+  title: string;
+  message: string;
+  entityId?: string | null;
+  metadata?: Record<string, any> | null;
+  isRead: boolean;
+  readAt?: string | null;
+  createdAt: string;
+};
+
+export type NotificationFeedResponse = {
+  notifications: AppNotification[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  unreadCount: number;
 };

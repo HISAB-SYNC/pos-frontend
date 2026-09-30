@@ -227,7 +227,7 @@ function CustomerInfoModal({
           <button
             type="button"
             onClick={() => onRecordPayment(customer.id)}
-            className="flex-1 rounded-lg bg-[#c0e763] py-2.5 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+            className="flex-1 rounded-lg bg-slate-900 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
           >
             Record Payment
           </button>
@@ -362,7 +362,7 @@ function AddCustomerModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Customer"}
             </button>
@@ -490,7 +490,7 @@ function EditCustomerModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -530,7 +530,7 @@ function DeleteCustomerDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-zinc-900 px-4 py-2 font-semibold text-white hover:bg-zinc-800"
+            className="rounded-lg bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-800"
           >
             Understood
           </button>
@@ -767,9 +767,9 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+              className="flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
             >
-              <Plus className="size-3.5 text-zinc-950" />
+              <Plus className="size-3.5 text-indigo-400" />
               Add Customer
             </button>
           </div>
@@ -788,7 +788,7 @@ export default function CustomersPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`shrink-0 py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
                 activeTab === tab.id
-                  ? "border-zinc-950 text-zinc-950"
+                  ? "border-slate-900 text-zinc-950"
                   : "border-transparent text-[#6b7280] hover:text-[#111827]"
               }`}
             >
@@ -967,7 +967,7 @@ export default function CustomersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#c0e763] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+                  className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
                 >
                   Confirm Payment
                 </button>

@@ -154,6 +154,31 @@ export async function mockGetLowStockProducts(shopId: string): Promise<Product[]
   );
 }
 
+export async function mockGetExpiringProducts(
+  shopId: string,
+  params?: { days?: number; status?: "all" | "expired" | "expiring_soon" },
+): Promise<Product[]> {
+  await mockDelay();
+  const days = params?.days ?? 7;
+  const statusFilter = params?.status ?? "all";
+  const now = new Date();
+  const windowEnd = new Date(now.getTime() + days * 86400000);
+
+  return getMockStore().products.filter((product) => {
+    if (product.shopId !== shopId) return false;
+    if (!product.expiryDate) return false;
+    const exp = new Date(product.expiryDate);
+    if (isNaN(exp.getTime())) return false;
+
+    const isExpired = exp <= now;
+    const isExpiringSoon = exp > now && exp <= windowEnd;
+
+    if (statusFilter === "expired") return isExpired;
+    if (statusFilter === "expiring_soon") return isExpiringSoon;
+    return isExpired || isExpiringSoon;
+  });
+}
+
 export async function mockCreateProduct(
   shopId: string,
   input: Omit<Product, "id" | "shopId" | "price"> & { price: number },

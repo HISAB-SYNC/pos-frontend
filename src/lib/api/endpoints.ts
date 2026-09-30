@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     suppliers: (shopId: string) => `/shops/${shopId}/suppliers`,
     products: (shopId: string) => `/shops/${shopId}/products`,
     lowStockProducts: (shopId: string) => `/shops/${shopId}/products/low-stock`,
+    expiringProducts: (shopId: string) => `/shops/${shopId}/products/expiring`,
     product: (shopId: string, productId: string) => `/shops/${shopId}/products/${productId}`,
     sales: (shopId: string) => `/shops/${shopId}/sales`,
     saleDetail: (shopId: string, saleId: string) => `/shops/${shopId}/sales/${saleId}`,
@@ -26,12 +27,17 @@ export const API_ENDPOINTS = {
     customerDetail: (shopId: string, customerId: string) => `/shops/${shopId}/customers/${customerId}`,
     debts: (shopId: string) => `/shops/${shopId}/debts`,
     debtPayments: (shopId: string, debtId: string) => `/shops/${shopId}/debts/${debtId}/payments`,
+    debtBatchPayments: (shopId: string) => `/shops/${shopId}/debts/batch-payments`,
     expenses: (shopId: string) => `/shops/${shopId}/expenses`,
     expense: (shopId: string, expenseId: string) => `/shops/${shopId}/expenses/${expenseId}`,
     staff: (shopId: string) => `/shops/${shopId}/staff`,
     staffMember: (shopId: string, staffId: string) => `/shops/${shopId}/staff/${staffId}`,
     dashboard: (shopId: string) => `/shops/${shopId}/dashboard`,
     analytics: (shopId: string) => `/shops/${shopId}/analytics`,
+    notifications: (shopId: string) => `/shops/${shopId}/notifications`,
+    notificationsUnreadCount: (shopId: string) => `/shops/${shopId}/notifications/unread-count`,
+    markNotificationRead: (shopId: string, id: string) => `/shops/${shopId}/notifications/${id}/read`,
+    markAllNotificationsRead: (shopId: string) => `/shops/${shopId}/notifications/read-all`,
   },
 
   admin: {
@@ -43,6 +49,10 @@ export const API_ENDPOINTS = {
     users: "/admin/users",
     suspendUser: (userId: string) => `/admin/users/${userId}/suspend`,
     activateUser: (userId: string) => `/admin/users/${userId}/activate`,
+    notifications: "/admin/notifications",
+    notificationsUnreadCount: "/admin/notifications/unread-count",
+    markNotificationRead: (id: string) => `/admin/notifications/${id}/read`,
+    markAllNotificationsRead: "/admin/notifications/read-all",
   },
 } as const;
 

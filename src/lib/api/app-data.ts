@@ -10,12 +10,16 @@ import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 import type {
   AnalyticsPeriod,
+  AppNotification,
   BackendDashboardMetrics,
   Category,
   Customer,
   Debt,
   Expense,
   ExpensesSummary,
+  NotificationFeedResponse,
+  NotificationSeverity,
+  NotificationType,
   OrderRecord,
   OverallOrdersSummary,
   Product,
@@ -132,51 +136,143 @@ export async function deleteCustomer(_shopId: string, customerId: string) {
 
 
 /* ------------------------------------------------------------------ */
+/* Client-side Persistence Helpers for Offline/Hybrid Synchronization  */
+/* ------------------------------------------------------------------ */
+const CREDIT_ITEMS_STORAGE_KEY = "pos_credit_debt_items";
+const STAFF_OVERRIDES_STORAGE_KEY = "pos_staff_overrides";
+
+export function saveCreditSaleItems(
+  identifier: string,
+  items: Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }>,
+) {
+  if (typeof window === "undefined" || !identifier || !items || items.length === 0) return;
+  try {
+    const raw = localStorage.getItem(CREDIT_ITEMS_STORAGE_KEY);
+    const map: Record<string, typeof items> = raw ? JSON.parse(raw) : {};
+    map[identifier] = items;
+    localStorage.setItem(CREDIT_ITEMS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.warn("Failed to persist credit sale items:", e);
+  }
+}
+
+export function getCachedCreditSaleItems(
+  identifier?: string,
+): Array<{ productId?: string; name: string; quantity: number; unitPrice?: number; totalPrice?: number }> | null {
+  if (typeof window === "undefined" || !identifier) return null;
+  try {
+    const raw = localStorage.getItem(CREDIT_ITEMS_STORAGE_KEY);
+    if (!raw) return null;
+    const map = JSON.parse(raw);
+    return map[identifier] || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveStaffOverride(memberId: string, override: Partial<TeamMember>) {
+  if (typeof window === "undefined" || !memberId) return;
+  try {
+    const raw = localStorage.getItem(STAFF_OVERRIDES_STORAGE_KEY);
+    const map: Record<string, Partial<TeamMember>> = raw ? JSON.parse(raw) : {};
+    map[memberId] = { ...(map[memberId] || {}), ...override };
+    localStorage.setItem(STAFF_OVERRIDES_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.warn("Failed to persist staff override:", e);
+  }
+}
+
+export function getStaffOverrides(): Record<string, Partial<TeamMember>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(STAFF_OVERRIDES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Debts API & Debt Management                                         */
 /* ------------------------------------------------------------------ */
+export function normalizeDebt(d: Debt): Debt {
+  const store = getMockStore();
+  const cust = store.customers.find((c) => c.id === d.customerId || c.name === (d.customer?.name || d.customerName));
+  const totalAmount = parseFloat(String(d.amount || "0"));
+  
+  // Calculate total payments made against this debt
+  let totalPaid = 0;
+  if (Array.isArray(d.payments) && d.payments.length > 0) {
+    totalPaid = d.payments.reduce((sum, p) => sum + parseFloat(String(p.amount || 0)), 0);
+  } else if (d.paidAmount !== undefined) {
+    totalPaid = parseFloat(String(d.paidAmount || 0));
+  }
+
+  const remaining = Math.max(0, totalAmount - totalPaid);
+  
+  let computedStatus: Debt["status"] = "PENDING";
+  if (remaining <= 0.001) {
+    computedStatus = "PAID";
+  } else if (totalPaid > 0) {
+    computedStatus = "PARTIAL";
+  } else if (d.dueDate && new Date(d.dueDate) < new Date()) {
+    computedStatus = "OVERDUE";
+  } else if (d.status) {
+    computedStatus = d.status.toUpperCase() as Debt["status"];
+  }
+
+  const customerName = d.customer?.name || d.customerName || cust?.name || "Customer";
+  const customerPhone = d.customer?.phone || d.customerPhone || cust?.phone || "—";
+
+  // Extract item breakdown from:
+  // 1. d.items
+  // 2. d.sale?.items
+  // 3. Cached credit sale items via d.saleId, d.id, or customer-keyed storage
+  let items = d.items;
+  if ((!items || items.length === 0) && d.sale?.items && Array.isArray(d.sale.items)) {
+    items = d.sale.items.map((it) => ({
+      productId: it.productId,
+      name: it.product?.name || "Product",
+      quantity: it.quantity,
+      unitPrice: parseFloat(String(it.unitPrice || 0)),
+      totalPrice: parseFloat(String(it.subtotal || (Number(it.unitPrice || 0) * it.quantity))),
+    }));
+  }
+  if ((!items || items.length === 0) && d.saleId) {
+    const cached = getCachedCreditSaleItems(d.saleId);
+    if (cached && cached.length > 0) {
+      items = cached;
+    }
+  }
+  if ((!items || items.length === 0) && d.id) {
+    const cached = getCachedCreditSaleItems(d.id);
+    if (cached && cached.length > 0) {
+      items = cached;
+    }
+  }
+  if ((!items || items.length === 0) && d.customerId) {
+    const cached = getCachedCreditSaleItems(d.customerId);
+    if (cached && cached.length > 0) {
+      items = cached;
+    }
+  }
+
+  return {
+    ...d,
+    customerName,
+    customerPhone,
+    amount: totalAmount.toFixed(2),
+    paidAmount: totalPaid.toFixed(2),
+    remainingAmount: remaining.toFixed(2),
+    status: computedStatus,
+    items: items || [],
+    payments: d.payments || [],
+    transactions: d.transactions || cust?.debtHistory || [],
+  };
+}
+
 export async function getDebts(shopId: string, params?: { status?: string; customerId?: string; search?: string }) {
   const store = getMockStore();
-
-  function normalizeDebt(d: Debt): Debt {
-    const cust = store.customers.find((c) => c.id === d.customerId || c.name === (d.customer?.name || d.customerName));
-    const totalAmount = parseFloat(String(d.amount || "0"));
-    
-    // Calculate total payments made against this debt
-    let totalPaid = 0;
-    if (Array.isArray(d.payments) && d.payments.length > 0) {
-      totalPaid = d.payments.reduce((sum, p) => sum + parseFloat(String(p.amount || 0)), 0);
-    } else if (d.paidAmount !== undefined) {
-      totalPaid = parseFloat(String(d.paidAmount || 0));
-    }
-
-    const remaining = Math.max(0, totalAmount - totalPaid);
-    
-    let computedStatus: Debt["status"] = "PENDING";
-    if (remaining <= 0.001) {
-      computedStatus = "PAID";
-    } else if (totalPaid > 0) {
-      computedStatus = "PARTIAL";
-    } else if (d.dueDate && new Date(d.dueDate) < new Date()) {
-      computedStatus = "OVERDUE";
-    } else if (d.status) {
-      computedStatus = d.status.toUpperCase() as Debt["status"];
-    }
-
-    const customerName = d.customer?.name || d.customerName || cust?.name || "Customer";
-    const customerPhone = d.customer?.phone || d.customerPhone || cust?.phone || "—";
-
-    return {
-      ...d,
-      customerName,
-      customerPhone,
-      amount: totalAmount.toFixed(2),
-      paidAmount: totalPaid.toFixed(2),
-      remainingAmount: remaining.toFixed(2),
-      status: computedStatus,
-      payments: d.payments || [],
-      transactions: d.transactions || cust?.debtHistory || [],
-    };
-  }
 
   if (isMockApiEnabled()) {
     let list = store.debts.filter((d) => !d.shopId || d.shopId === shopId).map(normalizeDebt);
@@ -208,7 +304,45 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
 
     const liveData = await apiRequest<Debt[]>(`${API_ENDPOINTS.shops.debts(shopId)}${suffix}`);
     if (Array.isArray(liveData)) {
-      let mapped = liveData.map(normalizeDebt);
+      // If some debts have saleId but no items, attempt to resolve them from sales list
+      const needsSaleHydration = liveData.some((d) => d.saleId && (!d.items || d.items.length === 0) && !d.sale?.items);
+      let salesMap: Record<string, any> = {};
+      if (needsSaleHydration) {
+        try {
+          const allSales = await getSales(shopId);
+          if (Array.isArray(allSales)) {
+            allSales.forEach((s) => {
+              if (s.id) salesMap[s.id] = s;
+            });
+          }
+        } catch {
+          // ignore sales fetch error
+        }
+      }
+
+      let mapped = liveData.map((d) => {
+        if (d.saleId && salesMap[d.saleId] && (!d.items || d.items.length === 0) && !d.sale?.items) {
+          const matchedSale = salesMap[d.saleId];
+          d.sale = {
+            id: matchedSale.id,
+            totalAmount: matchedSale.totalAmount,
+            createdAt: matchedSale.createdAt,
+            items: matchedSale.items,
+          };
+        }
+        return normalizeDebt(d);
+      });
+
+      // Keep store.debts synchronized with live debts
+      mapped.forEach((normDebt) => {
+        const idx = store.debts.findIndex((sd) => sd.id === normDebt.id);
+        if (idx >= 0) {
+          store.debts[idx] = normDebt;
+        } else {
+          store.debts.push(normDebt);
+        }
+      });
+
       if (params?.search) {
         const q = params.search.toLowerCase();
         mapped = mapped.filter(
@@ -338,6 +472,8 @@ export async function recordDebtPayment(
   input: {
     customerId: string;
     debtId?: string;
+    debtIds?: string[];
+    debts?: Debt[];
     amount: number;
     paymentMethod?: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
     bankName?: string;
@@ -360,17 +496,6 @@ export async function recordDebtPayment(
   const nowIso = new Date().toISOString();
   const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  const paymentRecord = {
-    id: `pay-${Date.now()}`,
-    debtId: input.debtId,
-    customerId: input.customerId,
-    amount: input.amount.toFixed(2),
-    paymentMethod: input.paymentMethod || "Cash",
-    reference: ref,
-    notes: input.notes || "Debt payment recorded",
-    paidAt: nowIso,
-  };
-
   const transaction = {
     id: `dth-${Date.now()}`,
     customerId: input.customerId,
@@ -381,7 +506,7 @@ export async function recordDebtPayment(
     remainingBalance: newCustomerBalance,
     date: dateStr,
     paymentMethod: input.paymentMethod || "Cash",
-    notes: input.notes || `Partial repayment - ${ref}`,
+    notes: input.notes || `Debt repayment - ${ref}`,
   };
 
   if (customer) {
@@ -392,77 +517,258 @@ export async function recordDebtPayment(
     customer.debtHistory.unshift(transaction);
   }
 
-  // Find or identify debt record in memory
-  let debtRecord = store.debts.find(
-    (d) => (input.debtId ? d.id === input.debtId : d.customerId === input.customerId && d.status !== "PAID"),
-  );
-  if (!debtRecord && Array.isArray(seedDebts)) {
-    debtRecord = seedDebts.find(
-      (d) => (input.debtId ? d.id === input.debtId : d.customerId === input.customerId && d.status !== "PAID"),
+  // 1. Gather all candidate debts from input.debts, store.debts, and seedDebts
+  const candidatePool: Debt[] = [];
+  const seenIds = new Set<string>();
+
+  const addCandidate = (d: Debt | null | undefined) => {
+    if (d && d.id && !seenIds.has(d.id)) {
+      seenIds.add(d.id);
+      candidatePool.push(normalizeDebt(d));
+    }
+  };
+
+  if (Array.isArray(input.debts)) {
+    input.debts.forEach(addCandidate);
+  }
+  store.debts.filter((d) => d.customerId === input.customerId).forEach(addCandidate);
+  if (Array.isArray(seedDebts)) {
+    seedDebts.filter((d) => d.customerId === input.customerId).forEach(addCandidate);
+  }
+
+  // Determine target debt vouchers to settle
+  let targetDebtIds: string[] = [];
+  if (input.debtIds && input.debtIds.length > 0) {
+    targetDebtIds = [...input.debtIds];
+  } else if (input.debtId) {
+    targetDebtIds = [input.debtId];
+  } else {
+    // If no debts explicitly targeted, gather all unpaid debts for this customer
+    const openPool = candidatePool.filter((d) => {
+      const rem = parseFloat(String(d.remainingAmount || d.amount || "0"));
+      return d.status !== "PAID" && rem > 0;
+    });
+    targetDebtIds = openPool.map((d) => d.id);
+  }
+
+  // If live backend is active and some target debt IDs are missing from candidatePool, fetch them
+  if (!isMockApiEnabled() && targetDebtIds.some((id) => !candidatePool.some((d) => d.id === id))) {
+    try {
+      const liveDebts = await apiRequest<Debt[]>(`${API_ENDPOINTS.shops.debts(shopId)}?customerId=${input.customerId}`);
+      if (Array.isArray(liveDebts)) {
+        liveDebts.forEach(addCandidate);
+      }
+    } catch (err) {
+      console.warn("Could not fetch customer debts for settlement allocation:", err);
+    }
+  }
+
+  // Normalize payment method for backend
+  const backendPaymentMethod =
+    input.paymentMethod === "Bank Transfer" || input.paymentMethod === "Card" || input.paymentMethod === "CARD"
+      ? "CARD"
+      : input.paymentMethod === "Mobile Payment" || input.paymentMethod === "MOBILE"
+      ? "MOBILE"
+      : "CASH";
+
+  // Compute FIFO payment allocation across all targeted debts
+  let unallocated = input.amount;
+  const allocations: Array<{ debtId: string; debtRecord?: Debt; payAmount: number }> = [];
+
+  for (let i = 0; i < targetDebtIds.length; i++) {
+    if (unallocated <= 0.0001) break;
+
+    const dId = targetDebtIds[i];
+    let debtRecord = candidatePool.find((d) => d.id === dId) || store.debts.find((d) => d.id === dId);
+    if (!debtRecord && Array.isArray(seedDebts)) {
+      debtRecord = seedDebts.find((d) => d.id === dId);
+    }
+
+    const totalDue = debtRecord ? parseFloat(String(debtRecord.amount || "0")) : 0;
+    const prevPaid = debtRecord ? parseFloat(String(debtRecord.paidAmount || "0")) : 0;
+    let remBefore = debtRecord
+      ? parseFloat(String(debtRecord.remainingAmount || (totalDue > prevPaid ? totalDue - prevPaid : 0)))
+      : 0;
+
+    // If remaining wasn't determinable, allocate proportional or remaining unallocated
+    if (remBefore <= 0.0001) {
+      if (totalDue > 0 && totalDue > prevPaid) {
+        remBefore = totalDue - prevPaid;
+      } else {
+        const remainingTargets = targetDebtIds.length - i;
+        remBefore = unallocated / Math.max(1, remainingTargets);
+      }
+    }
+
+    const payThis = Number(Math.min(unallocated, remBefore).toFixed(2));
+    if (payThis > 0) {
+      allocations.push({
+        debtId: dId,
+        debtRecord,
+        payAmount: payThis,
+      });
+      unallocated = Number((unallocated - payThis).toFixed(2));
+    }
+  }
+
+  // If there's still unallocated payment left (e.g. rounding or surplus), add it to the last allocation
+  if (unallocated > 0.001 && allocations.length > 0) {
+    allocations[allocations.length - 1].payAmount = Number(
+      (allocations[allocations.length - 1].payAmount + unallocated).toFixed(2)
     );
+    unallocated = 0;
   }
 
-  if (debtRecord) {
-    const prevPaid = parseFloat(debtRecord.paidAmount || "0");
-    const totalDue = parseFloat(debtRecord.amount || "0");
-    const newPaid = prevPaid + input.amount;
-    const remaining = Math.max(0, totalDue - newPaid);
-
-    debtRecord.paidAmount = newPaid.toFixed(2);
-    debtRecord.remainingAmount = remaining.toFixed(2);
-    debtRecord.status = remaining <= 0.001 ? "PAID" : "PARTIAL";
-
-    if (!debtRecord.payments) debtRecord.payments = [];
-    debtRecord.payments.unshift(paymentRecord);
-
-    if (!debtRecord.transactions) debtRecord.transactions = [];
-    debtRecord.transactions.unshift(transaction);
-  }
-
-  // Resolve target debt ID for live backend call
-  let debtIdToUse = input.debtId || debtRecord?.id;
-
+  // 1. If live backend is active, first try the atomic batch settlement endpoint
   if (!isMockApiEnabled()) {
     try {
-      // If we don't have a debtId, query backend for open debts for this customer
-      if (!debtIdToUse) {
-        const liveDebts = await apiRequest<Debt[]>(`${API_ENDPOINTS.shops.debts(shopId)}?customerId=${input.customerId}`);
-        const openDebt = Array.isArray(liveDebts) ? liveDebts.find((d) => d.status !== "PAID") : null;
-        if (openDebt) {
-          debtIdToUse = openDebt.id;
-        }
-      }
+      const batchRes = await apiRequest<{
+        customer?: { debtBalance?: number | string };
+        updatedDebts?: Debt[];
+        amountPaid?: number;
+      }>(API_ENDPOINTS.shops.debtBatchPayments(shopId), {
+        method: "POST",
+        body: {
+          customerId: input.customerId,
+          debtIds: targetDebtIds.length > 0 ? targetDebtIds : undefined,
+          amount: input.amount,
+          paymentMethod: backendPaymentMethod,
+          bankName: input.bankName || undefined,
+          reference: input.reference || undefined,
+          notes: input.notes || undefined,
+        },
+      });
 
-      if (debtIdToUse) {
-        const updatedDebt = await apiRequest<Debt>(API_ENDPOINTS.shops.debtPayments(shopId, debtIdToUse), {
-          method: "POST",
-          body: {
-            amount: input.amount,
-            paymentMethod: input.paymentMethod === "Bank Transfer" ? "CARD" : input.paymentMethod === "Mobile Payment" ? "MOBILE" : "CASH",
-            bankName: input.bankName || undefined,
-            reference: input.reference || undefined,
-            notes: input.notes || undefined,
-          },
-        });
+      if (batchRes) {
+        // Sync into store.debts
+        if (Array.isArray(batchRes.updatedDebts)) {
+          batchRes.updatedDebts.forEach((ud) => {
+            const normalized = normalizeDebt(ud);
+            const idx = store.debts.findIndex((d) => d.id === normalized.id);
+            if (idx >= 0) store.debts[idx] = normalized;
+            else store.debts.unshift(normalized);
+          });
+        }
+
+        const liveBal = batchRes.customer?.debtBalance !== undefined
+          ? parseFloat(String(batchRes.customer.debtBalance))
+          : newCustomerBalance;
 
         return {
           success: true,
-          debt: updatedDebt,
-          newBalance: updatedDebt?.amount !== undefined ? parseFloat(updatedDebt.amount) : newCustomerBalance,
+          debt: batchRes.updatedDebts?.[0] || null,
+          debts: batchRes.updatedDebts || [],
+          newBalance: liveBal,
           transaction,
         };
       }
-    } catch (err) {
-      console.warn("Backend recordDebtPayment failed, returning local state:", err);
+    } catch (batchErr) {
+      console.warn("Backend batch-payments endpoint unavailable or failed, falling back to individual endpoints:", batchErr);
+    }
+  }
+
+  // 2. Individual endpoint settlement & mock store sync (fallback or mock mode)
+  const updatedDebts: Debt[] = [];
+
+  for (const item of allocations) {
+    const { debtId, payAmount } = item;
+    let debtRecord = item.debtRecord || store.debts.find((d) => d.id === debtId);
+
+    // Call individual payment endpoint if live backend active
+    if (!isMockApiEnabled()) {
+      try {
+        const liveUpdated = await apiRequest<Debt>(API_ENDPOINTS.shops.debtPayments(shopId, debtId), {
+          method: "POST",
+          body: {
+            amount: payAmount,
+            paymentMethod: backendPaymentMethod,
+            bankName: input.bankName || undefined,
+            reference: input.reference ? `${input.reference}-${debtId.slice(-4)}` : undefined,
+            notes: input.notes || undefined,
+          },
+        });
+        if (liveUpdated) {
+          const normLive = normalizeDebt(liveUpdated);
+          updatedDebts.push(normLive);
+          const idx = store.debts.findIndex((d) => d.id === debtId);
+          if (idx >= 0) store.debts[idx] = normLive;
+          else store.debts.unshift(normLive);
+          continue;
+        }
+      } catch (err) {
+        console.warn(`Backend recordDebtPayment failed for debt ${debtId}:`, err);
+      }
+    }
+
+    // Local / mock store update
+    if (debtRecord) {
+      const prevPaid = parseFloat(String(debtRecord.paidAmount || "0"));
+      const totalDue = parseFloat(String(debtRecord.amount || "0"));
+      const newPaid = prevPaid + payAmount;
+      const newRemaining = Math.max(0, totalDue - newPaid);
+
+      debtRecord.paidAmount = newPaid.toFixed(2);
+      debtRecord.remainingAmount = newRemaining.toFixed(2);
+      debtRecord.status = newRemaining <= 0.001 ? "PAID" : "PARTIAL";
+
+      const paymentRecord = {
+        id: `pay-${Date.now()}-${debtId}`,
+        debtId,
+        customerId: input.customerId,
+        amount: payAmount.toFixed(2),
+        paymentMethod: input.paymentMethod || "Cash",
+        reference: ref,
+        notes: input.notes || "Debt payment recorded",
+        paidAt: nowIso,
+      };
+
+      if (!debtRecord.payments) debtRecord.payments = [];
+      debtRecord.payments.unshift(paymentRecord);
+
+      if (!debtRecord.transactions) debtRecord.transactions = [];
+      debtRecord.transactions.unshift({
+        ...transaction,
+        amount: -Math.abs(payAmount),
+        remainingBalance: newRemaining,
+      });
+
+      // Sync into store.debts
+      const idx = store.debts.findIndex((d) => d.id === debtId);
+      if (idx >= 0) store.debts[idx] = debtRecord;
+      else store.debts.unshift(debtRecord);
+
+      updatedDebts.push(debtRecord);
     }
   }
 
   return {
     success: true,
-    debt: debtRecord,
+    debt: updatedDebts[0] || null,
+    debts: updatedDebts,
     newBalance: newCustomerBalance,
     transaction,
   };
+}
+
+export async function recordBatchDebtPayments(
+  shopId: string,
+  payments: Array<{
+    customerId: string;
+    debtId?: string;
+    debtIds?: string[];
+    debts?: Debt[];
+    amount: number;
+    paymentMethod?: "Cash" | "Card" | "Bank Transfer" | "Mobile Payment" | string;
+    bankName?: string;
+    notes?: string;
+    reference?: string;
+  }>,
+) {
+  const results = [];
+  for (const p of payments) {
+    results.push(await recordDebtPayment(shopId, p));
+  }
+  return results;
 }
 
 
@@ -490,6 +796,7 @@ export async function createSale(
     notes?: string;
   },
 ) {
+  const store = getMockStore();
   const { seedCustomers, seedDebts, seedProducts, seedSales, seedProductHistory } = await import("@/lib/mock/data");
 
   const saleRef = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -531,6 +838,23 @@ export async function createSale(
       customerObj.totalCreditPurchases = parseFloat(String(customerObj.totalCreditPurchases || "0")) + debtPortion;
       customerObj.lastTransactionDate = dateStr;
 
+      // Format items breakdown
+      const debtItems = input.items.map((it) => ({
+        productId: it.productId,
+        name: it.name || "Product",
+        quantity: it.quantity,
+        unitPrice: it.unitPrice || 0,
+        totalPrice: (it.unitPrice || 0) * it.quantity,
+      }));
+
+      const itemsSummary = debtItems
+        .map((it) => `${it.quantity}x ${it.name} (${it.totalPrice.toFixed(2)} ETB)`)
+        .join(", ");
+
+      const debtNotes = input.notes
+        ? `Sale ${saleRef} (${itemsSummary}) - ${input.notes}`
+        : `Sale ${saleRef} (${itemsSummary})`;
+
       const debtTx: (typeof seedCustomers)[0]["debtHistory"] extends (infer T)[] | undefined ? T : never = {
         id: `dth-${Date.now()}`,
         customerId: customerObj.id,
@@ -541,32 +865,44 @@ export async function createSale(
         remainingBalance: newTotalDebt,
         date: dateStr,
         paymentMethod: paid > 0 ? `Partial ${input.paymentMethod}` : "Credit Sale",
-        notes: input.notes || `Sale ${saleRef} remaining ${debtPortion} ETB added to customer debt`,
+        notes: debtNotes,
+        items: debtItems,
       };
 
       if (!customerObj.debtHistory) customerObj.debtHistory = [];
       customerObj.debtHistory.unshift(debtTx);
 
-      // Sync with seedDebts list
-      let debtRecord = seedDebts.find((d) => d.customerId === customerObj!.id);
+      // Sync with seedDebts and mock store debts list
+      let debtRecord = store.debts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID") ||
+        seedDebts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID");
+
       if (debtRecord) {
         debtRecord.amount = String(newTotalDebt);
+        debtRecord.remainingAmount = String(newTotalDebt);
+        debtRecord.notes = debtNotes;
+        debtRecord.items = [...(debtRecord.items || []), ...debtItems];
         if (!debtRecord.transactions) debtRecord.transactions = [];
         debtRecord.transactions.unshift(debtTx);
       } else {
-        seedDebts.unshift({
+        const newDebtRecord: Debt = {
           id: `debt-${Date.now()}`,
           shopId,
           customerId: customerObj.id,
           customerName: customerObj.name,
           customerPhone: customerObj.phone,
           amount: String(newTotalDebt),
-          paidAmount: String(customerObj.totalPaid || 0),
+          paidAmount: String(customerObj.totalPaid || "0"),
+          remainingAmount: String(newTotalDebt),
           dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0],
-          status: "pending",
-          notes: `Debt created from sale ${saleRef}`,
+          status: "PENDING",
+          notes: debtNotes,
+          items: debtItems,
+          payments: [],
           transactions: [debtTx],
-        });
+          createdAt: new Date().toISOString(),
+        };
+        store.debts.unshift(newDebtRecord);
+        if (Array.isArray(seedDebts)) seedDebts.unshift(newDebtRecord);
       }
     }
   }
@@ -700,50 +1036,107 @@ export async function processSaleReturn(
   }
 
   const { seedSales, seedProducts } = await import("@/lib/mock/data");
+  const store = getMockStore();
+  const targetStoreSale = store.sales.find((s) => s.id === saleId);
   const targetSale = seedSales.find((s) => s.id === saleId);
-  if (targetSale) {
-    targetSale.status = "REFUNDED";
-  }
+
+  const totalRefund = input.items.reduce((sum, it) => sum + (it.refundAmount || 0), 0);
+  const currentItems = targetStoreSale?.items || targetSale?.items || [];
+  const isFullReturn =
+    currentItems.length > 0 &&
+    currentItems.every((origIt) => {
+      const ret = input.items.find((it) => it.productId === origIt.productId);
+      return ret && ret.quantity >= origIt.quantity;
+    });
+
+  const resolvedStatus = isFullReturn ? "RETURNED" : "PARTIAL_RETURN";
+
+  const updateSaleRecord = (s: Sale) => {
+    s.status = resolvedStatus;
+    if (!isFullReturn) {
+      s.totalAmount = Math.max(0, parseFloat(s.totalAmount || "0") - totalRefund).toFixed(2);
+      if (s.items) {
+        s.items = s.items.map((it) => {
+          const ret = input.items.find((r) => r.productId === it.productId);
+          return ret ? { ...it, quantity: Math.max(0, it.quantity - ret.quantity) } : it;
+        });
+      }
+    }
+  };
+
+  if (targetStoreSale) updateSaleRecord(targetStoreSale);
+  if (targetSale) updateSaleRecord(targetSale);
 
   for (const it of input.items) {
     const prod = seedProducts.find((p) => p.id === it.productId);
     if (prod) {
       prod.stockQuantity += it.quantity;
     }
+    const storeProd = store.products.find((p) => p.id === it.productId);
+    if (storeProd) {
+      storeProd.stockQuantity += it.quantity;
+    }
   }
 
-  return { success: true, message: "Sale return processed successfully" };
+  return {
+    success: true,
+    message: "Sale return processed successfully",
+    data: { sale: targetStoreSale || targetSale },
+  };
 }
 
 export async function voidSale(shopId: string, saleId: string) {
+  if (!isMockApiEnabled()) {
+    return await apiRequest<{ success: boolean; message: string }>(
+      API_ENDPOINTS.shops.saleDetail(shopId, saleId),
+      { method: "DELETE" },
+    );
+  }
+
   const { seedSales, seedProducts, seedCustomers, seedDebts } = await import("@/lib/mock/data");
+  const store = getMockStore();
 
   const sale = seedSales.find((s) => s.id === saleId);
-  if (sale) {
-    sale.status = "CANCELLED";
+  const storeSale = store.sales.find((s) => s.id === saleId);
+  const target = storeSale || sale;
 
-    // 1. Restore product inventory stock
-    if (sale.items) {
-      sale.items.forEach((it) => {
-        const prod = seedProducts.find((p) => p.id === it.productId);
-        if (prod) {
-          prod.stockQuantity += it.quantity;
-        }
-      });
-    }
+  if (storeSale) storeSale.status = "CANCELLED";
+  if (sale) sale.status = "CANCELLED";
 
-    // 2. Reverse customer debt if applicable
-    if (sale.customerId) {
-      const customer = seedCustomers.find((c) => c.id === sale.customerId);
-      const debtAmount = sale.paymentMethod === "DEBT" ? parseFloat(sale.totalAmount) : (sale.splitDetails?.debtAmount || 0);
+  if (target?.items) {
+    target.items.forEach((it) => {
+      const prod = seedProducts.find((p) => p.id === it.productId);
+      if (prod) prod.stockQuantity += it.quantity;
+      const storeProd = store.products.find((p) => p.id === it.productId);
+      if (storeProd) storeProd.stockQuantity += it.quantity;
+    });
+  }
 
-      if (customer && debtAmount > 0) {
+  if (target?.customerId) {
+    const debtAmount =
+      target.paymentMethod === "DEBT"
+        ? parseFloat(target.totalAmount || "0")
+        : (target.splitDetails?.debtAmount || 0);
+
+    if (debtAmount > 0) {
+      const customer = seedCustomers.find((c) => c.id === target.customerId);
+      if (customer) {
         const curDebt = parseFloat(customer.debtBalance || "0");
         customer.debtBalance = String(Math.max(0, curDebt - debtAmount));
-        const debtRecord = seedDebts.find((d) => d.customerId === sale.customerId);
-        if (debtRecord) {
-          debtRecord.amount = customer.debtBalance;
-        }
+      }
+      const storeCustomer = store.customers.find((c) => c.id === target.customerId);
+      if (storeCustomer) {
+        const curDebt = parseFloat(storeCustomer.debtBalance || "0");
+        storeCustomer.debtBalance = String(Math.max(0, curDebt - debtAmount));
+      }
+
+      const debtRecord = seedDebts.find((d) => d.customerId === target.customerId);
+      if (debtRecord) {
+        debtRecord.amount = String(Math.max(0, parseFloat(debtRecord.amount || "0") - debtAmount));
+      }
+      const storeDebt = store.debts.find((d) => d.customerId === target.customerId);
+      if (storeDebt) {
+        storeDebt.amount = String(Math.max(0, parseFloat(storeDebt.amount || "0") - debtAmount));
       }
     }
   }
@@ -940,7 +1333,10 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
   const store = getMockStore();
 
   const computeMockDashboardMetrics = (targetShopId: string): DashboardMetrics => {
-    const shopSales = store.sales.filter((s) => (!s.shopId || s.shopId === targetShopId) && s.status !== "CANCELLED");
+    const shopSales = store.sales.filter((s) => {
+      const st = (s.status || "COMPLETED").toUpperCase();
+      return (!s.shopId || s.shopId === targetShopId) && st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+    });
     const shopProducts = store.products.filter((p) => p.shopId === targetShopId);
     const shopExpenses = store.expenses.filter((e) => (!e.shopId || e.shopId === targetShopId) && e.status === "Paid");
     const shopCustomers = store.customers.filter((c) => !c.shopId || c.shopId === targetShopId);
@@ -1095,7 +1491,10 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     const prods = products.status === "fulfilled" && Array.isArray(products.value) ? products.value : [];
     const lowStockLive = lowStock.status === "fulfilled" && Array.isArray(lowStock.value) ? lowStock.value : [];
     const salesList = liveSales.status === "fulfilled" && Array.isArray(liveSales.value) ? liveSales.value : [];
-    const validSales = salesList.filter((s) => s.status !== "CANCELLED");
+    const validSales = salesList.filter((s) => {
+      const st = (s.status || "COMPLETED").toUpperCase();
+      return st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+    });
 
     const rawExp = liveExpenses.status === "fulfilled" && Array.isArray(liveExpenses.value)
       ? liveExpenses.value
@@ -1373,7 +1772,10 @@ export async function getShopAnalytics(
     sCustomers: Customer[],
     sDebts: Debt[],
   ): ShopAnalyticsReport => {
-    const validSales = sSales.filter((s) => s.status !== "CANCELLED");
+    const validSales = sSales.filter((s) => {
+      const st = (s.status || "COMPLETED").toUpperCase();
+      return st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+    });
     const totalRev = validSales.reduce((sum, s) => sum + parseFloat(s.totalAmount || "0"), 0);
     const totalSalesCount = validSales.length;
     const avgOrderValue = totalSalesCount > 0 ? parseFloat((totalRev / totalSalesCount).toFixed(2)) : 0;
@@ -1476,7 +1878,10 @@ export async function getShopAnalytics(
     };
   };
 
-  const shopSales = store.sales.filter((s) => (!s.shopId || s.shopId === shopId) && s.status !== "CANCELLED");
+  const shopSales = store.sales.filter((s) => {
+    const st = (s.status || "COMPLETED").toUpperCase();
+    return (!s.shopId || s.shopId === shopId) && st !== "CANCELLED" && st !== "VOIDED" && st !== "REFUNDED" && st !== "RETURNED";
+  });
   const shopProducts = store.products.filter((p) => p.shopId === shopId);
   const shopCustomers = store.customers.filter((c) => !c.shopId || c.shopId === shopId);
   const shopDebts = store.debts.filter((d) => !d.shopId || d.shopId === shopId);
@@ -1648,14 +2053,11 @@ export async function getUserProfile(): Promise<UserProfile> {
 
 export async function updateUserProfile(input: UpdateProfileInput): Promise<UserProfile> {
   if (isMockApiEnabled()) {
+    const existing = await getUserProfile();
     return {
-      id: "u-profile-1",
-      email: input.email || "owner@example.com",
-      name: input.name || "Alex Owner Updated",
-      role: "OWNER",
-      shopId: null,
-      isActive: true,
-      createdAt: "2026-08-12T08:50:41.994Z",
+      ...existing,
+      email: input.email || existing.email,
+      name: input.name || existing.name,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -1786,31 +2188,48 @@ export async function getTeamSummary(shopId: string): Promise<TeamSummary> {
 
 export async function getTeamMembers(shopId: string): Promise<TeamMember[]> {
   const store = getMockStore();
+  const overrides = getStaffOverrides();
+
+  let members: TeamMember[] = [];
 
   if (isMockApiEnabled()) {
-    return store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+    members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+  } else {
+    try {
+      const live = await apiRequest<any[]>(API_ENDPOINTS.shops.staff(shopId));
+      if (Array.isArray(live)) {
+        members = live.map((s) => ({
+          id: s.id,
+          shopId: s.shopId || shopId,
+          name: s.name,
+          email: s.email,
+          role: s.role === "ADMIN" ? "Shop Admin" : "Shop Sale",
+          status: s.isActive ? "Active" : "Suspended",
+          joinedDate: s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB") : "Recent",
+          lastLogin: s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-GB") : "Recent",
+          phone: s.phone || "+251911223344",
+          permissions: s.role === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS", "View Products"],
+        }));
+      } else {
+        members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+      }
+    } catch {
+      members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+    }
   }
 
-  try {
-    const live = await apiRequest<any[]>(API_ENDPOINTS.shops.staff(shopId));
-    if (Array.isArray(live)) {
-      return live.map((s) => ({
-        id: s.id,
-        shopId: s.shopId || shopId,
-        name: s.name,
-        email: s.email,
-        role: s.role === "ADMIN" ? "Shop Admin" : "Shop Sale",
-        status: s.isActive ? "Active" : "Suspended",
-        joinedDate: s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB") : "Recent",
-        lastLogin: s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-GB") : "Recent",
-        phone: s.phone || "+251911223344",
-        permissions: s.role === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS", "View Products"],
-      }));
+  // Merge any local overrides (so role and profile updates persist cleanly)
+  return members.map((m) => {
+    if (overrides[m.id]) {
+      const ov = overrides[m.id];
+      return {
+        ...m,
+        ...ov,
+        role: ov.role || m.role,
+      };
     }
-    return store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
-  } catch {
-    return store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
-  }
+    return m;
+  });
 }
 
 export async function createTeamMember(
@@ -1838,6 +2257,9 @@ export async function createTeamMember(
     permissions: input.permissions || (roleNormalized === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS"]),
   };
 
+  const store = getMockStore();
+  store.teamMembers.unshift(newMember);
+
   const { seedTeamMembers } = await import("@/lib/mock/data");
   seedTeamMembers.unshift(newMember);
 
@@ -1864,17 +2286,79 @@ export async function createTeamMember(
 }
 
 export async function updateTeamMember(
-  _shopId: string,
+  shopId: string,
   memberId: string,
   input: Partial<Omit<TeamMember, "id">>,
 ) {
+  const store = getMockStore();
   const { seedTeamMembers } = await import("@/lib/mock/data");
-  const member = seedTeamMembers.find((m) => m.id === memberId);
-  if (member) {
-    Object.assign(member, input);
-    return member;
+
+  // Format role string for display & storage
+  const roleFormatted =
+    input.role === "ADMIN" || input.role === "Shop Admin"
+      ? "Shop Admin"
+      : input.role === "SALES" || input.role === "Shop Sale"
+      ? "Shop Sale"
+      : input.role;
+
+  const updatePayload = {
+    ...input,
+    ...(roleFormatted ? { role: roleFormatted } : {}),
+  };
+
+  // 1. Update in mock store
+  const storeMember = store.teamMembers.find((m) => m.id === memberId);
+  if (storeMember) {
+    Object.assign(storeMember, updatePayload);
   }
-  return { id: memberId, ...input } as TeamMember;
+
+  // 2. Update in seed data
+  const seedMember = seedTeamMembers.find((m) => m.id === memberId);
+  if (seedMember) {
+    Object.assign(seedMember, updatePayload);
+  }
+
+  // 3. Save persistent override in client storage
+  saveStaffOverride(memberId, updatePayload);
+
+  // 4. Try live backend
+  if (!isMockApiEnabled()) {
+    try {
+      const response = await apiRequest<{ success: boolean; data: any } | any>(
+        API_ENDPOINTS.shops.staffMember(shopId, memberId),
+        {
+          method: "PUT",
+          body: {
+            name: input.name,
+            email: input.email,
+            phone: input.phone,
+            role: input.role?.includes("Admin") || input.role === "ADMIN" ? "ADMIN" : "SALES",
+            isActive: input.status !== undefined ? input.status === "Active" : undefined,
+          },
+        }
+      );
+      if (response && (response.data || response.id)) {
+        const data = response.data || response;
+        const updated: TeamMember = {
+          id: data.id || memberId,
+          shopId: data.shopId || shopId,
+          name: data.name || input.name || storeMember?.name || "",
+          email: data.email || input.email || storeMember?.email || "",
+          phone: data.phone || input.phone || storeMember?.phone || "",
+          role: data.role === "ADMIN" ? "Shop Admin" : data.role === "SALES" ? "Shop Sale" : (roleFormatted || "Shop Sale"),
+          status: data.isActive === false ? "Suspended" : (storeMember?.status || "Active"),
+          joinedDate: storeMember?.joinedDate || new Date().toLocaleDateString("en-GB"),
+          lastLogin: storeMember?.lastLogin || "Just now",
+          permissions: storeMember?.permissions || [],
+        };
+        return updated;
+      }
+    } catch (err) {
+      console.warn("Backend updateTeamMember failed, using optimistic state:", err);
+    }
+  }
+
+  return (storeMember || seedMember || { id: memberId, ...updatePayload }) as TeamMember;
 }
 
 export async function deleteTeamMember(shopId: string, memberId: string) {
@@ -1897,6 +2381,307 @@ export async function deleteTeamMember(shopId: string, memberId: string) {
   return { success: true, message: "Team member deleted" };
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Shop Notifications API                                             */
+/* ------------------------------------------------------------------ */
+export async function getShopNotifications(
+  shopId: string,
+  params?: {
+    isRead?: boolean;
+    type?: NotificationType;
+    severity?: NotificationSeverity;
+    page?: number;
+    limit?: number;
+  },
+): Promise<NotificationFeedResponse> {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 20;
+
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    let notifs = (store.notifications || []).filter((n) => !n.shopId || n.shopId === shopId);
+
+    if (notifs.length === 0) {
+      const now = new Date();
+      const in7Days = new Date(now.getTime() + 7 * 86400000);
+
+      store.products.forEach((p) => {
+        if (!p.shopId || p.shopId === shopId) {
+          if (p.stockQuantity <= (p.lowStockThreshold || 5)) {
+            notifs.push({
+              id: `notif-stock-${p.id}`,
+              shopId,
+              type: "LOW_STOCK",
+              severity: p.stockQuantity === 0 ? "CRITICAL" : "WARNING",
+              title: `Low Stock Alert: ${p.name}`,
+              message: `${p.name} (SKU: ${p.sku}) has ${p.stockQuantity} ${p.unit || "pcs"} remaining (threshold: ${p.lowStockThreshold || 5}).`,
+              entityId: p.id,
+              metadata: { stockQuantity: p.stockQuantity, threshold: p.lowStockThreshold, unit: p.unit },
+              isRead: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+          if (p.expiryDate) {
+            const exp = new Date(p.expiryDate);
+            if (!isNaN(exp.getTime())) {
+              if (exp <= now) {
+                notifs.push({
+                  id: `notif-exp-${p.id}`,
+                  shopId,
+                  type: "PRODUCT_EXPIRED",
+                  severity: "CRITICAL",
+                  title: `Product Expired: ${p.name}`,
+                  message: `${p.name} (SKU: ${p.sku}) expired on ${exp.toLocaleDateString()}.`,
+                  entityId: p.id,
+                  metadata: { expiryDate: p.expiryDate },
+                  isRead: false,
+                  createdAt: new Date().toISOString(),
+                });
+              } else if (exp <= in7Days) {
+                const diffDays = Math.ceil((exp.getTime() - now.getTime()) / 86400000);
+                notifs.push({
+                  id: `notif-exp-soon-${p.id}`,
+                  shopId,
+                  type: "PRODUCT_EXPIRING_SOON",
+                  severity: "WARNING",
+                  title: `Expiring Soon: ${p.name}`,
+                  message: `${p.name} (SKU: ${p.sku}) will expire in ${diffDays} day${diffDays === 1 ? "" : "s"} (${exp.toLocaleDateString()}).`,
+                  entityId: p.id,
+                  metadata: { expiryDate: p.expiryDate, daysRemaining: diffDays },
+                  isRead: false,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          }
+        }
+      });
+      store.notifications = notifs;
+    }
+
+    if (params?.isRead !== undefined) {
+      notifs = notifs.filter((n) => n.isRead === params.isRead);
+    }
+    if (params?.type) {
+      notifs = notifs.filter((n) => n.type === params.type);
+    }
+    if (params?.severity) {
+      notifs = notifs.filter((n) => n.severity === params.severity);
+    }
+
+    const total = notifs.length;
+    const unreadCount = notifs.filter((n) => !n.isRead).length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const paginated = notifs.slice((page - 1) * limit, page * limit);
+
+    return {
+      notifications: paginated,
+      total,
+      page,
+      limit,
+      totalPages,
+      unreadCount,
+    };
+  }
+
+  const query = new URLSearchParams();
+  if (params?.isRead !== undefined) query.set("isRead", String(params.isRead));
+  if (params?.type) query.set("type", params.type);
+  if (params?.severity) query.set("severity", params.severity);
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  try {
+    const res = await apiRequest<any>(`${API_ENDPOINTS.shops.notifications(shopId)}${suffix}`);
+    if (res && res.notifications) {
+      return res as NotificationFeedResponse;
+    }
+    if (Array.isArray(res)) {
+      return {
+        notifications: res,
+        total: res.length,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        unreadCount: res.filter((r: any) => !r.isRead).length,
+      };
+    }
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  } catch (err) {
+    console.warn("Could not fetch shop notifications live:", err);
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  }
+}
+
+export async function getShopUnreadNotificationCount(shopId: string): Promise<number> {
+  if (isMockApiEnabled()) {
+    const feed = await getShopNotifications(shopId);
+    return feed.unreadCount;
+  }
+
+  try {
+    const res = await apiRequest<{ count: number }>(API_ENDPOINTS.shops.notificationsUnreadCount(shopId));
+    return typeof res?.count === "number" ? res.count : 0;
+  } catch {
+    const feed = await getShopNotifications(shopId);
+    return feed.unreadCount;
+  }
+}
+
+export async function markShopNotificationAsRead(shopId: string, id: string): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    const item = (store.notifications || []).find((n) => n.id === id);
+    if (item) {
+      item.isRead = true;
+      item.readAt = new Date().toISOString();
+    }
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.shops.markNotificationRead(shopId, id), { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark shop notification as read:", err);
+  }
+}
+
+export async function markAllShopNotificationsAsRead(shopId: string): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    (store.notifications || []).forEach((n) => {
+      if (!n.shopId || n.shopId === shopId) {
+        n.isRead = true;
+        n.readAt = new Date().toISOString();
+      }
+    });
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.shops.markAllNotificationsRead(shopId), { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark all shop notifications as read:", err);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* SuperAdmin Notifications API                                       */
+/* ------------------------------------------------------------------ */
+export async function getAdminNotifications(params?: {
+  isRead?: boolean;
+  page?: number;
+  limit?: number;
+}): Promise<NotificationFeedResponse> {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 20;
+
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    let notifs = (store.notifications || []).filter((n) => !n.shopId);
+    if (notifs.length === 0) {
+      notifs = [
+        {
+          id: "notif-adm-01",
+          shopId: null,
+          type: "PENDING_OWNER_APPROVAL",
+          severity: "INFO",
+          title: "Pending Owner Approval",
+          message: "New shop owner registration awaiting approval.",
+          entityId: "owner-pending-id",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+      store.notifications = notifs;
+    }
+    if (params?.isRead !== undefined) {
+      notifs = notifs.filter((n) => n.isRead === params.isRead);
+    }
+    const total = notifs.length;
+    const unreadCount = notifs.filter((n) => !n.isRead).length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    return {
+      notifications: notifs.slice((page - 1) * limit, page * limit),
+      total,
+      page,
+      limit,
+      totalPages,
+      unreadCount,
+    };
+  }
+
+  const query = new URLSearchParams();
+  if (params?.isRead !== undefined) query.set("isRead", String(params.isRead));
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  try {
+    const res = await apiRequest<any>(`${API_ENDPOINTS.admin.notifications}${suffix}`);
+    if (res && res.notifications) {
+      return res as NotificationFeedResponse;
+    }
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  } catch (err) {
+    console.warn("Could not fetch admin notifications:", err);
+    return { notifications: [], total: 0, page: 1, limit: 20, totalPages: 1, unreadCount: 0 };
+  }
+}
+
+export async function getAdminUnreadNotificationCount(): Promise<number> {
+  if (isMockApiEnabled()) {
+    const feed = await getAdminNotifications();
+    return feed.unreadCount;
+  }
+
+  try {
+    const res = await apiRequest<{ count: number }>(API_ENDPOINTS.admin.notificationsUnreadCount);
+    return typeof res?.count === "number" ? res.count : 0;
+  } catch {
+    const feed = await getAdminNotifications();
+    return feed.unreadCount;
+  }
+}
+
+export async function markAdminNotificationAsRead(id: string): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    const item = (store.notifications || []).find((n) => n.id === id);
+    if (item) {
+      item.isRead = true;
+      item.readAt = new Date().toISOString();
+    }
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.admin.markNotificationRead(id), { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark admin notification as read:", err);
+  }
+}
+
+export async function markAllAdminNotificationsAsRead(): Promise<void> {
+  if (isMockApiEnabled()) {
+    const store = getMockStore();
+    (store.notifications || []).forEach((n) => {
+      if (!n.shopId) {
+        n.isRead = true;
+        n.readAt = new Date().toISOString();
+      }
+    });
+    return;
+  }
+
+  try {
+    await apiRequest(API_ENDPOINTS.admin.markAllNotificationsRead, { method: "PATCH" });
+  } catch (err) {
+    console.warn("Could not mark all admin notifications as read:", err);
+  }
+}
 
 export type {
   DashboardMetrics,

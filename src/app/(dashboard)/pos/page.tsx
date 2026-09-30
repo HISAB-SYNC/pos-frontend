@@ -160,7 +160,7 @@ function QuickAddCustomerModal({
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Registering..." : "Save Customer"}
             </button>
@@ -280,8 +280,8 @@ function SaleReceiptModal({
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex flex-col items-center border-b border-zinc-100 pb-4 text-center">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-[#f3fad9] text-zinc-950 ring-4 ring-[#c0e763]/20">
-            <CheckCircle2 className="size-6 text-zinc-900 stroke-[2.5]" />
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 ring-4 ring-emerald-500/10">
+            <CheckCircle2 className="size-6 text-emerald-600 stroke-[2.5]" />
           </div>
           <h2 className="mt-3 text-base font-bold text-zinc-950">Sale Finalized</h2>
           <p className="font-mono text-[11px] font-medium text-zinc-400">REF: {sale.id.slice(0, 16)}</p>
@@ -376,10 +376,10 @@ function SaleReceiptModal({
               onClose();
               onNewSale();
             }}
-            className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 py-2 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+            className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
           >
             <span>Next Transaction</span>
-            <ArrowRight className="size-3.5" />
+            <ArrowRight className="size-3.5 text-indigo-400" />
           </button>
         </div>
       </div>
@@ -673,7 +673,7 @@ export default function PosPage() {
           <ShoppingCart className="size-3.5" />
           <span>Cart ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
           {cart.length > 0 && (
-            <span className="rounded-full bg-[#c0e763] px-1.5 py-0.2 font-mono text-[10px] font-bold text-zinc-950">
+            <span className="rounded-full bg-[#5B4FE9] px-1.5 py-0.2 font-mono text-[10px] font-bold text-white">
               {total.toLocaleString()} ETB
             </span>
           )}
@@ -712,7 +712,7 @@ export default function PosPage() {
                 onClick={() => setSelectedCategory(cat)}
                 className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   selectedCategory === cat
-                    ? "bg-[#c0e763] text-zinc-950 shadow-xs ring-1 ring-[#c0e763]"
+                    ? "bg-slate-900 text-white shadow-xs"
                     : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
                 }`}
               >
@@ -731,7 +731,7 @@ export default function PosPage() {
                 <div
                   key={product.id}
                   className={`group flex flex-col justify-between rounded-2xl border bg-white p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all hover:border-zinc-300 hover:shadow-md ${
-                    inCart ? "border-zinc-950 ring-2 ring-[#c0e763]" : "border-zinc-200"
+                    inCart ? "border-[#5B4FE9] ring-2 ring-[#5B4FE9]/30" : "border-zinc-200"
                   }`}
                 >
                   <div>
@@ -765,7 +765,7 @@ export default function PosPage() {
                       type="button"
                       disabled={isOutOfStock}
                       onClick={() => addToCart(product)}
-                      className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-white transition-all hover:bg-[#c0e763] hover:text-zinc-950 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white transition-all hover:bg-[#5B4FE9] hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                       title="Add to cart"
                     >
                       <Plus className="size-3.5" />
@@ -785,7 +785,7 @@ export default function PosPage() {
             {/* Cart Header */}
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-[#f3fad9] text-zinc-950 ring-1 ring-[#c0e763]/60">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/30">
                   <ShoppingCart className="size-4" />
                 </div>
                 <div>
@@ -947,7 +947,7 @@ export default function PosPage() {
                     }}
                     className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
                       isSelected
-                        ? "border-zinc-950 bg-[#c0e763] text-zinc-950 shadow-sm ring-1 ring-zinc-950 font-bold"
+                        ? "border-slate-900 bg-slate-900 text-white shadow-sm font-bold"
                         : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
                     }`}
                   >
@@ -969,7 +969,7 @@ export default function PosPage() {
                     <select
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-xs font-medium text-zinc-800 focus:border-zinc-950 focus:outline-none"
+                      className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-xs font-medium text-zinc-800 focus:border-slate-900 focus:outline-none"
                     >
                       {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
                         <option key={b} value={b}>
@@ -998,7 +998,7 @@ export default function PosPage() {
                     value={paymentReference}
                     onChange={(e) => setPaymentReference(e.target.value)}
                     placeholder="e.g. FT2409... or Slip #"
-                    className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 font-mono text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-950 focus:outline-none"
+                    className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 font-mono text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-slate-900 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1131,7 +1131,7 @@ export default function PosPage() {
             className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-xs font-bold tracking-tight shadow-md transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 ${
               debtAdditionAmount > 0
                 ? "bg-amber-400 text-zinc-950 shadow-amber-400/20 hover:bg-amber-500"
-                : "bg-[#c0e763] text-zinc-950 shadow-[#c0e763]/25 hover:bg-[#b0d952]"
+                : "bg-[#5B4FE9] text-white shadow-[#5B4FE9]/25 hover:bg-[#4D40D9]"
             }`}
           >
             {isProcessing ? (
@@ -1155,19 +1155,19 @@ export default function PosPage() {
 
     {/* Floating Bottom Cart Bar (Mobile/Tablet only when on catalog view and items in cart) */}
     {cart.length > 0 && mobileTab === "catalog" && (
-      <div className="sticky bottom-3 z-30 flex items-center justify-between rounded-2xl border border-zinc-900/10 bg-zinc-950 p-3.5 text-white shadow-2xl animate-in slide-in-from-bottom-3 lg:hidden">
+      <div className="sticky bottom-3 z-30 flex items-center justify-between rounded-2xl border border-zinc-900/10 bg-slate-900 p-3.5 text-white shadow-2xl animate-in slide-in-from-bottom-3 lg:hidden">
         <div>
           <span className="text-[11px] text-zinc-400">
             {cart.reduce((s, i) => s + i.quantity, 0)} items in cart
           </span>
-          <div className="font-mono text-base font-bold text-[#c0e763]">
+          <div className="font-mono text-base font-bold text-[#5B4FE9]">
             {total.toLocaleString()} ETB
           </div>
         </div>
         <button
           type="button"
           onClick={() => setMobileTab("cart")}
-          className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 py-2 text-xs font-bold text-zinc-950 shadow-xs transition-all active:scale-95"
+          className="flex items-center gap-1.5 rounded-xl bg-[#5B4FE9] px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#4D40D9] active:scale-95"
         >
           <span>Review &amp; Pay</span>
           <ArrowRight className="size-3.5" />

@@ -184,7 +184,7 @@ export function NotificationsPanel({
             Notifications
           </h3>
           {unreadCount > 0 ? (
-            <span className="rounded-full bg-[#c0e763] px-2 py-0.5 text-[10px] font-bold text-zinc-950">
+            <span className="rounded-full bg-[#5B4FE9] px-2 py-0.5 text-[10px] font-bold text-white">
               {unreadCount} unread
             </span>
           ) : (

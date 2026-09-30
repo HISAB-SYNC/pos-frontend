@@ -93,14 +93,14 @@ function NavLink({
         "group relative flex items-center rounded-lg py-2 text-xs font-medium transition-all duration-150",
         collapsed ? "justify-center px-2" : "gap-3 px-3",
         active
-          ? "bg-[#c0e763]/25 text-zinc-950 font-semibold border-l-2 border-[#7ea521] shadow-xs"
+          ? "bg-[#5B4FE9]/10 text-zinc-950 font-semibold border-l-2 border-[#5B4FE9] shadow-xs"
           : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
       )}
     >
       <Icon
         className={cn(
           "size-4 shrink-0 transition-colors",
-          active ? "text-[#547311]" : "text-zinc-400 group-hover:text-zinc-700",
+          active ? "text-[#5B4FE9]" : "text-zinc-400 group-hover:text-zinc-700",
         )}
       />
       {!collapsed && (
@@ -111,7 +111,7 @@ function NavLink({
           className={cn(
             "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
             active
-              ? "bg-[#c0e763] text-zinc-950"
+              ? "bg-[#5B4FE9] text-white"
               : "bg-zinc-100 text-zinc-600",
           )}
         >

@@ -52,7 +52,7 @@ export function AndalusLogo({ variant = "full", className, textClassName, size }
           variant === "compact" ? "text-xl" : "text-2xl",
         )}
       >
-        Andalus<span className="text-[#c0e763]">.</span>
+        Andalus<span className="text-[#5B4FE9]">.</span>
       </span>
     </div>
   );

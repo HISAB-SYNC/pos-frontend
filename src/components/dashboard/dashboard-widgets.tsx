@@ -4,11 +4,12 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-export type MetricTone = "lime" | "dark" | "emerald" | "amber" | "blue" | "purple" | "orange" | "green";
+export type MetricTone = "indigo" | "lime" | "dark" | "emerald" | "amber" | "blue" | "purple" | "orange" | "green";
 
 const toneStyles: Record<MetricTone, { box: string; icon: string }> = {
-  lime: { box: "bg-[#f3fad9] ring-1 ring-[#c0e763]/60", icon: "text-zinc-900" },
-  dark: { box: "bg-zinc-900", icon: "text-[#c0e763]" },
+  indigo: { box: "bg-indigo-50 ring-1 ring-[#5B4FE9]/30", icon: "text-[#5B4FE9]" },
+  lime: { box: "bg-indigo-50 ring-1 ring-[#5B4FE9]/30", icon: "text-[#5B4FE9]" },
+  dark: { box: "bg-slate-800", icon: "text-indigo-400" },
   emerald: { box: "bg-emerald-50 ring-1 ring-emerald-500/20", icon: "text-emerald-700" },
   green: { box: "bg-emerald-50 ring-1 ring-emerald-500/20", icon: "text-emerald-700" },
   amber: { box: "bg-amber-50 ring-1 ring-amber-500/20", icon: "text-amber-700" },

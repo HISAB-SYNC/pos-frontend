@@ -68,7 +68,7 @@ export function DashboardHeader() {
         <input
           type="text"
           placeholder="Search products, orders, customers..."
-          className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50/70 pl-9 pr-14 text-xs font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#c0e763]/40"
+          className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50/70 pl-9 pr-14 text-xs font-medium text-zinc-900 placeholder:text-zinc-400 transition-all focus:border-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5B4FE9]/40"
         />
         <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
           <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 shadow-xs">
@@ -124,7 +124,7 @@ export function DashboardHeader() {
           >
             <Bell className="size-4" />
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[#c0e763] text-[10px] font-bold text-zinc-950 shadow-xs ring-2 ring-white">
+              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[#5B4FE9] text-[10px] font-bold text-white shadow-xs ring-2 ring-white">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -141,7 +141,7 @@ export function DashboardHeader() {
         {/* User avatar & role */}
         <div className="flex items-center gap-2 pl-1">
           <Avatar className="size-9 border border-zinc-200 shadow-xs">
-            <AvatarFallback className="bg-zinc-900 text-xs font-bold text-[#c0e763]">
+            <AvatarFallback className="bg-slate-800 text-xs font-bold text-indigo-400">
               {initials}
             </AvatarFallback>
           </Avatar>

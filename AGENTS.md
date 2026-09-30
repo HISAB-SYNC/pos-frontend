@@ -14,6 +14,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Read `PROJECT_STATE.md` first at the start of every session to immediately understand current progress, recent decisions, and next steps.
 - Always keep `PROJECT_STATE.md` updated as changes are made or before wrapping up, matching the template structure so work can be resumed seamlessly.
 
+## UI Design Guidelines
+- for each project: Follow the anti-ai-look skill for all UI work, alongside ui-style.
+
 ## Skills Policy
 - **DO NOT USE SKILLS**: Do not invoke, load, or rely on any skills in this project. All tasks, git operations, and reviews must be performed directly using standard tools.
 

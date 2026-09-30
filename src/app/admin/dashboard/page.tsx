@@ -243,7 +243,7 @@ function RegisterOwnerModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Registering..." : "Complete Registration"}
             </button>
@@ -445,8 +445,8 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
-              <ShieldCheck className="size-4 text-[#c0e763]" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+              <ShieldCheck className="size-4 text-indigo-400" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">SuperAdmin Oversight Dashboard</h1>
           </div>
@@ -468,9 +468,9 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setIsRegisterModalOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
           >
-            <UserPlus className="size-4 text-zinc-950" />
+            <UserPlus className="size-4 text-indigo-400" />
             + Register New Owner
           </button>
         </div>
@@ -501,8 +501,8 @@ export default function AdminDashboardPage() {
         <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#6b7280]">Total Registered Shops</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-950 text-[#c0e763]">
-              <Building2 className="size-4 text-[#c0e763]" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-slate-900 text-white">
+              <Building2 className="size-4 text-indigo-400" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
@@ -733,7 +733,7 @@ export default function AdminDashboardPage() {
                   <tr key={owner.id} className="hover:bg-[#f9fafb]">
                     <td className="py-3 font-bold text-[#111827]">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 font-mono text-[11px] font-bold text-[#c0e763]">
+                        <div className="flex size-7 items-center justify-center rounded-lg bg-slate-800 font-mono text-[11px] font-bold text-indigo-400">
                           {owner.name.slice(0, 2).toUpperCase()}
                         </div>
                         <span>{owner.name}</span>

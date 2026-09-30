@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     customerDetail: (shopId: string, customerId: string) => `/shops/${shopId}/customers/${customerId}`,
     debts: (shopId: string) => `/shops/${shopId}/debts`,
     debtPayments: (shopId: string, debtId: string) => `/shops/${shopId}/debts/${debtId}/payments`,
+    debtBatchPayments: (shopId: string) => `/shops/${shopId}/debts/batch-payments`,
     expenses: (shopId: string) => `/shops/${shopId}/expenses`,
     expense: (shopId: string, expenseId: string) => `/shops/${shopId}/expenses/${expenseId}`,
     staff: (shopId: string) => `/shops/${shopId}/staff`,

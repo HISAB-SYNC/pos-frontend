@@ -329,7 +329,7 @@ function AddTeamMemberModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding Member..." : "Add Team Member"}
             </button>
@@ -414,7 +414,7 @@ function ResetPasswordModal({
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+              className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
             >
               Update Password
             </button>
@@ -577,7 +577,7 @@ function EditMemberDetailsModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-[#c0e763] px-5 py-2 font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95 disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -884,8 +884,8 @@ export default function UsersPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-950 text-[#c0e763] shadow-sm">
-              <UserCog className="size-4 text-[#c0e763]" />
+            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+              <UserCog className="size-4 text-indigo-400" />
             </span>
             <h1 className="text-xl font-bold text-[#111827]">Employee RBAC &amp; Access Control</h1>
           </div>
@@ -906,9 +906,9 @@ export default function UsersPage() {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#c0e763] px-4 text-xs font-bold text-zinc-950 shadow-sm transition-all hover:bg-[#b0d952] active:scale-95"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
           >
-            <UserPlus className="size-4 text-zinc-950" />
+            <UserPlus className="size-4 text-indigo-400" />
             + Provision Team Member
           </button>
         </div>
@@ -964,7 +964,7 @@ export default function UsersPage() {
               onClick={() => setActiveTab("DIRECTORY")}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeTab === "DIRECTORY"
-                  ? "bg-zinc-950 text-[#c0e763] shadow-sm"
+                  ? "bg-slate-900 text-white shadow-sm"
                   : "bg-white text-[#4b5563] hover:bg-[#f9fafb] border border-[#e5e7eb]"
               }`}
             >
@@ -977,7 +977,7 @@ export default function UsersPage() {
               onClick={() => setActiveTab("AUDIT_LOGS")}
               className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeTab === "AUDIT_LOGS"
-                  ? "bg-zinc-950 text-[#c0e763] shadow-sm"
+                  ? "bg-slate-900 text-white shadow-sm"
                   : "bg-white text-[#4b5563] hover:bg-[#f9fafb] border border-[#e5e7eb]"
               }`}
             >

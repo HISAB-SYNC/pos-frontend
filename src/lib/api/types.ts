@@ -412,6 +412,35 @@ export type AuditLogRecord = {
 /* ------------------------------------------------------------------ */
 /* SuperAdmin Types                                                    */
 /* ------------------------------------------------------------------ */
+export interface PlatformSectorShare {
+  sector: string;
+  storesCount: number;
+  volumeShare: number;
+}
+
+export interface PlatformGrowthPoint {
+  period: string;
+  volumeGmv: number;
+  transactions: number;
+}
+
+export interface PlatformTractionStats {
+  totalVolumeGmv: number;
+  monthlyVolumeGmv: number;
+  volumeGrowthMom: number;
+  totalTransactionsCount: number;
+  monthlyTransactionsCount: number;
+  avgTicketSize: number;
+  activeStoresCount: number;
+  totalStoresCount: number;
+  totalOperatorsCount: number;
+  monthlyPortalVisits: number;
+  peakConcurrentRegisters: number;
+  platformUptimeSla: number;
+  sectorBreakdown: PlatformSectorShare[];
+  growthTrend: PlatformGrowthPoint[];
+}
+
 export type AdminStats = {
   totalShops: number;
   totalActiveShops: number;
@@ -424,7 +453,9 @@ export type AdminStats = {
     ADMIN: number;
     SALES: number;
   };
+  platformTraction?: PlatformTractionStats;
 };
+
 
 export type AdminShop = {
   id: string;

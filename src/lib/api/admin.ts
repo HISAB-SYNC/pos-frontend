@@ -7,12 +7,43 @@ import type {
   AdminStats,
   AdminUser,
   AdminUsersResponse,
+  PlatformTractionStats,
   RegisterOwnerInput,
 } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* Mock SuperAdmin Seed Data                                          */
 /* ------------------------------------------------------------------ */
+export const seedPlatformTraction: PlatformTractionStats = {
+  totalVolumeGmv: 48650200,
+  monthlyVolumeGmv: 6420500,
+  volumeGrowthMom: 18.4,
+  totalTransactionsCount: 214850,
+  monthlyTransactionsCount: 28400,
+  avgTicketSize: 226.4,
+  activeStoresCount: 135,
+  totalStoresCount: 142,
+  totalOperatorsCount: 584,
+  monthlyPortalVisits: 68400,
+  peakConcurrentRegisters: 94,
+  platformUptimeSla: 99.94,
+  sectorBreakdown: [
+    { sector: "RETAIL", storesCount: 54, volumeShare: 38 },
+    { sector: "GROCERIES", storesCount: 40, volumeShare: 28 },
+    { sector: "PHARMACY", storesCount: 20, volumeShare: 14 },
+    { sector: "CLOTHING", storesCount: 17, volumeShare: 12 },
+    { sector: "RESTAURANT", storesCount: 11, volumeShare: 8 },
+  ],
+  growthTrend: [
+    { period: "Nov 2025", volumeGmv: 3200000, transactions: 14200 },
+    { period: "Dec 2025", volumeGmv: 3900000, transactions: 17500 },
+    { period: "Jan 2026", volumeGmv: 4400000, transactions: 19800 },
+    { period: "Feb 2026", volumeGmv: 5100000, transactions: 22900 },
+    { period: "Mar 2026", volumeGmv: 5800000, transactions: 25600 },
+    { period: "Apr 2026", volumeGmv: 6420500, transactions: 28400 },
+  ],
+};
+
 export const seedAdminStats: AdminStats = {
   totalShops: 15,
   totalActiveShops: 13,
@@ -25,6 +56,7 @@ export const seedAdminStats: AdminStats = {
     ADMIN: 12,
     SALES: 24,
   },
+  platformTraction: seedPlatformTraction,
 };
 
 export const seedAdminShops: AdminShop[] = [
@@ -205,6 +237,27 @@ export async function getAdminStats(): Promise<AdminStats> {
     return await apiRequest<AdminStats>(API_ENDPOINTS.admin.stats);
   } catch {
     return seedAdminStats;
+  }
+}
+
+/**
+ * 1.1 Fetch platform-wide analytics and market proof traction stats
+ */
+export async function getAdminAnalytics(): Promise<PlatformTractionStats> {
+  if (isMockApiEnabled()) {
+    return seedPlatformTraction;
+  }
+
+  try {
+    const res = await apiRequest<{ success: boolean; data: PlatformTractionStats } | PlatformTractionStats>(
+      API_ENDPOINTS.admin.analytics,
+    );
+    if (res && "data" in res && res.data) {
+      return res.data;
+    }
+    return (res as PlatformTractionStats) || seedPlatformTraction;
+  } catch {
+    return seedPlatformTraction;
   }
 }
 

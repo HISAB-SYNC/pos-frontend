@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
 
   admin: {
     stats: "/admin/stats",
+    analytics: "/admin/analytics",
     shops: "/admin/shops",
     owners: "/admin/owners",
     suspendShop: (shopId: string) => `/admin/shops/${shopId}/suspend`,

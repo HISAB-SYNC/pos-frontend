@@ -273,19 +273,19 @@ function SaleReturnModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/15">
               <RotateCcw className="size-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-zinc-900">
-                Process Sale Return & Refund
+              <h3 className="text-sm font-bold tracking-tight text-zinc-900">
+                Process Sale Return &amp; Refund
               </h3>
-              <p className="font-mono text-[10px] text-zinc-400">
+              <p className="font-mono text-[10px] text-zinc-500">
                 #RCP-{sale.id.slice(0, 8).toUpperCase()} • Customer:{" "}
                 {sale.customer?.name || "Walk-in"}
               </p>
@@ -294,14 +294,14 @@ function SaleReturnModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
+          <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700">
             {errorMsg}
           </div>
         )}
@@ -309,37 +309,37 @@ function SaleReturnModal({
         <form onSubmit={handleConfirmReturn} className="mt-4 space-y-4 text-xs">
           {/* Items Selector */}
           <div className="space-y-2">
-            <label className="font-bold uppercase tracking-wider text-[11px] text-zinc-500">
-              Select Items to Return & Restock:
+            <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Select Items to Return &amp; Restock:
             </label>
-            <div className="max-h-56 overflow-y-auto divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-zinc-50/50 p-2">
+            <div className="max-h-56 overflow-y-auto divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-zinc-50/50 p-2">
               {returnItems.map((item) => (
                 <div key={item.productId} className="py-2.5 px-2 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-zinc-900">{item.name}</p>
-                      <p className="text-[10px] text-zinc-500">
+                      <p className="font-mono text-[10px] text-zinc-500">
                         Sold: {item.soldQty} pcs @ {item.unitPrice.toFixed(2)} ETB
                       </p>
                     </div>
                     {/* Stepper */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => updateItemQty(item.productId, item.returnQty - 1)}
                         disabled={item.returnQty <= 0}
-                        className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white font-bold text-zinc-700 hover:bg-zinc-100 disabled:opacity-40"
+                        className="flex size-7 items-center justify-center rounded-md border border-zinc-200 bg-white font-bold text-zinc-700 shadow-2xs hover:bg-zinc-50 disabled:opacity-40 transition-colors"
                       >
                         -
                       </button>
-                      <span className="font-mono font-bold text-zinc-900 w-6 text-center">
+                      <span className="font-mono font-bold text-zinc-900 w-6 text-center tabular-nums">
                         {item.returnQty}
                       </span>
                       <button
                         type="button"
                         onClick={() => updateItemQty(item.productId, item.returnQty + 1)}
                         disabled={item.returnQty >= item.soldQty}
-                        className="flex size-7 items-center justify-center rounded-lg border border-zinc-200 bg-white font-bold text-zinc-700 hover:bg-zinc-100 disabled:opacity-40"
+                        className="flex size-7 items-center justify-center rounded-md border border-zinc-200 bg-white font-bold text-zinc-700 shadow-2xs hover:bg-zinc-50 disabled:opacity-40 transition-colors"
                       >
                         +
                       </button>
@@ -347,11 +347,11 @@ function SaleReturnModal({
                   </div>
 
                   {item.returnQty > 0 && (
-                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashed border-zinc-200">
+                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-dashed border-zinc-200">
                       <select
                         value={item.reason}
                         onChange={(e) => updateItemReason(item.productId, e.target.value)}
-                        className="h-7 rounded-md border border-zinc-200 bg-white px-2 text-[10px] text-zinc-800"
+                        className="h-7 rounded-md border border-zinc-200 bg-white px-2 text-[11px] text-zinc-800 focus:border-[#5B4FE9] focus:outline-hidden"
                       >
                         <option value="Defective / Damaged">Defective / Damaged</option>
                         <option value="Customer Changed Mind">Customer Changed Mind</option>
@@ -359,7 +359,7 @@ function SaleReturnModal({
                         <option value="Expired / Quality Issue">Expired / Quality Issue</option>
                         <option value="Other">Other Reason</option>
                       </select>
-                      <span className="font-mono font-bold text-purple-700 text-[11px]">
+                      <span className="font-mono font-bold text-[#5B4FE9] text-[11px] tabular-nums">
                         Refund: {(item.returnQty * item.unitPrice).toFixed(2)} ETB
                       </span>
                     </div>
@@ -384,9 +384,9 @@ function SaleReturnModal({
                   key={m.id}
                   type="button"
                   onClick={() => setRefundMethod(m.id)}
-                  className={`rounded-xl border py-2 text-center text-xs font-semibold transition-all ${
+                  className={`rounded-md border py-2 text-center text-xs font-semibold transition-all ${
                     refundMethod === m.id
-                      ? "border-slate-900 bg-slate-800 text-white shadow-xs"
+                      ? "border-slate-900 bg-slate-900 text-white shadow-2xs font-bold"
                       : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
                   }`}
                 >
@@ -406,21 +406,21 @@ function SaleReturnModal({
               value={generalNotes}
               onChange={(e) => setGeneralNotes(e.target.value)}
               placeholder="e.g. Return approved by manager"
-              className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-slate-900 focus:outline-none"
+              className="h-8.5 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           {/* Summary Box */}
-          <div className="rounded-xl border border-purple-200 bg-purple-50/70 p-3 flex items-center justify-between">
+          <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3.5 flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-bold text-purple-900 block">
+              <span className="text-[11px] font-bold text-zinc-900 block">
                 Total Refund Payout
               </span>
-              <span className="text-[10px] text-purple-700">
+              <span className="text-[10px] text-zinc-500">
                 {totalReturnQty} items returning to shop inventory
               </span>
             </div>
-            <span className="font-mono text-base font-bold text-purple-900">
+            <span className="font-mono text-base font-bold text-zinc-900 tabular-nums">
               {totalRefundAmount.toFixed(2)} ETB
             </span>
           </div>
@@ -431,16 +431,16 @@ function SaleReturnModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || totalReturnQty === 0}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-purple-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple-800 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
-              <RotateCcw className="size-3.5" />
+              <RotateCcw className="size-3.5 text-indigo-400" />
               <span>{isSubmitting ? "Processing..." : "Confirm Return & Restock"}</span>
             </button>
           </div>
@@ -490,15 +490,15 @@ function SaleReceiptModal({
   const financials = computeSaleFinancials(sale);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200">
               <Receipt className="size-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-zinc-900">Sale Receipt</h3>
+              <h3 className="text-sm font-bold tracking-tight text-zinc-900">Digital Sale Receipt</h3>
               <p className="font-mono text-[10px] text-zinc-400">
                 #RCP-{sale.id.slice(0, 8).toUpperCase()}
               </p>
@@ -507,14 +507,14 @@ function SaleReceiptModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
           >
             <X className="size-4" />
           </button>
         </div>
 
         {/* Receipt Body */}
-        <div className="my-4 rounded-xl border border-zinc-100 bg-zinc-50/60 p-4 text-xs space-y-3">
+        <div className="my-4 rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 text-xs space-y-3">
           <div className="text-center pb-2 border-b border-dashed border-zinc-200">
             <h4 className="font-bold text-sm text-zinc-900">{shopName}</h4>
             <p className="text-[11px] text-zinc-500">Official Checkout Register</p>
@@ -548,12 +548,12 @@ function SaleReceiptModal({
                     <p className="font-medium text-zinc-800">
                       {item.product?.name || item.name || `Item #${idx + 1}`}
                     </p>
-                    <p className="font-mono text-[10px] text-zinc-400">
+                    <p className="font-mono text-[10px] text-zinc-400 tabular-nums">
                       {item.quantity} ×{" "}
                       {parseFloat(String(item.unitPrice || "0")).toFixed(2)} ETB
                     </p>
                   </div>
-                  <span className="font-mono font-semibold text-zinc-900">
+                  <span className="font-mono font-semibold text-zinc-900 tabular-nums">
                     {(
                       item.quantity *
                       (parseFloat(String(item.unitPrice || "0")) || 0)
@@ -565,7 +565,7 @@ function SaleReceiptModal({
             ) : (
               <div className="flex justify-between text-[11px]">
                 <span className="text-zinc-600">General POS Checkout Sale</span>
-                <span className="font-mono font-semibold text-zinc-900">
+                <span className="font-mono font-semibold text-zinc-900 tabular-nums">
                   {totalNum.toFixed(2)} ETB
                 </span>
               </div>
@@ -576,23 +576,23 @@ function SaleReceiptModal({
           <div className="space-y-1 text-[11px] pt-1">
             <div className="flex justify-between text-zinc-500">
               <span>Subtotal:</span>
-              <span className="font-mono">{subtotalNum.toFixed(2)} ETB</span>
+              <span className="font-mono tabular-nums">{subtotalNum.toFixed(2)} ETB</span>
             </div>
             {taxNum > 0 && (
               <div className="flex justify-between text-zinc-500">
                 <span>VAT / Tax (15%):</span>
-                <span className="font-mono">{taxNum.toFixed(2)} ETB</span>
+                <span className="font-mono tabular-nums">{taxNum.toFixed(2)} ETB</span>
               </div>
             )}
             {discountNum > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <span>Discount:</span>
-                <span className="font-mono">-{discountNum.toFixed(2)} ETB</span>
+                <span className="font-mono tabular-nums">-{discountNum.toFixed(2)} ETB</span>
               </div>
             )}
             <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-xs font-bold text-zinc-900">
               <span>Total Amount:</span>
-              <span className="font-mono text-sm">
+              <span className="font-mono text-sm tabular-nums">
                 {totalNum.toLocaleString()} ETB
               </span>
             </div>
@@ -621,23 +621,19 @@ function SaleReceiptModal({
             <div className="flex justify-between items-center">
               <span className="text-zinc-500">Status:</span>
               {isSaleCancelled(sale.status) ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                  <span className="size-1.5 rounded-full bg-red-600" />
+                <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-rose-700">
                   Voided
                 </span>
               ) : isSaleReturned(sale.status) ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700">
-                  <span className="size-1.5 rounded-full bg-purple-600" />
+                <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-purple-700">
                   Refunded
                 </span>
               ) : isSalePartiallyReturned(sale.status) ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                  <span className="size-1.5 rounded-full bg-amber-600" />
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-amber-700">
                   Part-Refunded
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                  <span className="size-1.5 rounded-full bg-emerald-600" />
+                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-emerald-700">
                   Completed
                 </span>
               )}
@@ -646,16 +642,16 @@ function SaleReceiptModal({
 
           {/* Manager/Admin Profit Insight */}
           {!isCashier && financials.netProfit !== undefined && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-2 text-[11px] space-y-0.5">
+            <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-2 text-[11px] space-y-0.5">
               <div className="flex justify-between text-emerald-900 font-semibold">
                 <span>Net Gross Margin:</span>
-                <span className="font-mono">
+                <span className="font-mono tabular-nums">
                   +{financials.netProfit.toFixed(2)} ETB ({financials.marginPct?.toFixed(1)}%)
                 </span>
               </div>
               <div className="flex justify-between text-emerald-700 text-[10px]">
                 <span>Cost of Goods (COGS):</span>
-                <span className="font-mono">{financials.cogs.toFixed(2)} ETB</span>
+                <span className="font-mono tabular-nums">{financials.cogs.toFixed(2)} ETB</span>
               </div>
             </div>
           )}
@@ -667,7 +663,7 @@ function SaleReceiptModal({
             <button
               type="button"
               onClick={() => onOpenReturn(sale)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-700 hover:bg-purple-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors shadow-2xs"
             >
               <RotateCcw className="size-3.5" />
               <span>Process Return</span>
@@ -680,14 +676,14 @@ function SaleReceiptModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
+              className="rounded-md border border-zinc-200 px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
             >
               Close
             </button>
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 transition-all active:scale-95"
             >
               <Printer className="size-3.5" />
               <span>Print Receipt</span>
@@ -750,15 +746,15 @@ function FinancialAuditReportModal({
     .reduce((sum, s) => sum + (parseFloat(String(s.totalAmount || "0")) || 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-slate-900 text-white">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-slate-900 text-indigo-400 shadow-2xs">
               <FileText className="size-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-zinc-900">
+              <h3 className="text-base font-bold tracking-tight text-zinc-900">
                 Financial Audit Report
               </h3>
               <p className="text-xs text-zinc-500">
@@ -769,7 +765,7 @@ function FinancialAuditReportModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
           >
             <X className="size-4" />
           </button>
@@ -783,11 +779,11 @@ function FinancialAuditReportModal({
               isCashier ? "grid-cols-2" : "grid-cols-3"
             }`}
           >
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+            <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                 Gross Revenue
               </p>
-              <p className="mt-1 font-mono text-xl font-bold text-zinc-900">
+              <p className="mt-1 font-mono text-xl font-bold text-zinc-900 tabular-nums">
                 {Math.round(totalRevenue).toLocaleString()}{" "}
                 <span className="text-xs font-normal text-zinc-500">ETB</span>
               </p>
@@ -798,26 +794,26 @@ function FinancialAuditReportModal({
 
             {!isCashier && (
               <>
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                     Cost of Goods (COGS)
                   </p>
-                  <p className="mt-1 font-mono text-xl font-bold text-zinc-700">
+                  <p className="mt-1 font-mono text-xl font-bold text-zinc-700 tabular-nums">
                     {Math.round(totalCOGS).toLocaleString()}{" "}
                     <span className="text-xs font-normal text-zinc-500">ETB</span>
                   </p>
                   <p className="mt-0.5 text-[11px] text-zinc-500">Wholesale cost base</p>
                 </div>
 
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 p-3.5">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                     Net Gross Profit
                   </p>
-                  <p className="mt-1 font-mono text-xl font-bold text-emerald-700">
+                  <p className="mt-1 font-mono text-xl font-bold text-emerald-700 tabular-nums">
                     +{Math.round(netGrossProfit).toLocaleString()}{" "}
                     <span className="text-xs font-normal text-emerald-600">ETB</span>
                   </p>
-                  <p className="mt-0.5 text-[11px] font-medium text-emerald-800">
+                  <p className="mt-0.5 text-[11px] font-medium text-emerald-800 font-mono">
                     {overallMargin.toFixed(1)}% Margin
                   </p>
                 </div>
@@ -825,11 +821,11 @@ function FinancialAuditReportModal({
             )}
 
             {isCashier && (
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                   Average Ticket
                 </p>
-                <p className="mt-1 font-mono text-xl font-bold text-zinc-900">
+                <p className="mt-1 font-mono text-xl font-bold text-zinc-900 tabular-nums">
                   {activeSales.length > 0
                     ? Math.round(totalRevenue / activeSales.length).toLocaleString()
                     : 0}{" "}
@@ -841,37 +837,37 @@ function FinancialAuditReportModal({
           </div>
 
           {/* Tender Settlement Breakdown */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-2.5">
-            <h4 className="font-bold text-zinc-900 text-xs uppercase tracking-wider">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4 space-y-2.5">
+            <h4 className="font-mono font-bold text-zinc-900 text-[10px] uppercase tracking-wider">
               Settlement Channels Breakdown
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50/50 p-2.5">
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200/80 bg-emerald-50/60 p-2.5">
                 <div className="flex items-center gap-2">
                   <Banknote className="size-4 text-emerald-600" />
                   <span className="font-semibold text-emerald-900">Cash Register</span>
                 </div>
-                <span className="font-mono font-bold text-emerald-950">
+                <span className="font-mono font-bold text-emerald-950 tabular-nums">
                   {cashTotal.toLocaleString()} ETB
                 </span>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50/50 p-2.5">
+              <div className="flex items-center justify-between rounded-lg border border-blue-200/80 bg-blue-50/60 p-2.5">
                 <div className="flex items-center gap-2">
                   <Landmark className="size-4 text-blue-600" />
                   <span className="font-semibold text-blue-900">Bank Transfer</span>
                 </div>
-                <span className="font-mono font-bold text-blue-950">
+                <span className="font-mono font-bold text-blue-950 tabular-nums">
                   {bankTotal.toLocaleString()} ETB
                 </span>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50/50 p-2.5">
+              <div className="flex items-center justify-between rounded-lg border border-indigo-200/80 bg-indigo-50/60 p-2.5">
                 <div className="flex items-center gap-2">
-                  <Smartphone className="size-4 text-amber-600" />
-                  <span className="font-semibold text-amber-900">Telebirr Mobile</span>
+                  <Smartphone className="size-4 text-[#5B4FE9]" />
+                  <span className="font-semibold text-indigo-950">Telebirr Mobile</span>
                 </div>
-                <span className="font-mono font-bold text-amber-950">
+                <span className="font-mono font-bold text-indigo-950 tabular-nums">
                   {telebirrTotal.toLocaleString()} ETB
                 </span>
               </div>
@@ -879,9 +875,9 @@ function FinancialAuditReportModal({
           </div>
 
           {/* Itemized Sales Register */}
-          <div className="rounded-xl border border-zinc-200 overflow-hidden">
-            <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-200 flex justify-between items-center">
-              <span className="font-bold text-zinc-800 text-[11px] uppercase tracking-wider">
+          <div className="rounded-xl border border-zinc-200/80 overflow-hidden">
+            <div className="bg-zinc-50/80 px-4 py-2 border-b border-zinc-200/80 flex justify-between items-center">
+              <span className="font-mono font-bold text-zinc-800 text-[10px] uppercase tracking-wider">
                 Audited Transactions ({activeSales.length})
               </span>
               <span className="text-[10px] text-zinc-500 font-mono">
@@ -894,21 +890,21 @@ function FinancialAuditReportModal({
                 return (
                   <div
                     key={s.id}
-                    className="p-3 flex items-center justify-between gap-3 hover:bg-zinc-50"
+                    className="p-3 flex items-center justify-between gap-3 hover:bg-zinc-50/60 transition-colors"
                   >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-zinc-900">
                           #RCP-{s.id.slice(0, 8).toUpperCase()}
                         </span>
-                        <span className="text-zinc-500">
+                        <span className="text-zinc-600">
                           {s.customer?.name || "Walk-in"}
                         </span>
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600">
+                        <span className="rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-zinc-600">
                           {s.paymentMethod || "CASH"}
                         </span>
                       </div>
-                      <p className="text-[10px] text-zinc-400 mt-0.5">
+                      <p className="font-mono text-[10px] text-zinc-400 mt-0.5">
                         {new Date(s.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -925,11 +921,11 @@ function FinancialAuditReportModal({
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono font-bold text-zinc-900">
+                      <p className="font-mono font-bold text-zinc-900 tabular-nums">
                         {parseFloat(String(s.totalAmount || "0")).toFixed(2)} ETB
                       </p>
                       {!isCashier && f.netProfit !== undefined && (
-                        <p className="font-mono text-[10px] font-medium text-emerald-600">
+                        <p className="font-mono text-[10px] font-medium text-emerald-600 tabular-nums">
                           Profit: +{f.netProfit.toFixed(2)} ETB
                         </p>
                       )}
@@ -946,14 +942,14 @@ function FinancialAuditReportModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
           >
             Close
           </button>
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all"
           >
             <Printer className="size-3.5" />
             <span>Print Audit Statement</span>
@@ -1310,12 +1306,12 @@ export default function SalesHistoryPage() {
         )}
 
         {/* Top KPI Summary Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
               Total Revenue ({dateLabel})
             </p>
-            <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 tabular-nums">
+            <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {Math.round(totalRevenue).toLocaleString()}{" "}
               <span className="text-xs font-semibold text-zinc-500">ETB</span>
             </p>
@@ -1324,11 +1320,11 @@ export default function SalesHistoryPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
               Today&apos;s Revenue
             </p>
-            <p className="mt-2 font-mono text-2xl font-bold text-emerald-700 tabular-nums">
+            <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
               {Math.round(todayRevenue).toLocaleString()}{" "}
               <span className="text-xs font-semibold text-zinc-500">ETB</span>
             </p>
@@ -1339,17 +1335,17 @@ export default function SalesHistoryPage() {
 
           {/* If Owner/Admin show Net Profit, else show Completed Transactions */}
           {!isCashier ? (
-            <div className="rounded-2xl border border-emerald-200/80 bg-white p-5 shadow-xs">
+            <div className="rounded-xl border border-emerald-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                   Net Gross Profit
                 </p>
-                <span className="flex items-center gap-1 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                <span className="flex items-center gap-1 rounded-md border border-emerald-200/60 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-800">
                   <TrendingUp className="size-3" />
-                  {overallMargin.toFixed(1)}% Margin
+                  {overallMargin.toFixed(1)}%
                 </span>
               </div>
-              <p className="mt-2 font-mono text-2xl font-bold text-emerald-700 tabular-nums">
+              <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
                 +{Math.round(totalNetProfit).toLocaleString()}{" "}
                 <span className="text-xs font-semibold text-emerald-600">ETB</span>
               </p>
@@ -1358,11 +1354,11 @@ export default function SalesHistoryPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+            <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                 Completed Transactions
               </p>
-              <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 tabular-nums">
+              <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {completedCount}
               </p>
               <p className="mt-1 text-xs text-zinc-500">
@@ -1371,11 +1367,11 @@ export default function SalesHistoryPage() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-xs">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
               Average Ticket (AOV)
             </p>
-            <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 tabular-nums">
+            <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {avgTicket.toLocaleString()}{" "}
               <span className="text-xs font-semibold text-zinc-500">ETB</span>
             </p>
@@ -1384,15 +1380,15 @@ export default function SalesHistoryPage() {
         </div>
 
         {/* Main Table Card */}
-        <div className="rounded-xl border border-zinc-200 bg-white shadow-xs">
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
           {/* Header Toolbar with Date Presets & Search */}
           <div className="border-b border-zinc-200/80 px-3.5 sm:px-5 py-3.5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-base font-bold text-zinc-900 tracking-tight">
-                  Sales History & Ledger
+                  Sales History &amp; Ledger
                 </h1>
-                <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-zinc-600">
+                <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-600">
                   {filteredSales.length}
                 </span>
               </div>
@@ -1402,7 +1398,7 @@ export default function SalesHistoryPage() {
                 <button
                   type="button"
                   onClick={() => setIsAuditModalOpen(true)}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                 >
                   <FileText className="size-3.5 text-zinc-500" />
                   <span>Audit Statement</span>
@@ -1411,7 +1407,7 @@ export default function SalesHistoryPage() {
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                 >
                   <Download className="size-3.5 text-zinc-500" />
                   <span>Export CSV</span>
@@ -1419,7 +1415,7 @@ export default function SalesHistoryPage() {
 
                 <Link
                   href="/pos"
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
+                  className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
                 >
                   <ShoppingCart className="size-3.5 text-indigo-400" />
                   <span>New Sale</span>
@@ -1429,8 +1425,8 @@ export default function SalesHistoryPage() {
 
             {/* Filter Bar: Date Preset Pills & Search Input */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
-              {/* Date Presets */}
-              <div className="flex flex-wrap items-center gap-1 text-xs">
+              {/* Date Presets Segmented Bar */}
+              <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
                 {(
                   [
                     { id: "ALL", label: "All Time" },
@@ -1447,10 +1443,10 @@ export default function SalesHistoryPage() {
                       setDateFilter(preset.id);
                       setPage(1);
                     }}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                       dateFilter === preset.id
-                        ? "bg-slate-800 text-white shadow-xs"
-                        : "border border-zinc-200 bg-zinc-50/80 text-zinc-600 hover:bg-zinc-100"
+                        ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold"
+                        : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                     }`}
                   >
                     {preset.label}
@@ -1461,7 +1457,7 @@ export default function SalesHistoryPage() {
               {/* Search Bar & Advanced Filter Popover */}
               <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
                 <div className="relative w-full sm:w-64">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
                   <input
                     value={search}
                     onChange={(e) => {
@@ -1469,7 +1465,7 @@ export default function SalesHistoryPage() {
                       setPage(1);
                     }}
                     placeholder="Search receipt, item, customer, TxID..."
-                    className="h-8 w-full rounded-lg border border-zinc-200 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none"
+                    className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -1477,10 +1473,10 @@ export default function SalesHistoryPage() {
                   <button
                     type="button"
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                    className={`flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ${
+                    className={`flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors shadow-2xs ${
                       selectedMethod !== "ALL" || selectedStatus !== "ALL"
                         ? "border-[#5B4FE9] bg-[#5B4FE9]/10 text-zinc-950 font-semibold"
-                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                        : "border-zinc-200/80 bg-white text-zinc-700 hover:bg-zinc-50"
                     }`}
                   >
                     <Filter className="size-3.5" />
@@ -1491,7 +1487,7 @@ export default function SalesHistoryPage() {
                   </button>
 
                   {showFilterDropdown && (
-                    <div className="absolute right-0 top-10 z-30 w-64 rounded-xl border border-zinc-200 bg-white p-3.5 shadow-xl text-xs space-y-3">
+                    <div className="absolute right-0 top-10 z-30 w-64 rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-xl text-xs space-y-3">
                       <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
                         <span className="font-bold text-zinc-900">
                           Filter Transactions
@@ -1520,7 +1516,7 @@ export default function SalesHistoryPage() {
                         <select
                           value={selectedMethod}
                           onChange={(e) => setSelectedMethod(e.target.value)}
-                          className="h-8 w-full rounded-md border border-zinc-200 px-2 text-zinc-900"
+                          className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2 text-xs text-zinc-900 focus:outline-none focus:border-zinc-800"
                         >
                           <option value="ALL">All Tenders</option>
                           <option value="CASH">Cash</option>
@@ -1536,7 +1532,7 @@ export default function SalesHistoryPage() {
                         <select
                           value={selectedStatus}
                           onChange={(e) => setSelectedStatus(e.target.value)}
-                          className="h-8 w-full rounded-md border border-zinc-200 px-2 text-zinc-900"
+                          className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2 text-xs text-zinc-900 focus:outline-none focus:border-zinc-800"
                         >
                           <option value="ALL">All Statuses</option>
                           <option value="COMPLETED">Completed</option>
@@ -1553,21 +1549,21 @@ export default function SalesHistoryPage() {
 
             {/* Custom Range Picker row when "CUSTOM" selected */}
             {dateFilter === "CUSTOM" && (
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/70 p-2.5 text-xs animate-in fade-in duration-150">
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-2 text-xs animate-in fade-in duration-150">
                 <CalendarDays className="size-4 text-zinc-500" />
                 <span className="font-semibold text-zinc-700">From:</span>
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="h-7 rounded-md border border-zinc-200 bg-white px-2 text-xs font-mono text-zinc-800"
+                  className="h-7 rounded-md border border-zinc-200/80 bg-white px-2 text-xs font-mono text-zinc-800 focus:outline-none focus:border-zinc-800"
                 />
                 <span className="font-semibold text-zinc-700 ml-1">To:</span>
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="h-7 rounded-md border border-zinc-200 bg-white px-2 text-xs font-mono text-zinc-800"
+                  className="h-7 rounded-md border border-zinc-200/80 bg-white px-2 text-xs font-mono text-zinc-800 focus:outline-none focus:border-zinc-800"
                 />
                 {(customStartDate || customEndDate) && (
                   <button
@@ -1588,20 +1584,20 @@ export default function SalesHistoryPage() {
           {/* Sales History Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-zinc-600">
-              <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[11px] uppercase tracking-wider text-zinc-600">
+              <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
-                  <th className="px-5 py-3 font-semibold">Receipt #</th>
-                  <th className="px-5 py-3 font-semibold">Date & Time</th>
-                  <th className="px-5 py-3 font-semibold">Customer & Items</th>
-                  <th className="px-5 py-3 font-semibold">Tender Channel</th>
-                  <th className="px-5 py-3 font-semibold">Total Revenue</th>
+                  <th className="px-5 py-3 font-bold">Receipt #</th>
+                  <th className="px-5 py-3 font-bold">Date &amp; Time</th>
+                  <th className="px-5 py-3 font-bold">Customer &amp; Items</th>
+                  <th className="px-5 py-3 font-bold">Tender Channel</th>
+                  <th className="px-5 py-3 font-bold">Total Revenue</th>
                   {!isCashier && (
-                    <th className="px-5 py-3 font-semibold text-emerald-800">
+                    <th className="px-5 py-3 font-bold text-emerald-800">
                       Est. Profit
                     </th>
                   )}
-                  <th className="px-5 py-3 font-semibold">Status</th>
-                  <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                  <th className="px-5 py-3 font-bold">Status</th>
+                  <th className="px-5 py-3 text-right font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -1617,19 +1613,18 @@ export default function SalesHistoryPage() {
                       colSpan={isCashier ? 7 : 8}
                       className="py-12 text-center text-zinc-400"
                     >
-                      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
+                      <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
                         <Receipt className="size-6" />
                       </div>
                       <p className="mt-3 text-xs font-bold text-zinc-800">
                         No sales transactions match your filters
                       </p>
                       <p className="mt-1 text-[11px] text-zinc-400">
-                        Try clearing search keywords or selecting a broader date
-                        timeframe.
+                        Try clearing search keywords or selecting a broader date timeframe.
                       </p>
                       <Link
                         href="/pos"
-                        className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
+                        className="mt-3.5 inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
                       >
                         <Plus className="size-3.5" />
                         <span>Go to POS Register</span>
@@ -1653,7 +1648,7 @@ export default function SalesHistoryPage() {
                         key={sale.id}
                         className="transition-colors hover:bg-zinc-50/80"
                       >
-                        <td className="px-5 py-3.5 font-mono font-bold text-zinc-900">
+                        <td className="px-5 py-3.5 font-mono text-xs font-bold text-zinc-900">
                           #RCP-{sale.id.slice(0, 8).toUpperCase()}
                         </td>
                         <td className="px-5 py-3.5 text-zinc-500 font-mono text-[11px]">
@@ -1682,13 +1677,13 @@ export default function SalesHistoryPage() {
                         <td className="px-5 py-3.5">
                           <div className="flex flex-col gap-0.5">
                             {isCash && (
-                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800">
                                 <Banknote className="size-3 text-emerald-600" />
                                 Cash
                               </span>
                             )}
                             {isBank && (
-                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-blue-800">
                                 <Landmark className="size-3 text-blue-600" />
                                 {sale.bankName
                                   ? sale.bankName.slice(0, 18)
@@ -1696,13 +1691,13 @@ export default function SalesHistoryPage() {
                               </span>
                             )}
                             {isTelebirr && (
-                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-amber-200/70 bg-amber-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800">
                                 <Smartphone className="size-3 text-amber-600" />
                                 Telebirr
                               </span>
                             )}
                             {!isCash && !isBank && !isTelebirr && (
-                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+                              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-zinc-700">
                                 {sale.paymentMethod || "Other"}
                               </span>
                             )}
@@ -1725,7 +1720,7 @@ export default function SalesHistoryPage() {
                                 <span className="font-bold text-emerald-700">
                                   +{f.netProfit.toFixed(2)} ETB
                                 </span>
-                                <span className="block text-[10px] text-emerald-800 font-sans">
+                                <span className="block font-mono text-[10px] text-emerald-800">
                                   {f.marginPct?.toFixed(1)}% margin
                                 </span>
                               </div>
@@ -1736,22 +1731,22 @@ export default function SalesHistoryPage() {
                         )}
                         <td className="px-5 py-3.5">
                           {isSaleCancelled(sale.status) ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-red-200/70 bg-red-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-red-700">
                               <span className="size-1.5 rounded-full bg-red-600" />
                               Voided
                             </span>
                           ) : isSaleReturned(sale.status) ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700">
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-purple-200/70 bg-purple-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-purple-700">
                               <span className="size-1.5 rounded-full bg-purple-600" />
                               Refunded
                             </span>
                           ) : isSalePartiallyReturned(sale.status) ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200/70 bg-amber-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-700">
                               <span className="size-1.5 rounded-full bg-amber-600" />
                               Part-Refunded
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-700">
                               <span className="size-1.5 rounded-full bg-emerald-600" />
                               Completed
                             </span>
@@ -1762,7 +1757,7 @@ export default function SalesHistoryPage() {
                             <button
                               type="button"
                               onClick={() => setActiveReceipt(sale)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                              className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                             >
                               <Eye className="size-3.5 text-zinc-500" />
                               <span>Receipt</span>
@@ -1773,7 +1768,7 @@ export default function SalesHistoryPage() {
                                 <button
                                   type="button"
                                   onClick={() => setReturnTargetSale(sale)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50/70 px-2.5 py-1 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors"
+                                  className="inline-flex items-center gap-1 rounded-md border border-purple-200/80 bg-purple-50/70 px-2.5 py-1 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors shadow-2xs"
                                 >
                                   <RotateCcw className="size-3 text-purple-600" />
                                   <span>Return</span>
@@ -1794,15 +1789,15 @@ export default function SalesHistoryPage() {
             <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
               <div>
                 Showing{" "}
-                <span className="font-semibold text-zinc-900 font-mono">
+                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
                   {(page - 1) * PAGE_SIZE + 1}
                 </span>{" "}
                 to{" "}
-                <span className="font-semibold text-zinc-900 font-mono">
+                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
                   {Math.min(page * PAGE_SIZE, filteredSales.length)}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-zinc-900 font-mono">
+                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
                   {filteredSales.length}
                 </span>{" "}
                 receipts
@@ -1812,18 +1807,18 @@ export default function SalesHistoryPage() {
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="rounded border border-zinc-200 px-2.5 py-1 font-medium hover:bg-zinc-50 disabled:opacity-40"
+                  className="rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 shadow-2xs transition-colors"
                 >
                   Previous
                 </button>
-                <span className="px-2 font-mono text-xs">
+                <span className="px-2 font-mono text-xs tabular-nums text-zinc-600">
                   {page} / {totalPages}
                 </span>
                 <button
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded border border-zinc-200 px-2.5 py-1 font-medium hover:bg-zinc-50 disabled:opacity-40"
+                  className="rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 shadow-2xs transition-colors"
                 >
                   Next
                 </button>

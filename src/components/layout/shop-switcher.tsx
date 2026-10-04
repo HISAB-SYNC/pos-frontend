@@ -83,9 +83,10 @@ export function ShopSwitcher() {
   // Cashiers are strictly assigned to their single shop and cannot switch or register stores
   if (user?.role === "SALES") {
     return (
-      <div className="flex h-9 items-center gap-2 rounded-lg border border-zinc-200/90 bg-zinc-50/80 px-2.5 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs">
+      <div className="flex h-9 items-center gap-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 px-2.5 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs">
         <span className="relative flex size-2 shrink-0">
-          <span className="relative inline-flex size-2 rounded-full bg-[#82a823]" />
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
         </span>
         <Store className="size-3.5 text-zinc-500 shrink-0" />
         <span className="max-w-[120px] truncate text-left font-medium text-zinc-900 sm:max-w-[180px]">
@@ -102,12 +103,12 @@ export function ShopSwitcher() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-9 items-center gap-2 rounded-lg border border-zinc-200/90 bg-zinc-50/80 px-2.5 py-1.5 text-xs font-semibold text-zinc-800 transition-all hover:border-zinc-300 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#5B4FE9]/40"
+        className="flex h-9 items-center gap-2 rounded-md border border-zinc-200/90 bg-zinc-50/80 px-2.5 py-1.5 text-xs font-semibold text-zinc-800 transition-all hover:border-zinc-300 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#5B4FE9]/40"
         aria-expanded={isOpen}
       >
         <span className="relative flex size-2 shrink-0">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-          <span className="relative inline-flex size-2 rounded-full bg-emerald-600" />
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
         </span>
         <Store className="size-3.5 text-zinc-500 shrink-0" />
         <span className="max-w-[90px] truncate text-left font-medium text-zinc-900 min-[400px]:max-w-[130px] sm:max-w-[180px]">

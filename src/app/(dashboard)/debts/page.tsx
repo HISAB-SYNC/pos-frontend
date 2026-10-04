@@ -40,6 +40,7 @@ import { createDebt, getCustomers, getDebts, getDebtSummary, recordDebtPayment, 
 import type { Customer, Debt, DebtPayment, DebtSummary, DebtTransaction } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
+import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
 /* ------------------------------------------------------------------ */
@@ -77,29 +78,29 @@ function DebtDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="mb-5 flex items-start justify-between border-b border-zinc-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-zinc-900">Debt Voucher Details</h2>
-              <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-700">
+              <h2 className="text-base font-bold text-zinc-900 tracking-tight">Debt Voucher Details</h2>
+              <span className="rounded-md border border-zinc-200/80 bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-700">
                 {debt.id}
               </span>
               {isPaid ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/60">
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800 border border-emerald-200/70">
                   <CheckCircle2 className="size-3" /> PAID
                 </span>
               ) : debt.status === "PARTIAL" ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">
+                <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-blue-800 border border-blue-200/70">
                   <Clock className="size-3" /> PARTIALLY PAID
                 </span>
               ) : debt.status === "OVERDUE" ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-rose-700 border border-rose-200/60">
+                <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-rose-800 border border-rose-200/70">
                   <AlertCircle className="size-3" /> OVERDUE
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200/60">
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800 border border-amber-200/70">
                   <Clock className="size-3" /> PENDING
                 </span>
               )}
@@ -113,7 +114,7 @@ function DebtDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+            className="flex size-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
           </button>
@@ -121,21 +122,21 @@ function DebtDetailModal({
 
         {/* Amount Breakdown Cards */}
         <div className="mb-5 grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3">
-            <span className="text-[11px] font-medium text-zinc-500">Original Debt</span>
+          <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3 shadow-2xs">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Original Debt</span>
             <p className="mt-1 text-sm font-bold text-zinc-900 font-mono tabular-nums">
               {totalAmount.toLocaleString()} ETB
             </p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-emerald-50/50 p-3">
-            <span className="text-[11px] font-medium text-emerald-700">Total Repaid</span>
+          <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-3 shadow-2xs">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">Total Repaid</span>
             <p className="mt-1 text-sm font-bold text-emerald-700 font-mono tabular-nums">
               {paidAmount.toLocaleString()} ETB
             </p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-red-50/50 p-3">
-            <span className="text-[11px] font-medium text-red-600">Remaining Balance</span>
-            <p className="mt-1 text-sm font-bold text-red-600 font-mono tabular-nums">
+          <div className="rounded-xl border border-rose-200/70 bg-rose-50/50 p-3 shadow-2xs">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-800">Remaining Balance</span>
+            <p className="mt-1 text-sm font-bold text-rose-700 font-mono tabular-nums">
               {remaining.toLocaleString()} ETB
             </p>
           </div>
@@ -143,8 +144,8 @@ function DebtDetailModal({
 
         {/* Itemized Goods List (if available) */}
         {debt.items && debt.items.length > 0 && (
-          <div className="mb-4 rounded-xl border border-zinc-200 overflow-hidden">
-            <div className="bg-zinc-50 px-3.5 py-2 border-b border-zinc-200 text-xs font-semibold text-zinc-800">
+          <div className="mb-4 rounded-xl border border-zinc-200/80 overflow-hidden shadow-2xs">
+            <div className="bg-zinc-50/70 px-3.5 py-2 border-b border-zinc-200/80 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-600">
               Itemized Products ({debt.items.length})
             </div>
             <div className="divide-y divide-zinc-100 text-xs">
@@ -154,7 +155,7 @@ function DebtDetailModal({
                     <span className="font-semibold text-zinc-900">{item.name}</span>
                     <span className="text-zinc-400 ml-2">× {item.quantity}</span>
                   </div>
-                  <div className="font-mono font-medium text-zinc-800">
+                  <div className="font-mono font-medium text-zinc-800 tabular-nums">
                     {(item.totalPrice || (item.unitPrice || 0) * item.quantity).toLocaleString()} ETB
                   </div>
                 </div>
@@ -164,7 +165,7 @@ function DebtDetailModal({
         )}
 
         {debt.notes && (
-          <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5 text-xs text-zinc-700">
+          <div className="mb-4 rounded-lg border border-zinc-200/80 bg-zinc-50/60 p-2.5 text-xs text-zinc-700">
             <span className="font-semibold text-zinc-900">Notes / Purpose:</span> {debt.notes}
           </div>
         )}
@@ -172,7 +173,9 @@ function DebtDetailModal({
         {/* Payments History Table */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-xs font-bold text-zinc-900">Payment Installments ({payments.length})</h3>
+            <h3 className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Payment Installments ({payments.length})
+            </h3>
             {!isPaid && (
               <button
                 type="button"
@@ -180,16 +183,16 @@ function DebtDetailModal({
                   onClose();
                   onOpenPayment(debt);
                 }}
-                className="flex items-center gap-1 text-xs font-bold text-[#4d7c0f] hover:underline"
+                className="flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
               >
                 <Plus className="size-3" /> Record Payment
               </button>
             )}
           </div>
 
-          <div className="max-h-56 overflow-y-auto rounded-xl border border-zinc-200">
+          <div className="max-h-56 overflow-y-auto rounded-xl border border-zinc-200/80 shadow-2xs">
             <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 border-b border-zinc-200 bg-zinc-50 font-medium text-zinc-600">
+              <thead className="sticky top-0 border-b border-zinc-200/80 bg-zinc-50/70 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Method / Tender</th>
@@ -201,18 +204,18 @@ function DebtDetailModal({
                 {payments.length > 0 ? (
                   payments.map((p, idx) => (
                     <tr key={p.id || idx} className="hover:bg-zinc-50/60">
-                      <td className="whitespace-nowrap px-4 py-2.5 text-zinc-700">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-zinc-700 font-mono text-[11px]">
                         {p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-medium text-zinc-800">
+                        <span className="rounded-md border border-zinc-200/80 bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-zinc-800">
                           {p.paymentMethod || "Cash"}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-600">
                         {p.reference || `PAY-${idx + 1}`}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono font-bold text-emerald-600">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono font-bold text-emerald-600 tabular-nums">
                         +{parseFloat(String(p.amount || "0")).toLocaleString()} ETB
                       </td>
                     </tr>
@@ -221,7 +224,7 @@ function DebtDetailModal({
                   <tr>
                     <td colSpan={4} className="py-7 text-center text-zinc-400">
                       <div className="flex flex-col items-center justify-center gap-1.5">
-                        <div className="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-zinc-400">
+                        <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
                           <Coins className="size-4" />
                         </div>
                         <p className="font-semibold text-xs text-zinc-700">No repayment installments recorded yet</p>
@@ -244,7 +247,7 @@ function DebtDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+            className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
           >
             Close
           </button>
@@ -255,7 +258,7 @@ function DebtDetailModal({
                 onClose();
                 onOpenPayment(debt);
               }}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800"
+              className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
             >
               <Coins className="size-3.5 text-indigo-400" />
               Receive Payment
@@ -276,12 +279,14 @@ function CustomerDebtHistoryModal({
   onClose,
   onOpenPayment,
   onOpenAddDebt,
+  isCashier = false,
 }: {
   customer: Customer | null;
   customerDebts: Debt[];
   onClose: () => void;
   onOpenPayment: (customer: Customer, debt?: Debt, multipleDebts?: Debt[]) => void;
   onOpenAddDebt: (customer: Customer) => void;
+  isCashier?: boolean;
 }) {
   if (!customer) return null;
 
@@ -349,25 +354,25 @@ function CustomerDebtHistoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-5 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Customer Header */}
         <div className="flex flex-col gap-4 border-b border-zinc-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-zinc-100 font-bold text-zinc-900 text-base">
+            <div className="flex size-9 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-100 font-mono text-xs font-bold text-zinc-900">
               {customer.name.slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-zinc-900">{customer.name}</h2>
-                <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-700">
+                <h2 className="text-base font-bold text-zinc-900 tracking-tight">{customer.name}</h2>
+                <span className="rounded-md border border-zinc-200/80 bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-700">
                   {customer.customerId || "CUST-001"}
                 </span>
                 {totalOutstanding <= 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800 border border-emerald-200/70">
                     <CheckCircle2 className="size-3" /> SETTLED
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[10px] font-bold text-red-700 border border-red-200/60">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-red-800 border border-red-200/70">
                     ACTIVE DEBT
                   </span>
                 )}
@@ -383,7 +388,7 @@ function CustomerDebtHistoryModal({
             <button
               type="button"
               onClick={handleCopyStatement}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 active:scale-95"
+              className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs active:scale-95"
               title="Copy customer debt statement"
             >
               {copiedStatement ? (
@@ -398,19 +403,21 @@ function CustomerDebtHistoryModal({
                 </>
               )}
             </button>
-            <button
-              type="button"
-              onClick={() => onOpenAddDebt(customer)}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-800 transition-colors hover:bg-zinc-50 active:scale-95"
-            >
-              <Plus className="size-3.5 text-zinc-500" />
-              Add Debt
-            </button>
+            {!isCashier && (
+              <button
+                type="button"
+                onClick={() => onOpenAddDebt(customer)}
+                className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50 transition-colors shadow-2xs active:scale-95"
+              >
+                <Plus className="size-3.5 text-zinc-500" />
+                Add Debt
+              </button>
+            )}
             {totalOutstanding > 0 && (
               <button
                 type="button"
                 onClick={() => onOpenPayment(customer)}
-                className="flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
+                className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
               >
                 <Coins className="size-3.5 text-indigo-400" />
                 Receive Payment
@@ -514,7 +521,7 @@ function CustomerDebtHistoryModal({
         {/* Chronological Debt Vouchers List */}
         <div className="space-y-3.5">
           {displayedDebts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-zinc-200 p-8 text-center text-zinc-400 text-xs">
+            <div className="rounded-xl border border-dashed border-zinc-200 p-8 text-center text-zinc-400 text-xs">
               {historyFilter === "UNPAID"
                 ? `No unpaid vouchers for ${customer.name}. All debt accounts are settled!`
                 : `No debt vouchers recorded for ${customer.name}.`}
@@ -535,7 +542,7 @@ function CustomerDebtHistoryModal({
                 return (
                   <div
                     key={d.id}
-                    className={`rounded-2xl border bg-white p-4 shadow-2xs transition-all ${
+                    className={`rounded-xl border bg-white p-4 shadow-2xs transition-all ${
                       selectedHistoryDebtIds.includes(d.id)
                         ? "border-zinc-900 ring-1 ring-zinc-900/10"
                         : "border-zinc-200/90 hover:border-zinc-300"
@@ -859,13 +866,13 @@ function CreateDebtModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold text-zinc-900">Add Debt Voucher for Customer</h2>
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">Add Debt Voucher for Customer</h2>
             <p className="text-xs text-zinc-500">Record itemized credit goods or standalone customer debt</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100">
+          <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100">
             <X className="size-4" />
           </button>
         </div>
@@ -1010,14 +1017,14 @@ function CreateDebtModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-zinc-200 px-4 py-2 font-medium text-zinc-600 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-1.5 font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Recording..." : "Record Debt Voucher"}
             </button>
@@ -1271,11 +1278,11 @@ function ReceivePaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 backdrop-blur-[1px]">
-      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900 font-bold">
+            <div className="flex size-8 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-100 text-zinc-900 font-bold">
               <Coins className="size-4 text-zinc-900" />
             </div>
             <div>
@@ -1324,7 +1331,7 @@ function ReceivePaymentModal({
             <div className="space-y-4 md:col-span-6">
               {/* Customer Selector / Profile Card */}
               {targetDebt || (targetDebts && targetDebts.length > 0) ? (
-                <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/70 p-4">
+                <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Debtor Profile</span>
@@ -1363,14 +1370,14 @@ function ReceivePaymentModal({
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2 rounded-2xl border border-zinc-200/90 bg-zinc-50/70 p-4">
+                <div className="space-y-2 rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 shadow-2xs">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                     Select Debtor Customer *
                   </label>
                   <select
                     value={selectedCustId}
                     onChange={(e) => handleCustomerChange(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 font-semibold text-zinc-900 focus:border-slate-900 focus:outline-none"
+                    className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs font-semibold text-zinc-900 focus:border-slate-900 focus:outline-none"
                   >
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -1406,7 +1413,7 @@ function ReceivePaymentModal({
 
               {/* Multi-Debt Voucher Checklist with Real-Time Settlement Badges */}
               {customerOpenDebts.length > 0 ? (
-                <div className="rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs">
+                <div className="rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-2xs">
                   <div className="mb-2.5 flex items-center justify-between border-b border-zinc-100 pb-2">
                     <div className="flex items-center gap-1.5">
                       <Receipt className="size-3.5 text-zinc-600" />
@@ -1516,7 +1523,7 @@ function ReceivePaymentModal({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-center text-zinc-400 text-xs">
+                <div className="rounded-xl border border-dashed border-zinc-200 p-6 text-center text-zinc-400 text-xs">
                   No open debt vouchers found for this customer.
                 </div>
               )}
@@ -1527,9 +1534,11 @@ function ReceivePaymentModal({
             {/* ------------------------------------------------------------ */}
             <div className="space-y-4 md:col-span-6">
               {/* Payment Amount Card */}
-              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs space-y-2">
+              <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-zinc-900 text-xs">Payment Amount (ETB) *</label>
+                  <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    Payment Amount (ETB) *
+                  </label>
                   <button
                     type="button"
                     onClick={() => setAmount(String(targetCeiling))}
@@ -1547,7 +1556,7 @@ function ReceivePaymentModal({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="h-11 w-full rounded-xl border border-zinc-200 px-3.5 pr-14 font-mono text-base font-bold text-zinc-900 focus:border-slate-900 focus:outline-none tabular-nums"
+                    className="h-9 w-full rounded-md border border-zinc-200/80 px-3.5 pr-14 font-mono text-base font-bold text-zinc-900 focus:border-slate-900 focus:outline-none tabular-nums"
                     required
                   />
                   <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-zinc-400">
@@ -1562,7 +1571,7 @@ function ReceivePaymentModal({
                       key={inc}
                       type="button"
                       onClick={() => addAmountIncrement(inc)}
-                      className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100"
+                      className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100 shadow-2xs transition-colors"
                     >
                       +{inc.toLocaleString()}
                     </button>
@@ -1570,7 +1579,7 @@ function ReceivePaymentModal({
                   <button
                     type="button"
                     onClick={() => setAmount(String(totalCustomerDebt))}
-                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100"
+                    className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100 shadow-2xs transition-colors"
                   >
                     Clear All Balance
                   </button>
@@ -1578,8 +1587,10 @@ function ReceivePaymentModal({
               </div>
 
               {/* 1-Tap Tender Chips */}
-              <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-2xs space-y-2">
-                <label className="block font-bold text-zinc-900 text-xs">Payment Method / Tender</label>
+              <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2">
+                <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Payment Method / Tender
+                </label>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {(
                     [
@@ -1597,10 +1608,10 @@ function ReceivePaymentModal({
                         key={tender.id}
                         type="button"
                         onClick={() => selectTender(tender.id)}
-                        className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-2 text-center transition-all ${
+                        className={`flex flex-col items-center justify-center gap-1 rounded-md border p-2 text-center transition-all ${
                           isActive
-                            ? "border-slate-900 bg-slate-900 text-white font-bold shadow-xs ring-1 ring-slate-900"
-                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300"
+                            ? "border-slate-900 bg-slate-900 text-white font-bold shadow-2xs ring-1 ring-slate-900"
+                            : "border-zinc-200/80 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 shadow-2xs"
                         }`}
                       >
                         <Icon className="size-4" />
@@ -1617,7 +1628,7 @@ function ReceivePaymentModal({
                     <select
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      className="h-9 w-full rounded-xl border border-zinc-200 px-3 text-xs font-medium text-zinc-900 focus:border-slate-900 focus:outline-none"
+                      className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs font-medium text-zinc-900 focus:border-slate-900 focus:outline-none"
                     >
                       {POPULAR_BANKS.map((b) => (
                         <option key={b} value={b}>
@@ -1637,7 +1648,7 @@ function ReceivePaymentModal({
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder="PAY-0001"
-                    className="h-9 w-full rounded-xl border border-zinc-200 px-2.5 font-mono text-xs text-zinc-900 focus:border-slate-900 focus:outline-none"
+                    className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-2.5 font-mono text-xs text-zinc-900 focus:border-slate-900 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -1646,13 +1657,13 @@ function ReceivePaymentModal({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Counter repayment"
-                    className="h-9 w-full rounded-xl border border-zinc-200 px-2.5 text-xs text-zinc-900 focus:border-slate-900 focus:outline-none"
+                    className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-900 focus:border-slate-900 focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Financial Balance Ledger Summary */}
-              <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/70 p-4 space-y-2">
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 space-y-2 shadow-2xs">
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Total Customer Debt:</span>
                   <span className="font-bold text-zinc-900 font-mono tabular-nums">
@@ -1662,22 +1673,22 @@ function ReceivePaymentModal({
                 {customerOpenDebts.length > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-zinc-500">Selected Vouchers Target:</span>
-                    <span className="font-bold text-red-600 font-mono tabular-nums">
+                    <span className="font-bold text-rose-700 font-mono tabular-nums">
                       {selectedDebtsSum.toLocaleString()} ETB ({selectedDebtIds.length} vouchers)
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Amount Paying:</span>
-                  <span className="font-bold text-emerald-600 font-mono tabular-nums">
+                  <span className="font-bold text-emerald-700 font-mono tabular-nums">
                     -{payVal.toLocaleString()} ETB
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-zinc-200 pt-2 font-bold text-xs">
+                <div className="flex justify-between border-t border-zinc-200/70 pt-2 font-bold text-xs">
                   <span className="text-zinc-900">Remaining Customer Debt:</span>
                   <span
                     className={`font-mono tabular-nums ${
-                      newDebtBalance === 0 ? "text-emerald-600 font-bold" : "text-zinc-900"
+                      newDebtBalance === 0 ? "text-emerald-700 font-bold" : "text-zinc-900"
                     }`}
                   >
                     {newDebtBalance.toLocaleString()} ETB
@@ -1691,14 +1702,14 @@ function ReceivePaymentModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-zinc-200 px-4 py-2 font-semibold text-zinc-600 hover:bg-zinc-50"
+                  className="rounded-md border border-zinc-200/80 bg-white px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || payVal <= 0}
-                  className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-md bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     "Processing..."
@@ -1797,14 +1808,14 @@ function BatchSettleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+            <div className="flex size-7 items-center justify-center rounded-md border border-emerald-200/60 bg-emerald-50 text-emerald-600">
               <Coins className="size-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-zinc-900">Batch Settle Debts</h2>
+              <h2 className="text-base font-bold text-zinc-900 tracking-tight">Batch Settle Debts</h2>
               <p className="text-[11px] text-zinc-500">
                 Settling {debts.length} vouchers across {groupedByCustomer.length} customers at once
               </p>
@@ -1813,7 +1824,7 @@ function BatchSettleModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+            className="flex size-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
           </button>
@@ -1921,14 +1932,14 @@ function BatchSettleModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-zinc-200 px-4 py-2 font-medium text-zinc-600 hover:bg-zinc-50"
+              className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || totalAmount <= 0}
-              className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? (
                 "Processing..."
@@ -1950,6 +1961,8 @@ function BatchSettleModal({
 /* Main Page: Customer-First Master-Detail Debt Ledger                */
 /* ------------------------------------------------------------------ */
 export default function DebtsPage() {
+  const authUser = useAuthStore((state) => state.user);
+  const isCashier = authUser?.role === "SALES";
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -2213,22 +2226,24 @@ export default function DebtsPage() {
           <button
             type="button"
             onClick={mainTab === "customers" ? handleExportCustomerLedger : handleExportDebts}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
           >
             <Download className="size-3.5 text-zinc-500" />
-            Export CSV
+            <span>Export CSV</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAddDebtPreselectedCustomer(undefined);
-              setIsCreateDebtModalOpen(true);
-            }}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-800 shadow-2xs transition-all hover:bg-zinc-50 active:scale-95"
-          >
-            <Plus className="size-3.5 text-zinc-600" />
-            Add Debt Voucher
-          </button>
+          {!isCashier && (
+            <button
+              type="button"
+              onClick={() => {
+                setAddDebtPreselectedCustomer(undefined);
+                setIsCreateDebtModalOpen(true);
+              }}
+              className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-800 shadow-2xs transition-all hover:bg-zinc-50 hover:text-zinc-950 active:scale-95"
+            >
+              <Plus className="size-3.5 text-zinc-600" />
+              <span>Add Debt Voucher</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -2236,10 +2251,10 @@ export default function DebtsPage() {
               setPaymentCustomerId(null);
               setIsPaymentModalOpen(true);
             }}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
+            className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
           >
             <Coins className="size-3.5 text-indigo-400" />
-            Receive Payment
+            <span>Receive Payment</span>
           </button>
         </div>
       </div>
@@ -2247,92 +2262,100 @@ export default function DebtsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* 2. Top Summary Metric Cards                                        */}
       {/* ------------------------------------------------------------------ */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Outstanding */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
+        <div className="rounded-xl border border-rose-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-500">Total Outstanding Debt</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-600">
-              <HandCoins className="size-4" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-800">
+              Total Outstanding Debt
+            </span>
+            <div className="flex size-7 items-center justify-center rounded-md border border-rose-200/60 bg-rose-50 text-rose-700">
+              <HandCoins className="size-3.5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="font-mono text-2xl font-bold tracking-tight text-[#dc2626] tabular-nums">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-rose-700 tabular-nums">
               {summary.totalOutstandingDebt.toLocaleString()}
             </span>
-            <span className="font-mono text-xs font-bold text-[#dc2626]">ETB</span>
+            <span className="font-mono text-xs font-semibold text-rose-600">ETB</span>
           </div>
-          <span className="mt-1 block text-[11px] text-zinc-400">Across {summary.totalDebtors} active debtors</span>
+          <span className="mt-1 block text-xs text-zinc-500">Across {summary.totalDebtors} active debtors</span>
         </div>
 
         {/* Active Debtors */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-500">Active Debtors</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
-              <Users className="size-4" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Active Debtors
+            </span>
+            <div className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-100 text-zinc-700">
+              <Users className="size-3.5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {summary.totalDebtors}
             </span>
             <span className="text-xs font-medium text-zinc-500">Customers</span>
           </div>
-          <span className="mt-1 block text-[11px] text-zinc-400">Unsettled credit balances</span>
+          <span className="mt-1 block text-xs text-zinc-500">Unsettled credit balances</span>
         </div>
 
         {/* Collected Repayments */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
+        <div className="rounded-xl border border-emerald-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-500">Repayments Recovered</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 className="size-4" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+              Repayments Recovered
+            </span>
+            <div className="flex size-7 items-center justify-center rounded-md border border-emerald-200/60 bg-emerald-50 text-emerald-700">
+              <CheckCircle2 className="size-3.5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="font-mono text-2xl font-bold tracking-tight text-emerald-600 tabular-nums">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
               {summary.collectedThisMonth.toLocaleString()}
             </span>
-            <span className="font-mono text-xs font-bold text-emerald-600">ETB</span>
+            <span className="font-mono text-xs font-semibold text-emerald-600">ETB</span>
           </div>
-          <span className="mt-1 block text-[11px] text-zinc-400">Total recovered to date</span>
+          <span className="mt-1 block text-xs text-zinc-500">Total recovered to date</span>
         </div>
 
         {/* Overdue Accounts */}
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
+        <div className="rounded-xl border border-amber-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-500">Overdue Debts</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <Clock className="size-4" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-amber-800">
+              Overdue Debts
+            </span>
+            <div className="flex size-7 items-center justify-center rounded-md border border-amber-200/60 bg-amber-50 text-amber-700">
+              <Clock className="size-3.5" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="font-mono text-2xl font-bold tracking-tight text-amber-600 tabular-nums">
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold tracking-tight text-amber-700 tabular-nums">
               {summary.overdueCount}
             </span>
             <span className="text-xs font-medium text-zinc-500">Vouchers</span>
           </div>
-          <span className="mt-1 block text-[11px] text-zinc-400">Past payment due date</span>
+          <span className="mt-1 block text-xs text-zinc-500">Past payment due date</span>
         </div>
       </div>
 
       {/* ------------------------------------------------------------------ */}
       {/* 3. Customer-First Dual Tab Switcher                                */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none">
+      <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
         <button
           type="button"
           onClick={() => setMainTab("customers")}
-          className={`flex shrink-0 items-center gap-2 border-b-2 px-4 sm:px-5 py-3 text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
             mainTab === "customers"
-              ? "border-slate-900 text-zinc-950"
-              : "border-transparent text-zinc-500 hover:text-zinc-800"
+              ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold"
+              : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
           }`}
         >
-          <Users className="size-4" />
+          <Users className="size-3.5" />
           <span>Customer Debt Ledger</span>
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[10px] tabular-nums text-zinc-700">
+          <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.2 font-mono text-[10px] tabular-nums text-zinc-600">
             {customers.length}
           </span>
         </button>
@@ -2340,15 +2363,15 @@ export default function DebtsPage() {
         <button
           type="button"
           onClick={() => setMainTab("debts")}
-          className={`flex shrink-0 items-center gap-2 border-b-2 px-4 sm:px-5 py-3 text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
             mainTab === "debts"
-              ? "border-slate-900 text-zinc-950"
-              : "border-transparent text-zinc-500 hover:text-zinc-800"
+              ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold"
+              : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
           }`}
         >
-          <Receipt className="size-4" />
+          <Receipt className="size-3.5" />
           <span>All Debt Records</span>
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[10px] tabular-nums text-zinc-700">
+          <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.2 font-mono text-[10px] tabular-nums text-zinc-600">
             {debts.length}
           </span>
         </button>
@@ -2358,16 +2381,16 @@ export default function DebtsPage() {
       {/* 4. Tab 1 Content: Customer-First Master-Detail Ledger              */}
       {/* ------------------------------------------------------------------ */}
       {mainTab === "customers" && (
-        <div className="rounded-2xl border border-zinc-200 bg-white shadow-2xs">
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
           {/* Table Toolbar */}
-          <div className="flex flex-col gap-4 border-b border-zinc-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-b border-zinc-200/80 px-3.5 sm:px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 rounded-xl bg-zinc-100 p-1 text-xs font-semibold">
+            <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
               <button
                 type="button"
                 onClick={() => setCustomerFilter("ALL")}
-                className={`rounded-lg px-3.5 py-1.5 transition-all ${
-                  customerFilter === "ALL" ? "bg-white text-zinc-950 shadow-2xs font-bold" : "text-zinc-500 hover:text-zinc-900"
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  customerFilter === "ALL" ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
                 All Customers
@@ -2375,8 +2398,8 @@ export default function DebtsPage() {
               <button
                 type="button"
                 onClick={() => setCustomerFilter("ACTIVE")}
-                className={`rounded-lg px-3.5 py-1.5 transition-all ${
-                  customerFilter === "ACTIVE" ? "bg-white text-zinc-950 shadow-2xs font-bold" : "text-zinc-500 hover:text-zinc-900"
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  customerFilter === "ACTIVE" ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
                 Active Debtors
@@ -2384,8 +2407,8 @@ export default function DebtsPage() {
               <button
                 type="button"
                 onClick={() => setCustomerFilter("OVERDUE")}
-                className={`rounded-lg px-3.5 py-1.5 transition-all ${
-                  customerFilter === "OVERDUE" ? "bg-white text-red-600 shadow-2xs font-bold" : "text-zinc-500 hover:text-zinc-900"
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  customerFilter === "OVERDUE" ? "bg-white text-rose-700 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
                 Overdue
@@ -2393,8 +2416,8 @@ export default function DebtsPage() {
               <button
                 type="button"
                 onClick={() => setCustomerFilter("PAID")}
-                className={`rounded-lg px-3.5 py-1.5 transition-all ${
-                  customerFilter === "PAID" ? "bg-white text-emerald-600 shadow-2xs font-bold" : "text-zinc-500 hover:text-zinc-900"
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  customerFilter === "PAID" ? "bg-white text-emerald-700 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
                 Settled / Clear
@@ -2402,14 +2425,14 @@ export default function DebtsPage() {
             </div>
 
             {/* Search Box */}
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 placeholder="Search customer, phone, code..."
-                className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+                className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -2417,7 +2440,7 @@ export default function DebtsPage() {
           {/* Customer Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-zinc-200 bg-zinc-50/70 font-semibold text-zinc-600">
+              <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="w-9 px-3 py-3.5"></th>
                   <th className="px-5 py-3.5">Customer Profile</th>
@@ -2574,18 +2597,20 @@ export default function DebtsPage() {
                               className="flex items-center justify-end gap-1.5"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAddDebtPreselectedCustomer(cust.id);
-                                  setIsCreateDebtModalOpen(true);
-                                }}
-                                className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
-                                title="Add Debt Voucher"
-                              >
-                                <Plus className="size-3" />
-                                Debt
-                              </button>
+                              {!isCashier && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAddDebtPreselectedCustomer(cust.id);
+                                    setIsCreateDebtModalOpen(true);
+                                  }}
+                                  className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
+                                  title="Add Debt Voucher"
+                                >
+                                  <Plus className="size-3" />
+                                  Debt
+                                </button>
+                              )}
 
                               {debt > 0 && (
                                 <button
@@ -2778,10 +2803,10 @@ export default function DebtsPage() {
       {/* 5. Tab 2 Content: All Debt Records                                 */}
       {/* ------------------------------------------------------------------ */}
       {mainTab === "debts" && (
-        <div className="rounded-2xl border border-zinc-200 bg-white shadow-2xs">
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
           {/* Table Toolbar */}
-          <div className="flex flex-col gap-4 border-b border-zinc-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-1 rounded-xl bg-zinc-100 p-1 text-xs font-semibold">
+          <div className="flex flex-col gap-3 border-b border-zinc-200/80 px-3.5 sm:px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
               {(
                 [
                   { id: "ALL", label: "All Debts" },
@@ -2796,10 +2821,10 @@ export default function DebtsPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setDebtFilter(tab.id)}
-                  className={`rounded-lg px-3 py-1.5 transition-all ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                     debtFilter === tab.id
-                      ? "bg-white text-zinc-950 shadow-2xs font-bold"
-                      : "text-zinc-500 hover:text-zinc-900"
+                      ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold"
+                      : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                   }`}
                 >
                   {tab.label}
@@ -2808,14 +2833,14 @@ export default function DebtsPage() {
             </div>
 
             {/* Search Box */}
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 value={debtSearch}
                 onChange={(e) => setDebtSearch(e.target.value)}
                 placeholder="Search debt ID, customer, items, note..."
-                className="h-9 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-9 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-slate-900 focus:bg-white focus:outline-none"
+                className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -2823,7 +2848,7 @@ export default function DebtsPage() {
           {/* Debts Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-zinc-200 bg-zinc-50/70 font-semibold text-zinc-600">
+              <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="px-4 py-3.5 w-10">
                     <input
@@ -3077,9 +3102,9 @@ export default function DebtsPage() {
 
           {/* Floating Batch Action Bar when ≥1 debt is selected */}
           {selectedTableDebtIds.length > 0 && (
-            <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 flex items-center gap-3 rounded-2xl bg-slate-900 px-5 py-3 text-white shadow-2xl border border-zinc-800 animate-in fade-in slide-in-from-bottom-3 duration-200">
+            <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 flex items-center gap-3 rounded-xl bg-slate-900 px-4 sm:px-5 py-2.5 sm:py-3 text-white shadow-2xl border border-zinc-800 animate-in fade-in slide-in-from-bottom-3 duration-200">
               <div className="flex items-center gap-2 pr-2 border-r border-zinc-800">
-                <span className="flex size-6 items-center justify-center rounded-full bg-white text-zinc-950 font-bold text-xs">
+                <span className="flex size-5.5 items-center justify-center rounded-md bg-white text-zinc-950 font-bold text-xs font-mono">
                   {selectedTableDebtIds.length}
                 </span>
                 <span className="text-xs font-semibold">
@@ -3089,7 +3114,7 @@ export default function DebtsPage() {
                 </span>
               </div>
 
-              <div className="font-mono text-xs font-bold text-indigo-400">
+              <div className="font-mono text-xs font-bold text-indigo-400 tabular-nums">
                 {selectedTableSum.toLocaleString()} ETB
               </div>
 
@@ -3097,7 +3122,7 @@ export default function DebtsPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedTableDebtIds([])}
-                  className="rounded-lg px-2.5 py-1 text-xs text-zinc-400 hover:text-white cursor-pointer"
+                  className="rounded-md px-2.5 py-1 text-xs text-zinc-400 hover:text-white cursor-pointer"
                 >
                   Clear
                 </button>
@@ -3113,7 +3138,7 @@ export default function DebtsPage() {
                       setIsBatchModalOpen(true);
                     }
                   }}
-                  className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-bold text-zinc-950 shadow-xs hover:bg-zinc-100 active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-md bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-950 shadow-2xs hover:bg-zinc-100 active:scale-95 cursor-pointer"
                 >
                   <Coins className="size-3.5 text-zinc-950" />
                   Settle Selected ({selectedTableSum.toLocaleString()} ETB)
@@ -3156,6 +3181,7 @@ export default function DebtsPage() {
             setAddDebtPreselectedCustomer(cust.id);
             setIsCreateDebtModalOpen(true);
           }}
+          isCashier={isCashier}
         />
       )}
 
@@ -3240,7 +3266,7 @@ export default function DebtsPage() {
         />
       )}
 
-      {isCreateDebtModalOpen && (
+      {!isCashier && isCreateDebtModalOpen && (
         <CreateDebtModal
           customers={customers}
           initialCustomerId={addDebtPreselectedCustomer}

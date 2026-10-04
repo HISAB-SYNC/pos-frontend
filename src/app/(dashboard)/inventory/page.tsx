@@ -50,7 +50,7 @@ function StockAdjustModal({
 }) {
   const [adjustmentType, setAdjustmentType] = useState<"ADD" | "REMOVE" | "SET">("ADD");
   const [quantity, setQuantity] = useState("");
-  const [reason, setReason] = useState("Restock");
+  const [reason, setReason] = useState("Restock / New Shipment");
   const [storeLocation, setStoreLocation] = useState("Main Store");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -64,13 +64,14 @@ function StockAdjustModal({
   else if (adjustmentType === "REMOVE") newQuantity = Math.max(0, currentQty - adjustQtyNum);
   else if (adjustmentType === "SET") newQuantity = Math.max(0, adjustQtyNum);
 
+  const delta = newQuantity - currentQty;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!product || !quantity || adjustQtyNum <= 0) return;
 
     setIsSubmitting(true);
     try {
-      // 1. Update product stock quantity
       await updateProduct(shopId, product.id, {
         stockQuantity: newQuantity,
       });
@@ -86,33 +87,36 @@ function StockAdjustModal({
     }
   }
 
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-4 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold text-[#111827]">Adjust Stock</h2>
-            <p className="text-xs text-[#6b7280]">
-              Product: <span className="font-semibold text-[#111827]">{product.name}</span> (Current: {currentQty} pcs)
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">Adjust Inventory Stock</h2>
+            <p className="text-xs text-zinc-500">
+              Product: <span className="font-semibold text-zinc-800">{product.name}</span>
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+          >
             <X className="size-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-[#374151]">Adjustment Mode</label>
+            <label className="mb-1.5 block font-semibold text-zinc-700">Adjustment Mode</label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setAdjustmentType("ADD")}
-                className={`rounded-xl border py-2 font-medium transition-all ${
+                className={`rounded-md border py-2 text-xs font-semibold transition-all ${
                   adjustmentType === "ADD"
-                    ? "border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm"
-                    : "border-[#e5e7eb] hover:bg-slate-50 text-[#4b5563]"
+                    ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-2xs"
+                    : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
                 }`}
               >
                 + Add Stock
@@ -120,10 +124,10 @@ function StockAdjustModal({
               <button
                 type="button"
                 onClick={() => setAdjustmentType("REMOVE")}
-                className={`rounded-xl border py-2 font-medium transition-all ${
+                className={`rounded-md border py-2 text-xs font-semibold transition-all ${
                   adjustmentType === "REMOVE"
-                    ? "border-red-600 bg-red-50 text-red-700 shadow-sm"
-                    : "border-[#e5e7eb] hover:bg-slate-50 text-[#4b5563]"
+                    ? "border-rose-600 bg-rose-50 text-rose-800 shadow-2xs"
+                    : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
                 }`}
               >
                 - Deduct Stock
@@ -131,10 +135,10 @@ function StockAdjustModal({
               <button
                 type="button"
                 onClick={() => setAdjustmentType("SET")}
-                className={`rounded-xl border py-2 font-medium transition-all ${
+                className={`rounded-md border py-2 text-xs font-semibold transition-all ${
                   adjustmentType === "SET"
-                    ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
-                    : "border-[#e5e7eb] hover:bg-slate-50 text-[#4b5563]"
+                    ? "border-slate-900 bg-slate-900 text-white shadow-2xs"
+                    : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
                 }`}
               >
                 Set Fixed Qty
@@ -144,7 +148,7 @@ function StockAdjustModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block font-semibold text-[#374151]">
+              <label className="mb-1 block font-semibold text-zinc-700">
                 {adjustmentType === "SET" ? "New Total Count *" : "Quantity to Adjust *"}
               </label>
               <input
@@ -154,27 +158,27 @@ function StockAdjustModal({
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="e.g. 10"
-                className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 font-semibold text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label className="mb-1 block font-semibold text-[#374151]">Store Location</label>
+              <label className="mb-1 block font-semibold text-zinc-700">Store Location</label>
               <input
                 type="text"
                 value={storeLocation}
                 onChange={(e) => setStoreLocation(e.target.value)}
-                className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block font-semibold text-[#374151]">Reason for Adjustment</label>
+            <label className="mb-1 block font-semibold text-zinc-700">Reason for Adjustment</label>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="h-9 w-full rounded-xl border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             >
               <option value="Restock / New Shipment">Restock / New Shipment</option>
               <option value="Damage / Wastage">Damage / Wastage / Expired</option>
@@ -184,14 +188,28 @@ function StockAdjustModal({
             </select>
           </div>
 
-          <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-3">
+          {/* Real-time Calculation Summary Box */}
+          <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-[#6b7280]">Current Stock:</span>
-              <span className="font-semibold text-[#111827]">{currentQty} pcs</span>
+              <span className="text-zinc-500">Current Stock:</span>
+              <span className="font-mono font-semibold text-zinc-800 tabular-nums">{currentQty} {product.unit || "pcs"}</span>
             </div>
-            <div className="mt-1 flex items-center justify-between text-xs">
-              <span className="text-[#6b7280]">New Calculated Stock:</span>
-              <span className="font-bold text-[#2563eb]">{newQuantity} pcs</span>
+            <div className="mt-1.5 flex items-center justify-between text-xs border-t border-zinc-200/60 pt-1.5">
+              <span className="text-zinc-600 font-medium">New Calculated Stock:</span>
+              <div className="flex items-center gap-2">
+                {adjustQtyNum > 0 && (
+                  <span
+                    className={`font-mono text-[11px] font-bold ${
+                      delta > 0 ? "text-emerald-600" : delta < 0 ? "text-rose-600" : "text-zinc-500"
+                    }`}
+                  >
+                    ({delta > 0 ? `+${delta}` : delta})
+                  </span>
+                )}
+                <span className="font-mono font-bold text-zinc-900 tabular-nums text-sm">
+                  {newQuantity} {product.unit || "pcs"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -199,14 +217,14 @@ function StockAdjustModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !quantity || parseInt(quantity, 10) <= 0}
-              className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
+              className="rounded-md bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adjusting..." : "Apply Adjustment"}
             </button>
@@ -384,23 +402,23 @@ export default function InventoryPage() {
         {/* ------------------------------------------------------------------ */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[#111827]">Inventory &amp; Stock Levels</h1>
-            <p className="text-xs text-[#6b7280]">
-              Monitor product availability, low-stock alerts, and perform real-time inventory adjustments.
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Inventory &amp; Stock Levels</h1>
+            <p className="text-xs text-zinc-500">
+              Monitor real-time availability, reorder thresholds, and perform instant stock count adjustments.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleExportCsv}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3.5 text-xs font-medium text-[#374151] shadow-sm transition-colors hover:bg-[#f9fafb]"
+              className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
             >
-              <Download className="size-3.5 text-[#6b7280]" />
+              <Download className="size-3.5 text-zinc-500" />
               Export Inventory
             </button>
             <Link
               href="/products"
-              className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
+              className="flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-4 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
             >
               <Package className="size-3.5 text-indigo-400" />
               Manage Catalog
@@ -412,122 +430,122 @@ export default function InventoryPage() {
         {/* 2. Top Metric Cards                                                */}
         {/* ------------------------------------------------------------------ */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Total Units in Stock</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total In-Stock Units</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/15">
                 <Package className="size-4" />
               </div>
             </div>
-            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {metrics.totalItems.toLocaleString()} <span className="font-sans text-xs font-normal text-zinc-500">units</span>
             </p>
             <p className="mt-1 text-[11px] text-zinc-500">Across {metrics.totalProducts} catalog products</p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Inventory Valuation</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Inventory Valuation</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/15">
                 <PackageCheck className="size-4" />
               </div>
             </div>
-            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {metrics.totalValuation.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
             </p>
             <p className="mt-1 text-[11px] font-medium text-emerald-600">Based on catalog retail prices</p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Low Stock Warnings</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-500/20">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Low Stock Warnings</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-amber-50 text-amber-700 ring-1 ring-amber-500/15">
                 <AlertTriangle className="size-4" />
               </div>
             </div>
-            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-amber-900 tabular-nums">
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-amber-900 tabular-nums">
               {metrics.lowStockCount} <span className="font-sans text-xs font-normal text-zinc-500">items</span>
             </p>
             <p className="mt-1 text-[11px] text-zinc-500">Below minimum reorder threshold</p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Depleted / Stockout</span>
-              <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-500/20">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Depleted / Stockout</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-rose-50 text-rose-700 ring-1 ring-rose-500/15">
                 <PackageX className="size-4" />
               </div>
             </div>
-            <p className="mt-3 font-mono text-2xl font-bold tracking-tight text-red-700 tabular-nums">
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-rose-700 tabular-nums">
               {metrics.outOfStockCount} <span className="font-sans text-xs font-normal text-zinc-500">items</span>
             </p>
-            <p className="mt-1 text-[11px] font-medium text-red-600">Zero units on hand</p>
+            <p className="mt-1 text-[11px] font-medium text-rose-600">Zero units on hand</p>
           </div>
         </div>
 
         {/* ------------------------------------------------------------------ */}
         {/* 3. Main Stock Table & Filters                                      */}
         {/* ------------------------------------------------------------------ */}
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
           {/* Toolbar */}
-          <div className="flex flex-col gap-3 border-b border-[#e5e7eb] p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-3.5">
             {/* Status Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-1 text-xs font-medium">
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setSelectedStatus("ALL")}
-                className={`rounded-lg px-3 py-1.5 transition-all ${
+                className={`rounded-md px-3 py-1.5 transition-all ${
                   selectedStatus === "ALL"
-                    ? "bg-white text-[#111827] shadow-sm font-semibold"
-                    : "text-[#6b7280] hover:text-[#111827]"
+                    ? "bg-white text-zinc-900 font-semibold shadow-2xs"
+                    : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
-                All Items ({products.length})
+                All Items <span className="font-mono text-[11px] opacity-75">({products.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedStatus("LOW_STOCK")}
-                className={`rounded-lg px-3 py-1.5 transition-all ${
+                className={`rounded-md px-3 py-1.5 transition-all ${
                   selectedStatus === "LOW_STOCK"
-                    ? "bg-amber-500 text-white shadow-sm font-semibold"
-                    : "text-[#6b7280] hover:text-amber-600"
+                    ? "bg-amber-600 text-white font-semibold shadow-2xs"
+                    : "text-zinc-600 hover:text-amber-700"
                 }`}
               >
-                Low Stock ({metrics.lowStockCount})
+                Low Stock <span className="font-mono text-[11px] opacity-85">({metrics.lowStockCount})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedStatus("OUT_OF_STOCK")}
-                className={`rounded-lg px-3 py-1.5 transition-all ${
+                className={`rounded-md px-3 py-1.5 transition-all ${
                   selectedStatus === "OUT_OF_STOCK"
-                    ? "bg-red-600 text-white shadow-sm font-semibold"
-                    : "text-[#6b7280] hover:text-red-600"
+                    ? "bg-rose-600 text-white font-semibold shadow-2xs"
+                    : "text-zinc-600 hover:text-rose-700"
                 }`}
               >
-                Out of Stock ({metrics.outOfStockCount})
+                Out of Stock <span className="font-mono text-[11px] opacity-85">({metrics.outOfStockCount})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedStatus("EXPIRING")}
-                className={`rounded-lg px-3 py-1.5 transition-all ${
+                className={`rounded-md px-3 py-1.5 transition-all ${
                   selectedStatus === "EXPIRING"
-                    ? "bg-purple-600 text-white shadow-sm font-semibold"
-                    : "text-[#6b7280] hover:text-purple-600"
+                    ? "bg-purple-600 text-white font-semibold shadow-2xs"
+                    : "text-zinc-600 hover:text-purple-700"
                 }`}
               >
-                Expiring Soon ({metrics.expiringCount})
+                Expiring Soon <span className="font-mono text-[11px] opacity-85">({metrics.expiringCount})</span>
               </button>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
               {/* Search */}
               <div className="relative w-full sm:w-auto">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9ca3af]" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search item / SKU..."
-                  className="h-9 w-full sm:w-48 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] pl-8 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+                  className="h-9 w-full sm:w-48 rounded-md border border-zinc-200 bg-zinc-50/50 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:bg-white focus:outline-hidden"
                 />
               </div>
 
@@ -535,7 +553,7 @@ export default function InventoryPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-9 w-full sm:w-auto rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full sm:w-auto rounded-md border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 focus:border-[#5B4FE9] focus:outline-hidden"
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((c) => (
@@ -551,19 +569,19 @@ export default function InventoryPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-xs">
               <thead>
-                <tr className="border-b border-[#e5e7eb] text-left text-[#6b7280]">
-                  <th className="px-6 py-3 font-medium">Product</th>
-                  <th className="px-4 py-3 font-medium">SKU</th>
-                  <th className="px-4 py-3 font-medium">Category</th>
-                  <th className="px-4 py-3 font-medium">In-Stock Quantity</th>
-                  <th className="px-4 py-3 font-medium">Unit Price</th>
-                  <th className="px-4 py-3 font-medium">Asset Valuation</th>
-                  <th className="px-4 py-3 font-medium">Expiry Date</th>
-                  <th className="px-4 py-3 font-medium">Stock Status</th>
-                  <th className="px-6 py-3 font-medium text-right">Stock Action</th>
+                <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left">
+                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Product</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">SKU</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Category</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">In-Stock Quantity</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Unit Price</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Asset Valuation</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Expiry Date</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Stock Status</th>
+                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">Stock Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#f9fafb]">
+              <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12">
@@ -572,7 +590,7 @@ export default function InventoryPage() {
                   </tr>
                 ) : currentRows.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-[#9ca3af]">
+                    <td colSpan={9} className="px-6 py-12 text-center text-zinc-400">
                       No inventory items found matching filters.
                     </td>
                   </tr>
@@ -587,25 +605,25 @@ export default function InventoryPage() {
                     const isLow = !isOut && qty <= threshold;
 
                     return (
-                      <tr key={product.id} className="transition-colors hover:bg-[#f9fafb]">
+                      <tr key={product.id} className="transition-colors hover:bg-zinc-50/60">
                         <td className="px-6 py-3.5">
                           <div className="flex items-center gap-3">
-                            <ProductAvatar name={product.name} className="size-8 text-sm" />
+                            <ProductAvatar name={product.name} className="size-8 text-xs" />
                             <div>
-                              <span className="font-semibold text-[#111827]">
+                              <span className="font-semibold text-zinc-900">
                                 {product.name}
                               </span>
-                              <p className="text-[10px] text-[#9ca3af]">Min alert: {threshold} pcs</p>
+                              <p className="font-mono text-[10px] text-zinc-400">Min alert: {threshold} pcs</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 font-mono text-[#4b5563]">{product.sku || "—"}</td>
-                        <td className="px-4 py-3.5 text-[#374151]">{product.category?.name || "General"}</td>
-                        <td className="px-4 py-3.5 font-bold text-[#111827]">
-                          {qty} <span className="text-[10px] font-normal text-[#6b7280]">{product.unit || "pcs"}</span>
+                        <td className="px-4 py-3.5 font-mono text-zinc-500">{product.sku || "—"}</td>
+                        <td className="px-4 py-3.5 text-zinc-600">{product.category?.name || "General"}</td>
+                        <td className="px-4 py-3.5 font-mono font-bold text-zinc-900 tabular-nums">
+                          {qty} <span className="font-sans text-[10px] font-normal text-zinc-500">{product.unit || "pcs"}</span>
                         </td>
-                        <td className="px-4 py-3.5 text-[#374151]">{price.toLocaleString()} ETB</td>
-                        <td className="px-4 py-3.5 font-semibold text-[#111827]">
+                        <td className="px-4 py-3.5 font-mono text-zinc-600 tabular-nums">{price.toLocaleString()} ETB</td>
+                        <td className="px-4 py-3.5 font-mono font-semibold text-zinc-900 tabular-nums">
                           {val.toLocaleString()} ETB
                         </td>
                         <td className="px-4 py-3.5 font-mono">
@@ -613,24 +631,24 @@ export default function InventoryPage() {
                         </td>
                         <td className="px-4 py-3.5">
                           <span
-                            className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                            className={`inline-block rounded-md px-2 py-0.5 font-mono text-[10px] uppercase font-semibold ${
                               isOut
-                                ? "bg-red-50 text-red-600 border border-red-200"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200/80"
                                 : isLow
-                                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                ? "bg-amber-50 text-amber-700 border border-amber-200/80"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
                             }`}
                           >
-                            {isOut ? "Out of Stock" : isLow ? "Low Stock Alert" : "Well Stocked"}
+                            {isOut ? "Out of Stock" : isLow ? "Low Stock" : "In Stock"}
                           </span>
                         </td>
                         <td className="px-6 py-3.5 text-right">
                           <button
                             type="button"
                             onClick={() => setProductToAdjust(product)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-semibold text-[#111827] shadow-sm hover:bg-[#f9fafb] hover:border-[#2563eb] hover:text-[#2563eb] transition-all"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900 transition-all active:scale-95"
                           >
-                            <SlidersHorizontal className="size-3" />
+                            <SlidersHorizontal className="size-3 text-zinc-500" />
                             Adjust Stock
                           </button>
                         </td>
@@ -643,17 +661,17 @@ export default function InventoryPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-[#e5e7eb] px-6 py-4">
+          <div className="flex items-center justify-between border-t border-zinc-200/80 bg-zinc-50/30 px-6 py-3.5">
             <button
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 shadow-2xs"
             >
               Previous
             </button>
 
-            <span className="text-xs text-[#6b7280]">
+            <span className="font-mono text-xs text-zinc-500 tabular-nums">
               Page {page} of {totalPages}
             </span>
 
@@ -661,7 +679,7 @@ export default function InventoryPage() {
               type="button"
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 shadow-2xs"
             >
               Next
             </button>

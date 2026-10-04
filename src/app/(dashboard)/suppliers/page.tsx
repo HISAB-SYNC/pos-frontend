@@ -1,14 +1,19 @@
 "use client";
 
 import {
+  Building2,
   Download,
   Edit2,
   Filter,
+  PackageCheck,
   Plus,
   RotateCcw,
   Search,
+  ShieldAlert,
+  ShieldCheck,
   SlidersHorizontal,
   Trash2,
+  Truck,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -101,18 +106,25 @@ function AddSupplierModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-[500px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-4 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
-          <h2 className="text-base font-semibold text-[#111827]">New Supplier</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-[480px] rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">Add New Supplier</h2>
+            <p className="text-xs text-zinc-500">Register vendor details and return policies</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+          >
             <X className="size-4" />
           </button>
         </div>
 
         {/* Avatar Upload Dropzone */}
-        <div className="mb-5 flex items-center justify-center gap-4">
-          <label className="group relative flex size-16 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-[#d1d5db] transition-colors hover:border-[#2563eb]">
+        <div className="mb-4 flex items-center gap-3.5 rounded-lg border border-zinc-200/80 bg-zinc-50/50 p-3">
+          <label className="group relative flex size-12 cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white transition-colors hover:border-[#5B4FE9]">
             <input
               type="file"
               accept="image/*"
@@ -123,79 +135,79 @@ function AddSupplierModal({
               <img
                 src={previewImage}
                 alt="Supplier"
-                className="size-full rounded-full object-cover"
+                className="size-full rounded-lg object-cover"
               />
             ) : (
-              <UploadCloud className="size-6 text-[#9ca3af] group-hover:text-[#2563eb]" />
+              <UploadCloud className="size-5 text-zinc-400 group-hover:text-[#5B4FE9] transition-colors" />
             )}
           </label>
 
           <div className="text-left text-xs">
-            <p className="font-medium text-[#374151]">Supplier Logo / Photo</p>
-            <p className="text-[11px] text-[#9ca3af]">PNG, JPG up to 2MB</p>
+            <p className="font-semibold text-zinc-800">Supplier Logo / Brand Photo</p>
+            <p className="text-[11px] text-zinc-500">PNG, JPG up to 2MB (Optional)</p>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Supplier Name *</label>
+            <label className="font-semibold text-zinc-700">Supplier Name *</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               required
               placeholder="e.g. BGI Ethiopia"
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Product Provided</label>
+              <label className="font-semibold text-zinc-700">Product Line</label>
               <input
                 name="product"
                 value={form.product}
                 onChange={handleChange}
                 placeholder="e.g. Beverages"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Phone Number</label>
+              <label className="font-semibold text-zinc-700">Contact Number</label>
               <input
                 name="contactInfo"
                 value={form.contactInfo}
                 onChange={handleChange}
                 placeholder="e.g. +251 91 123 4567"
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Email Address</label>
+            <label className="font-semibold text-zinc-700">Email Address</label>
             <input
               name="email"
               type="email"
               value={form.email}
               onChange={handleChange}
               placeholder="e.g. supplier@domain.com"
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Return Policy</label>
+            <label className="font-semibold text-zinc-700">Return Policy</label>
             <select
               name="type"
               value={form.type}
               onChange={handleChange}
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             >
-              <option value="Taking Return">Taking Return</option>
-              <option value="Not Taking Return">Not Taking Return</option>
+              <option value="Taking Return">Taking Return (Accepts returns of damaged/expired stock)</option>
+              <option value="Not Taking Return">Not Taking Return (Final sale / no return)</option>
             </select>
           </div>
 
@@ -203,14 +215,14 @@ function AddSupplierModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-[#1f2937] disabled:opacity-50"
+              className="rounded-md bg-slate-900 px-5 py-2 font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Add Supplier"}
             </button>
@@ -282,64 +294,70 @@ function EditSupplierModal({
   if (!supplier) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-
-      <div className="w-full max-w-[480px] rounded-2xl bg-white p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-5 flex items-center justify-between border-b border-[#f3f4f6] pb-3">
-          <h2 className="text-base font-semibold text-[#111827]">Edit Supplier</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-[#6b7280] hover:bg-[#f3f4f6]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-[480px] rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">Edit Supplier</h2>
+            <p className="text-xs text-zinc-500">Update vendor contact details and return policies</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+          >
             <X className="size-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Supplier Name *</label>
+            <label className="font-semibold text-zinc-700">Supplier Name *</label>
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Product</label>
+              <label className="font-semibold text-zinc-700">Product Line</label>
               <input
                 value={form.product}
                 onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
             <div className="space-y-1">
-              <label className="font-medium text-[#374151]">Contact Number</label>
+              <label className="font-semibold text-zinc-700">Contact Number</label>
               <input
                 value={form.contactInfo}
                 onChange={(e) => setForm((f) => ({ ...f, contactInfo: e.target.value }))}
-                className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Email</label>
+            <label className="font-semibold text-zinc-700">Email Address</label>
             <input
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-[#374151]">Return Policy</label>
+            <label className="font-semibold text-zinc-700">Return Policy</label>
             <select
               value={form.type}
               onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as any }))}
-              className="h-9 w-full rounded-lg border border-[#e5e7eb] px-3 text-[#111827] focus:border-[#2563eb] focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             >
-              <option value="Taking Return">Taking Return</option>
-              <option value="Not Taking Return">Not Taking Return</option>
+              <option value="Taking Return">Taking Return (Accepts returns of damaged/expired stock)</option>
+              <option value="Not Taking Return">Not Taking Return (Final sale / no return)</option>
             </select>
           </div>
 
@@ -347,14 +365,14 @@ function EditSupplierModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+              className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#111827] px-5 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-md bg-slate-900 px-5 py-2 font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
@@ -398,23 +416,22 @@ function DeleteSupplierDialog({
 
   if (!supplier) return null;
 
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[1px]">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
+      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-rose-50 text-rose-600 ring-1 ring-rose-500/15">
           <Trash2 className="size-5" />
         </div>
-        <h3 className="text-base font-bold text-[#111827]">Delete Supplier</h3>
-        <p className="mt-1 text-xs text-[#6b7280]">
-          Are you sure you want to delete supplier <span className="font-semibold text-[#111827]">{supplier.name}</span>?
+        <h3 className="text-base font-bold tracking-tight text-zinc-900">Delete Supplier</h3>
+        <p className="mt-1 text-xs text-zinc-500">
+          Are you sure you want to delete supplier <span className="font-semibold text-zinc-800">{supplier.name}</span>? This action cannot be undone.
         </p>
 
         <div className="mt-5 flex justify-end gap-2.5 text-xs">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[#e5e7eb] px-4 py-2 font-medium text-[#374151] hover:bg-[#f9fafb]"
+            className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
             Cancel
           </button>
@@ -422,7 +439,7 @@ function DeleteSupplierDialog({
             type="button"
             disabled={isDeleting}
             onClick={handleConfirm}
-            className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+            className="rounded-md bg-rose-600 px-4 py-2 font-bold text-white shadow-2xs hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-50"
           >
             {isDeleting ? "Deleting..." : "Delete Permanently"}
           </button>
@@ -480,6 +497,16 @@ export default function SuppliersPage() {
     load();
   }, [load]);
 
+  // Operational Metrics
+  const metrics = useMemo(() => {
+    const total = suppliers.length;
+    const takingReturns = suppliers.filter((s) => s.type === "Taking Return" || !s.type).length;
+    const noReturns = suppliers.filter((s) => s.type === "Not Taking Return").length;
+    const productLines = new Set(suppliers.map((s) => s.product?.trim()).filter(Boolean)).size;
+
+    return { total, takingReturns, noReturns, productLines };
+  }, [suppliers]);
+
   // Client-side filtering
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter((s) => {
@@ -536,216 +563,311 @@ export default function SuppliersPage() {
         shopId={shopId}
       />
 
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5e7eb] px-6 py-4">
-          <h1 className="text-lg font-semibold text-[#111827]">Suppliers ({filteredSuppliers.length})</h1>
+      <div className="space-y-6">
+        {/* ------------------------------------------------------------------ */}
+        {/* 1. Header Toolbar & Title                                          */}
+        {/* ------------------------------------------------------------------ */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-indigo-400 shadow-2xs">
+                <Building2 className="size-4 text-indigo-400" />
+              </span>
+              <h1 className="text-xl font-bold tracking-tight text-zinc-900">Vendors &amp; Suppliers</h1>
+            </div>
+            <p className="text-xs text-zinc-500 mt-1">
+              Manage product distributors, return policies, contact directory, and incoming supply lines.
+            </p>
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Search */}
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9ca3af]" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search suppliers..."
-                className="h-9 w-48 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
-              />
-            </div>
-
-            {/* Filter button & dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors ${
-                  typeFilter !== "ALL"
-                    ? "border-[#2563eb] bg-blue-50 text-[#2563eb]"
-                    : "border-[#e5e7eb] bg-white text-[#374151] hover:bg-[#f9fafb]"
-                }`}
-              >
-                <SlidersHorizontal className="size-3.5 text-[#6b7280]" />
-                Filters
-                {typeFilter !== "ALL" && (
-                  <span className="size-2 rounded-full bg-blue-600" />
-                )}
-              </button>
-
-              {showFilterDropdown && (
-                <div className="absolute right-0 top-11 z-30 w-56 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-xl text-xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-[#f3f4f6] pb-2">
-                    <span className="font-bold text-[#111827]">Filter Suppliers</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTypeFilter("ALL");
-                        setShowFilterDropdown(false);
-                      }}
-                      className="flex items-center gap-1 text-[11px] text-[#6b7280] hover:text-[#111827]"
-                    >
-                      <RotateCcw className="size-3" />
-                      Reset
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block font-medium text-[#374151]">Return Policy</label>
-                    <select
-                      value={typeFilter}
-                      onChange={(e) => setTypeFilter(e.target.value)}
-                      className="h-8 w-full rounded-lg border border-[#e5e7eb] px-2 text-[#111827]"
-                    >
-                      <option value="ALL">All Types</option>
-                      <option value="Taking Return">Taking Return</option>
-                      <option value="Not Taking Return">Not Taking Return</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowFilterDropdown(false)}
-                    className="w-full rounded-lg bg-[#111827] py-1.5 font-semibold text-white hover:bg-slate-800"
-                  >
-                    Apply Filter
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Download button */}
             <button
               type="button"
               onClick={handleDownload}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb]"
+              className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 active:scale-95"
             >
-              <Download className="size-3.5 text-[#6b7280]" />
-              Download
+              <Download className="size-3.5 text-zinc-500" />
+              Export Directory
             </button>
-
-            {/* Add Supplier button */}
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#111827] px-4 text-xs font-medium text-white transition-colors hover:bg-[#1f2937]"
+              className="flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-4 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
             >
-              <Plus className="size-3.5" />
+              <Plus className="size-3.5 text-indigo-400" />
               Add Supplier
             </button>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-xs">
-            <thead>
-              <tr className="border-b border-[#e5e7eb] text-left text-[#6b7280]">
-                <th className="px-6 py-3 font-medium">Supplier Name</th>
-                <th className="px-4 py-3 font-medium">Product</th>
-                <th className="px-4 py-3 font-medium">Contact Number</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">On the way</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f9fafb]">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12">
-                    <LoadingState />
-                  </td>
-                </tr>
-              ) : currentSuppliers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-[#9ca3af]">
-                    No suppliers found matching filters.
-                  </td>
-                </tr>
-              ) : (
-                currentSuppliers.map((supplier) => {
-                  const isTakingReturn =
-                    supplier.type === "Taking Return" || supplier.type === undefined;
+        {/* ------------------------------------------------------------------ */}
+        {/* 2. Top Metric Cards                                                */}
+        {/* ------------------------------------------------------------------ */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Suppliers</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/15">
+                <Building2 className="size-4" />
+              </div>
+            </div>
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {metrics.total} <span className="font-sans text-xs font-normal text-zinc-500">vendors</span>
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-500">Registered supply partners</p>
+          </div>
 
-                  return (
-                    <tr
-                      key={supplier.id}
-                      className="transition-colors hover:bg-[#f9fafb]"
-                    >
-                      <td className="px-6 py-3.5 font-medium text-[#111827]">
-                        {supplier.name}
-                      </td>
-                      <td className="px-4 py-3.5 text-[#374151]">
-                        {supplier.product || "—"}
-                      </td>
-                      <td className="px-4 py-3.5 text-[#374151]">
-                        {supplier.contactInfo || "—"}
-                      </td>
-                      <td className="px-4 py-3.5 text-[#374151]">
-                        {supplier.email || `${supplier.name.toLowerCase().replace(/\s+/g, "")}@gmail.com`}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span
-                          className={`font-medium ${
-                            isTakingReturn ? "text-[#16a34a]" : "text-[#dc2626]"
-                          }`}
-                        >
-                          {supplier.type || "Taking Return"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-[#374151]">
-                        {supplier.onTheWay ?? "-"}
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2 text-[#6b7280]">
-                          <button
-                            type="button"
-                            onClick={() => setSupplierToEdit(supplier)}
-                            title="Edit Supplier"
-                            className="rounded-lg p-1.5 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                          >
-                            <Edit2 className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSupplierToDelete(supplier)}
-                            title="Delete Supplier"
-                            className="rounded-lg p-1.5 hover:bg-red-50 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Accepting Returns</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/15">
+                <ShieldCheck className="size-4" />
+              </div>
+            </div>
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-emerald-800 tabular-nums">
+              {metrics.takingReturns} <span className="font-sans text-xs font-normal text-zinc-500">vendors</span>
+            </p>
+            <p className="mt-1 text-[11px] font-medium text-emerald-600">Damage / expired stock returnable</p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strict / No Returns</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200">
+                <ShieldAlert className="size-4" />
+              </div>
+            </div>
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-800 tabular-nums">
+              {metrics.noReturns} <span className="font-sans text-xs font-normal text-zinc-500">vendors</span>
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-500">Final sale policies</p>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Product Categories</span>
+              <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200">
+                <PackageCheck className="size-4" />
+              </div>
+            </div>
+            <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {metrics.productLines} <span className="font-sans text-xs font-normal text-zinc-500">categories</span>
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-500">Covered product lines</p>
+          </div>
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-[#e5e7eb] px-6 py-4">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Previous
-          </button>
+        {/* ------------------------------------------------------------------ */}
+        {/* 3. Main Suppliers Directory Table & Filters                         */}
+        {/* ------------------------------------------------------------------ */}
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
+          {/* Toolbar */}
+          <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-3.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-semibold text-zinc-900">
+                Directory ({filteredSuppliers.length})
+              </span>
+              {typeFilter !== "ALL" && (
+                <span className="rounded-md border border-[#5B4FE9]/30 bg-indigo-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#5B4FE9]">
+                  {typeFilter}
+                </span>
+              )}
+            </div>
 
-          <span className="text-xs text-[#6b7280]">
-            Page {page} of {totalPages}
-          </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search */}
+              <div className="relative w-full sm:w-auto">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search suppliers / products..."
+                  className="h-9 w-full sm:w-56 rounded-md border border-zinc-200 bg-zinc-50/50 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:bg-white focus:outline-hidden"
+                />
+              </div>
 
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className="rounded-lg border border-[#e5e7eb] px-4 py-2 text-xs font-medium text-[#374151] transition-colors hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
+              {/* Filter button & dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                  className={`flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium shadow-2xs transition-colors ${
+                    typeFilter !== "ALL"
+                      ? "border-[#5B4FE9] bg-indigo-50 text-[#5B4FE9]"
+                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  <SlidersHorizontal className="size-3.5 text-zinc-500" />
+                  Filter Policy
+                  {typeFilter !== "ALL" && (
+                    <span className="size-1.5 rounded-full bg-[#5B4FE9]" />
+                  )}
+                </button>
+
+                {showFilterDropdown && (
+                  <div className="absolute right-0 top-11 z-30 w-56 rounded-xl border border-zinc-200 bg-white p-4 shadow-xl text-xs space-y-3 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                      <span className="font-bold text-zinc-900">Return Policy</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTypeFilter("ALL");
+                          setShowFilterDropdown(false);
+                        }}
+                        className="flex items-center gap-1 font-mono text-[10px] text-zinc-500 hover:text-zinc-900 transition-colors"
+                      >
+                        <RotateCcw className="size-3" />
+                        Reset
+                      </button>
+                    </div>
+
+                    <div>
+                      <select
+                        value={typeFilter}
+                        onChange={(e) => setTypeFilter(e.target.value)}
+                        className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-zinc-900 focus:border-[#5B4FE9] focus:outline-hidden"
+                      >
+                        <option value="ALL">All Policies</option>
+                        <option value="Taking Return">Taking Return</option>
+                        <option value="Not Taking Return">Not Taking Return</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowFilterDropdown(false)}
+                      className="w-full rounded-md bg-slate-900 py-1.5 font-bold text-white shadow-2xs hover:bg-slate-800 transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-xs">
+              <thead>
+                <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left">
+                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Supplier Name</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Product Line</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Contact Number</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Email Address</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Return Policy</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Incoming Supply</th>
+                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12">
+                      <LoadingState />
+                    </td>
+                  </tr>
+                ) : currentSuppliers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-zinc-400">
+                      No suppliers found matching filters.
+                    </td>
+                  </tr>
+                ) : (
+                  currentSuppliers.map((supplier) => {
+                    const isTakingReturn =
+                      supplier.type === "Taking Return" || supplier.type === undefined;
+
+                    return (
+                      <tr
+                        key={supplier.id}
+                        className="transition-colors hover:bg-zinc-50/60"
+                      >
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex size-7 items-center justify-center rounded-md bg-zinc-100 font-mono text-[11px] font-bold text-zinc-700 ring-1 ring-zinc-200">
+                              {supplier.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-zinc-900">
+                              {supplier.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-zinc-700">
+                          {supplier.product || "—"}
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-zinc-600">
+                          {supplier.contactInfo || "—"}
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-zinc-500">
+                          {supplier.email || "—"}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`inline-block rounded-md px-2 py-0.5 font-mono text-[10px] uppercase font-semibold ${
+                              isTakingReturn
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
+                                : "bg-zinc-100 text-zinc-600 border border-zinc-200/80"
+                            }`}
+                          >
+                            {supplier.type || "Taking Return"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-zinc-600">
+                          {supplier.onTheWay ?? "—"}
+                        </td>
+                        <td className="px-6 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSupplierToEdit(supplier)}
+                              title="Edit Supplier"
+                              className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 shadow-2xs hover:border-zinc-300 hover:text-zinc-900 transition-colors"
+                            >
+                              <Edit2 className="size-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSupplierToDelete(supplier)}
+                              title="Delete Supplier"
+                              className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 shadow-2xs hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between border-t border-zinc-200/80 bg-zinc-50/30 px-6 py-3.5">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+
+            <span className="font-mono text-xs text-zinc-500 tabular-nums">
+              Page {page} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </RouteGuard>

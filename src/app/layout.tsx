@@ -31,8 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body className="min-h-full bg-background text-foreground antialiased [color-scheme:light]">
+        <ThemeProvider attribute="class" forcedTheme="light" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           <ApiProvider>{children}</ApiProvider>
         </ThemeProvider>
       </body>

@@ -81,7 +81,7 @@ export function SidebarTrigger({ className, ...props }: React.ComponentProps<typ
       <Button
         variant="outline"
         size="icon"
-        className={cn("lg:hidden", className)}
+        className={cn("bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100 lg:hidden", className)}
         onClick={() => setMobileOpen(true)}
         aria-label="Open sidebar"
         {...props}
@@ -92,7 +92,7 @@ export function SidebarTrigger({ className, ...props }: React.ComponentProps<typ
       <Button
         variant="outline"
         size="icon"
-        className={cn("hidden lg:inline-flex", className)}
+        className={cn("bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-100 hidden lg:inline-flex", className)}
         onClick={toggleCollapsed}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         {...props}

@@ -1053,21 +1053,31 @@ function DeleteCategoryDialog({
 /* Status badge                                                       */
 /* ------------------------------------------------------------------ */
 function StatusBadge({ quantity, threshold }: { quantity: number; threshold: number }) {
+  const isOutOfStock = quantity <= 0;
   const isLow = quantity <= threshold;
+
+  if (isOutOfStock) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+        <span className="size-1.5 rounded-full bg-rose-600" />
+        Out of Stock
+      </span>
+    );
+  }
+
+  if (isLow) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+        <span className="size-1.5 rounded-full bg-amber-600" />
+        Low Stock
+      </span>
+    );
+  }
+
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-        isLow
-          ? "bg-red-50 text-red-700 border border-red-200"
-          : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-      }`}
-    >
-      <span
-        className={`size-1.5 rounded-full ${
-          isLow ? "bg-red-600" : "bg-emerald-600"
-        }`}
-      />
-      {isLow ? "Low stock" : "Available"}
+    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+      <span className="size-1.5 rounded-full bg-emerald-600" />
+      Available
     </span>
   );
 }
@@ -1191,8 +1201,38 @@ export default function ProductsPage() {
     });
   }, [allProducts, debouncedSearch, selectedCategory, selectedStatus]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
-  const products = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const [sortField, setSortField] = useState<"name" | "price" | "stock" | "expiry">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleSort(field: "name" | "price" | "stock" | "expiry") {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  }
+
+  const sortedProducts = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "name") {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortField === "price") {
+        cmp = parseFloat(a.price || "0") - parseFloat(b.price || "0");
+      } else if (sortField === "stock") {
+        cmp = a.stockQuantity - b.stockQuantity;
+      } else if (sortField === "expiry") {
+        const timeA = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+        const timeB = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+        cmp = timeA - timeB;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.ceil(sortedProducts.length / PAGE_SIZE) || 1;
+  const products = sortedProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function formatPrice(val: number | string | undefined): string {
     const num = typeof val === "string" ? parseFloat(val) : val;
@@ -1436,28 +1476,68 @@ export default function ProductsPage() {
             {/* Products Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-zinc-600">
-                <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[11px] uppercase tracking-wider text-zinc-600">
+                <thead className="border-b border-zinc-200/80 bg-zinc-50/70 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Product</th>
+                    <th
+                      onClick={() => handleSort("name")}
+                      className="px-5 py-3 font-semibold cursor-pointer hover:text-zinc-900 select-none"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Product</span>
+                        {sortField === "name" && (
+                          <span className="text-zinc-950 font-bold">{sortDir === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </div>
+                    </th>
                     <th className="px-5 py-3 font-semibold">Category</th>
-                    <th className="px-5 py-3 font-semibold">Stock Quantity</th>
-                    {!isCashier && <th className="px-5 py-3 font-semibold">Buying Price (ETB)</th>}
-                    <th className="px-5 py-3 font-semibold">Selling Price (ETB)</th>
-                    <th className="px-5 py-3 font-semibold">Expiry Date</th>
+                    <th
+                      onClick={() => handleSort("stock")}
+                      className="px-5 py-3 font-semibold cursor-pointer hover:text-zinc-900 select-none"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Stock</span>
+                        {sortField === "stock" && (
+                          <span className="text-zinc-950 font-bold">{sortDir === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </div>
+                    </th>
+                    {!isCashier && <th className="px-5 py-3 font-semibold">Cost Price</th>}
+                    <th
+                      onClick={() => handleSort("price")}
+                      className="px-5 py-3 font-semibold cursor-pointer hover:text-zinc-900 select-none"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Selling Price</span>
+                        {sortField === "price" && (
+                          <span className="text-zinc-950 font-bold">{sortDir === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("expiry")}
+                      className="px-5 py-3 font-semibold cursor-pointer hover:text-zinc-900 select-none"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>Expiry</span>
+                        {sortField === "expiry" && (
+                          <span className="text-zinc-950 font-bold">{sortDir === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </div>
+                    </th>
                     <th className="px-5 py-3 font-semibold">Status</th>
-                    <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                    {!isCashier && <th className="px-5 py-3 text-right font-semibold">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={isCashier ? 7 : 8} className="py-12 text-center text-zinc-400">
+                      <td colSpan={isCashier ? 6 : 8} className="py-12 text-center text-zinc-400">
                         Loading products catalog...
                       </td>
                     </tr>
                   ) : products.length === 0 ? (
                     <tr>
-                      <td colSpan={isCashier ? 7 : 8} className="py-12 text-center text-zinc-400">
+                      <td colSpan={isCashier ? 6 : 8} className="py-12 text-center text-zinc-400">
                         No products found matching the criteria.
                       </td>
                     </tr>
@@ -1468,7 +1548,7 @@ export default function ProductsPage() {
                         onClick={() => {
                           if (!isCashier) setProductToEdit(product);
                         }}
-                        className="cursor-pointer transition-colors hover:bg-zinc-50/80"
+                        className={`transition-colors hover:bg-zinc-50/80 ${!isCashier ? "cursor-pointer" : ""}`}
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
@@ -1505,36 +1585,34 @@ export default function ProductsPage() {
                             threshold={product.lowStockThreshold || 5}
                           />
                         </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1 text-zinc-400">
-                            {!isCashier && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setProductToEdit(product);
-                                  }}
-                                  title="Edit Product"
-                                  className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-                                >
-                                  <Edit2 className="size-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setProductToDelete(product);
-                                  }}
-                                  title="Delete Product"
-                                  className="rounded p-1 hover:bg-red-50 hover:text-red-600 transition-colors"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+                        {!isCashier && (
+                          <td className="px-5 py-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1 text-zinc-400">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProductToEdit(product);
+                                }}
+                                title="Edit Product"
+                                className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                              >
+                                <Edit2 className="size-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProductToDelete(product);
+                                }}
+                                title="Delete Product"
+                                className="rounded p-1 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}

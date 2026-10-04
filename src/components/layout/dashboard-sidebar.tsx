@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Search,
   Settings,
   ShoppingCart,
   Store,
@@ -90,17 +91,17 @@ function NavLink({
       title={collapsed ? label : undefined}
       onClick={onNavigate}
       className={cn(
-        "group relative flex items-center rounded-lg py-2 text-xs font-medium transition-all duration-150",
+        "group relative flex items-center rounded-md py-2 text-xs font-medium transition-all duration-150",
         collapsed ? "justify-center px-2" : "gap-3 px-3",
         active
-          ? "bg-[#5B4FE9]/10 text-zinc-950 font-semibold border-l-2 border-[#5B4FE9] shadow-xs"
+          ? "bg-slate-900 text-white font-medium shadow-2xs"
           : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
       )}
     >
       <Icon
         className={cn(
           "size-4 shrink-0 transition-colors",
-          active ? "text-[#5B4FE9]" : "text-zinc-400 group-hover:text-zinc-700",
+          active ? "text-indigo-400" : "text-zinc-400 group-hover:text-zinc-700",
         )}
       />
       {!collapsed && (
@@ -112,7 +113,7 @@ function NavLink({
             "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
             active
               ? "bg-[#5B4FE9] text-white"
-              : "bg-zinc-100 text-zinc-600",
+              : "bg-zinc-200/70 text-zinc-700",
           )}
         >
           {badge}
@@ -127,6 +128,7 @@ export function DashboardSidebar() {
   const router = useRouter();
   const { collapsed } = useSidebar();
   const setMobileSidebarOpen = useUiStore((state) => state.setMobileSidebarOpen);
+  const toggleCommandPalette = useUiStore((state) => state.toggleCommandPalette);
   const clearSession = useAuthStore((state) => state.clearSession);
   const setActiveShop = useShopStore((state) => state.setActiveShop);
   const activeShopName = useShopStore((state) => state.activeShopName);
@@ -161,6 +163,7 @@ export function DashboardSidebar() {
         { label: "Sales History", href: "/orders", icon: ShoppingCart },
         { label: "Customers", href: "/customers", icon: Users },
         { label: "Debts / Credit", href: "/debts", icon: HandCoins },
+        { label: "Expenses", href: "/expenses", icon: Wallet },
         { label: "Reports", href: "/reports", icon: BarChart3 },
         { label: "Manage Sellers", href: "/users", icon: UserCog },
       ];
@@ -216,10 +219,10 @@ export function DashboardSidebar() {
         {!collapsed && activeShopName && (
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-700 shadow-2xs">
             <span className="relative flex size-2 shrink-0">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#82a823] opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-[#82a823]" />
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
             </span>
-            <span className="truncate font-medium">{activeShopName}</span>
+            <span className="truncate font-medium text-zinc-700">{activeShopName}</span>
           </div>
         )}
       </SidebarHeader>
@@ -252,6 +255,30 @@ export function DashboardSidebar() {
           collapsed ? "px-2" : "px-3",
         )}
       >
+        {/* Quick Search Trigger */}
+        <button
+          type="button"
+          onClick={() => {
+            closeMobileSidebar();
+            toggleCommandPalette();
+          }}
+          className={cn(
+            "group flex w-full items-center rounded-md py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900",
+            collapsed ? "justify-center px-2" : "justify-between px-3",
+          )}
+          title="Search & Quick Actions (⌘K)"
+        >
+          <div className="flex items-center gap-2.5">
+            <Search className="size-3.5 shrink-0 text-zinc-400 group-hover:text-zinc-700" />
+            {!collapsed && <span>Quick Search</span>}
+          </div>
+          {!collapsed && (
+            <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.2 font-mono text-[9px] text-zinc-400 shadow-2xs">
+              ⌘K
+            </kbd>
+          )}
+        </button>
+
         {footerNav.map((item) => (
           <NavLink
             key={item.href}
@@ -268,7 +295,7 @@ export function DashboardSidebar() {
           type="button"
           onClick={handleLogout}
           className={cn(
-            "group flex w-full items-center rounded-lg py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-red-50 hover:text-red-600",
+            "group flex w-full items-center rounded-md py-2 text-xs font-medium text-zinc-600 transition-colors hover:bg-red-50 hover:text-red-600",
             collapsed ? "justify-center px-2" : "gap-3 px-3",
           )}
         >

@@ -7,6 +7,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Store,
   Users,
@@ -67,28 +68,36 @@ export default function AdminShopsPage() {
         setActionSuccessMsg(`Shop '${shop.name}' has been reactivated.`);
       }
       await loadShops();
+      setTimeout(() => setActionSuccessMsg(""), 3500);
     } catch {
       // Fallback
     }
   }
 
-  if (loading) {
+  if (loading && shops.length === 0) {
     return <LoadingState />;
   }
 
+  const activeCount = shops.filter((s) => s.isActive).length;
+  const suspendedCount = shops.filter((s) => !s.isActive).length;
+  const totalMembers = shops.reduce((acc, s) => acc + (s.memberCount || 1), 0);
+  const avgMembers = shops.length > 0 ? (totalMembers / shops.length).toFixed(1) : "0";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
-              <Building2 className="size-4 text-indigo-400" />
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+              Registered Stores Oversight
+            </h1>
+            <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-700">
+              {shops.length} Stores
             </span>
-            <h1 className="text-xl font-bold text-[#111827]">Registered Shops Oversight</h1>
           </div>
-          <p className="text-xs text-[#6b7280]">
-            Monitor all registered stores, active status, and store members platform-wide
+          <p className="mt-1 text-xs text-zinc-500">
+            Monitor store business categories, active licensing status, and allocated staff seats platform-wide
           </p>
         </div>
 
@@ -97,25 +106,25 @@ export default function AdminShopsPage() {
             type="button"
             onClick={loadShops}
             title="Refresh list"
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#374151] hover:bg-[#f9fafb]"
+            className="inline-flex h-8.5 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-3 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900"
           >
-            <RefreshCw className="size-3.5 text-[#6b7280]" />
-            Refresh
+            <RefreshCw className="size-3.5 text-zinc-400" />
+            <span>Refresh</span>
           </button>
         </div>
       </div>
 
       {/* Success Notification */}
       {actionSuccessMsg && (
-        <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 animate-in fade-in duration-150">
+        <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800 animate-in fade-in duration-150">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-blue-600 shrink-0" />
+            <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
             <span>{actionSuccessMsg}</span>
           </div>
           <button
             type="button"
             onClick={() => setActionSuccessMsg("")}
-            className="text-blue-600 hover:text-blue-900"
+            className="text-emerald-700 hover:text-emerald-900"
           >
             <X className="size-3.5" />
           </button>
@@ -123,130 +132,180 @@ export default function AdminShopsPage() {
       )}
 
       {/* Metrics overview */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
-          <span className="text-xs font-semibold text-[#6b7280]">Total Registered Shops</span>
-          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-950 tabular-nums">{shops.length}</div>
-          <span className="text-[11px] text-[#6b7280]">Stores onboarded to platform</span>
-        </div>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
-          <span className="text-xs font-semibold text-[#6b7280]">Active Operating Shops</span>
-          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-emerald-600 tabular-nums">
-            {shops.filter((s) => s.isActive).length}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Total Stores
+            </span>
+            <Building2 className="size-4 text-zinc-400" />
           </div>
-          <span className="text-[11px] text-emerald-600 font-medium">Accepting sales & inventory</span>
-        </div>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm transition-all hover:border-zinc-300">
-          <span className="text-xs font-semibold text-[#6b7280]">Suspended / Inactive</span>
-          <div className="mt-2 font-mono text-2xl font-bold tracking-tight text-[#dc2626] tabular-nums">
-            {shops.filter((s) => !s.isActive).length}
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {shops.length}
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Total client stores onboarded</p>
           </div>
-          <span className="text-[11px] text-red-600 font-medium">Frozen shop operations</span>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              Active Operating
+            </span>
+            <ShieldCheck className="size-4 text-emerald-600" />
+          </div>
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
+              {activeCount}
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Processing checkout sales</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-700">
+              Suspended / Frozen
+            </span>
+            <ShieldAlert className="size-4 text-rose-600" />
+          </div>
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-rose-600 tabular-nums">
+              {suspendedCount}
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Frozen store operations</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Operator Seats
+            </span>
+            <Users className="size-4 text-indigo-500" />
+          </div>
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {totalMembers}
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Avg {avgMembers} staff / store</p>
+          </div>
         </div>
       </div>
 
       {/* Table Card */}
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1.5">
+      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1">
             {(["ALL", "ACTIVE", "SUSPENDED"] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => setStatusFilter(tab)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
                   statusFilter === tab
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "border border-[#e5e7eb] bg-white text-[#4b5563] hover:bg-[#f9fafb]"
+                    ? "bg-white text-zinc-900 font-semibold shadow-2xs"
+                    : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
-                {tab === "ALL" ? "All Shops" : tab === "ACTIVE" ? "Active Shops" : "Suspended"}
+                {tab === "ALL" ? `All (${shops.length})` : tab === "ACTIVE" ? `Active (${activeCount})` : `Suspended (${suspendedCount})`}
               </button>
             ))}
           </div>
 
           <div className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9ca3af]" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by shop name, owner, type..."
-              className="h-9 w-full rounded-xl border border-[#e5e7eb] pl-9 pr-3 text-xs text-[#111827] placeholder:text-[#9ca3af] focus:border-[#2563eb] focus:outline-none"
+              placeholder="Search by store name, owner, type..."
+              className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#f3f4f6] text-[11px] font-semibold text-[#6b7280]">
-              <tr>
-                <th className="pb-3">Shop Name</th>
-                <th className="pb-3">Business Category</th>
-                <th className="pb-3">Owner Contact</th>
-                <th className="pb-3">Staff Members</th>
-                <th className="pb-3">Created Date</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-right">Oversight Action</th>
+          <table className="w-full min-w-[760px] text-xs">
+            <thead>
+              <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+                <th className="px-5 py-3">Store Name</th>
+                <th className="px-4 py-3">Business Category</th>
+                <th className="px-4 py-3">Owner Contact</th>
+                <th className="px-4 py-3">Staff Seats</th>
+                <th className="px-4 py-3">Onboarded Date</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Oversight Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f3f4f6]">
+            <tbody className="divide-y divide-zinc-100">
               {filteredShops.length > 0 ? (
                 filteredShops.map((shop) => (
-                  <tr key={shop.id} className="hover:bg-[#f9fafb]">
-                    <td className="py-3 font-bold text-[#111827]">{shop.name}</td>
-                    <td className="py-3">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+                  <tr key={shop.id} className="transition-colors hover:bg-zinc-50/70">
+                    <td className="px-5 py-3.5 font-bold text-zinc-900">{shop.name}</td>
+                    <td className="px-4 py-3.5">
+                      <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-medium text-zinc-700">
                         {shop.businessType}
                       </span>
                     </td>
-                    <td className="py-3">
-                      <p className="text-[#111827]">{shop.ownerName || "Shop Owner"}</p>
-                      <p className="text-[11px] text-[#6b7280]">{shop.ownerEmail}</p>
+                    <td className="px-4 py-3.5">
+                      <p className="font-semibold text-zinc-900">{shop.ownerName || "Store Owner"}</p>
+                      <p className="font-mono text-[11px] text-zinc-400">{shop.ownerEmail}</p>
                     </td>
-                    <td className="py-3 font-semibold text-[#374151]">{shop.memberCount || 1} Members</td>
-                    <td className="py-3 text-[#6b7280]">
+                    <td className="px-4 py-3.5">
+                      <span className="font-mono text-xs font-semibold text-zinc-800 tabular-nums">
+                        {shop.memberCount || 1}
+                      </span>
+                      <span className="ml-1 text-[11px] text-zinc-400">seats</span>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-xs text-zinc-600 tabular-nums">
                       {new Date(shop.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
                       })}
                     </td>
-                    <td className="py-3">
+                    <td className="px-4 py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider border ${
                           shop.isActive
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-700"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-rose-200 bg-rose-50 text-rose-700"
                         }`}
                       >
-                        <span
-                          className={`size-1.5 rounded-full ${
-                            shop.isActive ? "bg-emerald-500" : "bg-red-500"
-                          }`}
-                        />
+                        <span className={`size-1 rounded-full ${shop.isActive ? "bg-emerald-600" : "bg-rose-600"}`} />
                         {shop.isActive ? "Active" : "Suspended"}
                       </span>
                     </td>
-                    <td className="py-3 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(shop)}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${
+                        className={`rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition-colors shadow-2xs ${
                           shop.isActive
-                            ? "bg-red-50 text-red-700 hover:bg-red-100"
-                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            ? "border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+                            : "border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
                         }`}
                       >
-                        {shop.isActive ? "Suspend Shop" : "Reactivate"}
+                        {shop.isActive ? "Suspend Store" : "Reactivate"}
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-xs text-[#9ca3af]">
-                    No shops found matching query.
+                  <td colSpan={7} className="px-6 py-12 text-center text-xs text-zinc-400">
+                    No shops found matching filter criteria.
                   </td>
                 </tr>
               )}

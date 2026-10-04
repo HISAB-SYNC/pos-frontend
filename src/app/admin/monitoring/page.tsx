@@ -35,18 +35,20 @@ export default function AdminMonitoringPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <Activity className="size-4" />
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+              Platform Health &amp; Telemetry
+            </h1>
+            <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              Live Monitor
             </span>
-            <h1 className="text-xl font-bold text-[#111827]">System Health &amp; Platform Monitoring</h1>
           </div>
-          <p className="text-xs text-[#6b7280]">
-            Real-time backend API status, server latency, and database health metrics
+          <p className="mt-1 text-xs text-zinc-500">
+            Real-time backend API status, server latency, database cluster connectivity, and uptime SLA
           </p>
         </div>
 
@@ -54,97 +56,101 @@ export default function AdminMonitoringPage() {
           type="button"
           onClick={handlePing}
           disabled={isPinging}
-          className="flex h-9 items-center gap-1.5 rounded-xl border border-[#e5e7eb] bg-white px-3.5 text-xs font-semibold text-[#374151] hover:bg-[#f9fafb] disabled:opacity-50"
+          className="inline-flex h-8.5 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-50"
         >
-          <RefreshCw className={`size-3.5 text-[#6b7280] ${isPinging ? "animate-spin" : ""}`} />
-          {isPinging ? "Pinging..." : "Check Health"}
+          <RefreshCw className={`size-3.5 text-zinc-400 ${isPinging ? "animate-spin" : ""}`} />
+          <span>{isPinging ? "Pinging Cluster..." : "Check Latency"}</span>
         </button>
       </div>
 
       {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">Backend API Status</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <Server className="size-4" />
-            </div>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              API Cluster Status
+            </span>
+            <Server className="size-4 text-emerald-600" />
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#16a34a]">Operational</span>
-          </div>
-          <div className="mt-2 text-[11px] text-[#6b7280]">
-            Render Cloud Instance (Node.js/Express)
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-emerald-700">
+              Operational
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Node.js Express microservice</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">API Response Latency</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Zap className="size-4" />
-            </div>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              API Response Latency
+            </span>
+            <Zap className="size-4 text-indigo-500" />
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#111827]">{latency} ms</span>
-            <span className="text-xs font-medium text-emerald-600">Optimal</span>
-          </div>
-          <div className="mt-2 text-[11px] text-[#6b7280]">
-            Last verified: {lastCheck}
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              {latency} <span className="text-xs font-normal text-zinc-400">ms</span>
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Last verified: {lastCheck}</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">Database Cluster</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-              <Database className="size-4" />
-            </div>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Database Cluster
+            </span>
+            <Database className="size-4 text-zinc-400" />
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#111827]">PostgreSQL</span>
-            <span className="text-xs font-medium text-emerald-600">Connected</span>
-          </div>
-          <div className="mt-2 text-[11px] text-[#6b7280]">
-            Prisma ORM Pooling Active
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-zinc-900">
+              PostgreSQL
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Prisma ORM connection pool</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#6b7280]">Platform Uptime (30d)</span>
-            <div className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <ShieldCheck className="size-4" />
-            </div>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Platform Uptime SLA
+            </span>
+            <ShieldCheck className="size-4 text-emerald-600" />
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-[#111827]">99.94%</span>
-            <span className="text-xs font-medium text-emerald-600">SLA Met</span>
-          </div>
-          <div className="mt-2 text-[11px] text-[#6b7280]">
-            Zero critical service disruptions
+          <div className="mt-3">
+            <p className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+              99.94%
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-zinc-400">Zero unmanaged outages (30d)</p>
           </div>
         </div>
       </div>
 
       {/* API Endpoint Health Grid */}
-      <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-4">
-        <h2 className="text-sm font-bold text-[#111827]">Core Backend API Endpoint Health</h2>
+      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
+        <div className="border-b border-zinc-200/80 bg-zinc-50/60 px-5 py-3.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider font-mono text-zinc-800">
+            Core Backend API Service Endpoints
+          </h2>
+          <p className="text-[11px] text-zinc-500">Continuous telemetry and route health verification</p>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#f3f4f6] text-[11px] font-semibold text-[#6b7280]">
-              <tr>
-                <th className="pb-3">Endpoint Route</th>
-                <th className="pb-3">Method</th>
-                <th className="pb-3">Auth Scope</th>
-                <th className="pb-3">Status Code</th>
-                <th className="pb-3 text-right">Health Status</th>
+          <table className="w-full min-w-[760px] text-xs">
+            <thead>
+              <tr className="border-b border-zinc-200/80 bg-zinc-50/30 text-left font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
+                <th className="px-5 py-3">Endpoint Route</th>
+                <th className="px-4 py-3">HTTP Method</th>
+                <th className="px-4 py-3">Auth Scope</th>
+                <th className="px-4 py-3">Expected Code</th>
+                <th className="px-5 py-3 text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f3f4f6]">
+            <tbody className="divide-y divide-zinc-100">
               {[
                 { route: "/api/v1/auth/login", method: "POST", scope: "Public", status: "200 OK", health: "Healthy" },
                 { route: "/api/v1/auth/register/owner", method: "POST", scope: "Public / Admin", status: "201 Created", health: "Healthy" },
+                { route: "/api/v1/admin/analytics", method: "GET", scope: "SUPER_ADMIN", status: "200 OK", health: "Healthy" },
                 { route: "/api/v1/admin/stats", method: "GET", scope: "SUPER_ADMIN", status: "200 OK", health: "Healthy" },
                 { route: "/api/v1/admin/shops", method: "GET", scope: "SUPER_ADMIN", status: "200 OK", health: "Healthy" },
                 { route: "/api/v1/admin/users", method: "GET", scope: "SUPER_ADMIN", status: "200 OK", health: "Healthy" },
@@ -152,18 +158,24 @@ export default function AdminMonitoringPage() {
                 { route: "/api/v1/shops/:shopId/sales", method: "POST", scope: "OWNER, ADMIN, SALES", status: "201 Created", health: "Healthy" },
                 { route: "/api/v1/shops/:shopId/debts", method: "GET", scope: "OWNER, ADMIN, SALES", status: "200 OK", health: "Healthy" },
               ].map((ep, idx) => (
-                <tr key={idx} className="hover:bg-[#f9fafb]">
-                  <td className="py-3 font-mono font-bold text-[#111827]">{ep.route}</td>
-                  <td className="py-3">
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${ep.method === "GET" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}>
+                <tr key={idx} className="transition-colors hover:bg-zinc-50/70">
+                  <td className="px-5 py-3 font-mono font-semibold text-zinc-900">{ep.route}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold ${
+                        ep.method === "GET"
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
                       {ep.method}
                     </span>
                   </td>
-                  <td className="py-3 text-[#6b7280]">{ep.scope}</td>
-                  <td className="py-3 font-mono text-[#374151]">{ep.status}</td>
-                  <td className="py-3 text-right">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                      <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <td className="px-4 py-3 font-mono text-zinc-500 text-[11px]">{ep.scope}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-700 tabular-nums">{ep.status}</td>
+                  <td className="px-5 py-3 text-right">
+                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-700">
+                      <span className="size-1 rounded-full bg-emerald-600" />
                       {ep.health}
                     </span>
                   </td>

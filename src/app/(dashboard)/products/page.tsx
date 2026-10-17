@@ -205,12 +205,12 @@ function AddProductModal({
         sku: form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`,
         categoryId: form.categoryId || undefined,
         price: parseFloat(form.salingPrice) || 0,
+        buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : 0,
         stockQuantity: parseInt(form.quantity, 10) || 0,
         unit: form.unit,
         lowStockThreshold: parseInt(form.threshold, 10) || 5,
         expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : undefined,
         attributes: {
-          buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : undefined,
           location: form.location || undefined,
         },
       } as any);

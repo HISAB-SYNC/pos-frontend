@@ -2,7 +2,7 @@ import { useAuthStore } from "@/stores/auth-store";
 
 import type { ApiError, ApiResponse } from "./types";
 
-function getApiBaseUrl() {
+export function getApiBaseUrl() {
   const url = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-0fzk.onrender.com";
   return url.replace(/\/$/, "");
 }
@@ -46,6 +46,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (networkError: unknown) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pos:network-offline"));
+    }
     const errorMsg =
       networkError instanceof Error ? networkError.message : "Network request failed";
     throw {

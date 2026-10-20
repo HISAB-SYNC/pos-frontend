@@ -16,6 +16,7 @@ import {
   Plus,
   Printer,
   Receipt,
+  RefreshCw,
   Search,
   ShoppingCart,
   Smartphone,
@@ -24,6 +25,8 @@ import {
   UserPlus,
   Users,
   Wallet,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +37,7 @@ import { getProducts } from "@/lib/api/shops";
 import type { Customer, Product, Sale } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useShopStore } from "@/stores/shop-store";
+import { cacheProducts, getCachedProducts, queueOfflineSale, useOfflineStatus, type OfflineSale } from "@/lib/offline";
 
 type CartItem = {
   product: Product;
@@ -289,6 +293,11 @@ function SaleReceiptModal({
           </div>
           <h2 className="mt-2.5 text-sm font-bold text-zinc-950">Sale Completed Successfully</h2>
           <p className="font-mono text-[10px] text-zinc-400">RECEIPT #{sale.id.slice(0, 12).toUpperCase()}</p>
+          {sale.paymentReference?.includes("Offline") && (
+            <div className="mt-2 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800 border border-amber-200">
+              Recorded Offline • Queued for Automatic Sync
+            </div>
+          )}
         </div>
 
         {/* Receipt Slip */}
@@ -389,6 +398,23 @@ function SaleReceiptModal({
 /* ------------------------------------------------------------------ */
 export default function PosPage() {
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
+  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
+  const {
+    isOnline,
+    isForcedOffline,
+    isSyncing,
+    pendingCount,
+    refreshStats,
+    triggerSync,
+    toggleForceOffline,
+    checkConnectivity,
+  } = useOfflineStatus(activeShopId, {
+    onSyncComplete: (result) => {
+      setSyncToastMessage(`✓ Synced ${result.salesSynced} offline sale${result.salesSynced === 1 ? "" : "s"} to database`);
+      loadData();
+      setTimeout(() => setSyncToastMessage(null), 4000);
+    },
+  });
 
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -432,14 +458,33 @@ export default function PosPage() {
 
   const loadData = useCallback(async () => {
     try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const cached = await getCachedProducts(activeShopId);
+        if (cached && cached.length > 0) {
+          setProducts(cached);
+        }
+        return;
+      }
+
       const [prodList, custList] = await Promise.all([
         getProducts(activeShopId),
         getCustomers(activeShopId),
       ]);
       setProducts(prodList);
       setCustomers(custList);
+
+      if (prodList && prodList.length > 0) {
+        cacheProducts(activeShopId, prodList).catch(() => {});
+      }
     } catch {
-      // Graceful fallback
+      try {
+        const cached = await getCachedProducts(activeShopId);
+        if (cached && cached.length > 0) {
+          setProducts(cached);
+        }
+      } catch {
+        // ignore
+      }
     } finally {
       setLoading(false);
     }
@@ -585,9 +630,102 @@ export default function PosPage() {
     executeSale();
   }
 
+  const processOfflineSale = async () => {
+    if (debtAdditionAmount > 0) {
+      setValidationError("Credit / Debt sales require an active internet connection to verify customer balance.");
+      return;
+    }
+
+    const clientSaleId =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : "off-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+    const offlineReference = "OFF-" + Date.now().toString(36).toUpperCase() + "-" + Math.floor(100 + Math.random() * 900);
+
+    const offlineSale: OfflineSale = {
+      clientSaleId,
+      shopId: activeShopId,
+      customerId: selectedCustomer?.id || null,
+      customerName: selectedCustomer?.name || null,
+      items: cart.map((it) => ({
+        productId: it.product.id,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        name: it.product.name,
+      })),
+      subtotal,
+      taxAmount: 0,
+      discountAmount: discountVal,
+      totalAmount: total,
+      paymentMethod,
+      bankName: paymentMethod === "CASH" ? undefined : bankName,
+      paymentReference: offlineReference,
+      createdAt: new Date().toISOString(),
+      status: "PENDING",
+    };
+
+    await queueOfflineSale(offlineSale);
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        const inCart = cart.find((it) => it.product.id === p.id);
+        if (inCart) {
+          return { ...p, stockQuantity: Math.max(0, p.stockQuantity - inCart.quantity) };
+        }
+        return p;
+      })
+    );
+
+    const syntheticSale: Sale = {
+      id: clientSaleId,
+      shopId: activeShopId,
+      customerId: selectedCustomer?.id || null,
+      totalAmount: total.toFixed(2),
+      amountPaid: effectivePaid.toFixed(2),
+      debtAmount: "0.00",
+      subtotal: subtotal.toFixed(2),
+      discountAmount: discountVal.toFixed(2),
+      paymentMethod,
+      bankName,
+      paymentReference: offlineReference + " (Offline - Pending Sync)",
+      status: "COMPLETED",
+      createdAt: offlineSale.createdAt,
+      items: cart.map((it) => ({
+        productId: it.product.id,
+        name: it.product.name,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        subtotal: (it.unitPrice * it.quantity).toFixed(2),
+      })),
+      customer: selectedCustomer,
+    };
+
+    refreshStats();
+    setCompletedSale(syntheticSale);
+    setIsDebtConfirmModalOpen(false);
+    setIsCartDrawerOpen(false);
+    clearCart();
+  };
+
   async function executeSale() {
     setIsProcessing(true);
     setValidationError("");
+
+    // Offline Execution Path
+    if (!isOnline) {
+      try {
+        await processOfflineSale();
+      } catch (err: unknown) {
+        const errorMsg =
+          err && typeof err === "object" && "message" in err
+            ? String((err as any).message)
+            : "Failed to save offline sale.";
+        setValidationError(errorMsg);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
 
     try {
       const sale = await createSale(activeShopId, {
@@ -631,6 +769,31 @@ export default function PosPage() {
       setIsCartDrawerOpen(false);
       clearCart();
     } catch (err: unknown) {
+      const isNetworkErr =
+        (err && typeof err === "object" && "status" in err && (err as any).status === 0) ||
+        (err && typeof err === "object" && "message" in err && /connect|fetch|network/i.test(String((err as any).message)));
+
+      // Auto-fallback: If network connection failed and this isn't a debt sale, save to offline queue seamlessly!
+      if (isNetworkErr && debtAdditionAmount === 0) {
+        try {
+          await processOfflineSale();
+          checkConnectivity().catch(() => {});
+          return;
+        } catch (offlineErr: unknown) {
+          const offlineMsg =
+            offlineErr && typeof offlineErr === "object" && "message" in offlineErr
+              ? String((offlineErr as any).message)
+              : "Failed to queue offline sale.";
+          setValidationError(`Network unavailable. Offline save failed: ${offlineMsg}`);
+          return;
+        }
+      }
+
+      if (isNetworkErr && debtAdditionAmount > 0) {
+        setValidationError("Unable to connect to backend. Credit / Debt sales require an active connection to verify debt balance.");
+        return;
+      }
+
       const errorMsg =
         err && typeof err === "object" && "message" in err
           ? String((err as any).message)
@@ -1041,7 +1204,51 @@ export default function PosPage() {
           {/* Header & Quick Search Bar */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-zinc-950">POS Terminal</h1>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-lg font-bold tracking-tight text-zinc-950">POS Terminal</h1>
+                {isOnline ? (
+                  <button
+                    type="button"
+                    onClick={toggleForceOffline}
+                    title="Online and connected to backend. Click to switch to Offline Mode manually."
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-all hover:opacity-80 cursor-pointer ${
+                      pendingCount > 0
+                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    }`}
+                  >
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        pendingCount > 0 ? "bg-indigo-500" : "bg-emerald-500 animate-pulse"
+                      }`}
+                    />
+                    <Wifi className="size-3 text-emerald-600" />
+                    <span>{pendingCount > 0 ? `Online (${pendingCount} queued)` : "Online"}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={toggleForceOffline}
+                    title={isForcedOffline ? "Manual offline mode active. Click to reconnect." : "Backend unreachable. Click to recheck connectivity."}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-300 hover:bg-amber-100 transition-all cursor-pointer"
+                  >
+                    <WifiOff className="size-3 text-amber-600" />
+                    <span>{isForcedOffline ? "Offline (Manual)" : "Offline Mode"} {pendingCount > 0 ? `(${pendingCount} queued)` : ""}</span>
+                  </button>
+                )}
+                {isOnline && pendingCount > 0 && (
+                  <button
+                    type="button"
+                    disabled={isSyncing}
+                    onClick={() => triggerSync()}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 transition-all disabled:opacity-50 cursor-pointer"
+                    title="Upload offline sales to cloud database"
+                  >
+                    <RefreshCw className={`size-3 text-indigo-600 ${isSyncing ? "animate-spin" : ""}`} />
+                    <span>{isSyncing ? "Syncing..." : "Sync Now"}</span>
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-zinc-500">Scan barcode, search SKU, or tap items to add to cart</p>
             </div>
             <div className="flex items-center gap-2">
@@ -1079,6 +1286,14 @@ export default function PosPage() {
               </button>
             </div>
           </div>
+
+          {/* Sync Success Notification */}
+          {syncToastMessage && (
+            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 animate-in fade-in duration-200">
+              <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+              <span>{syncToastMessage}</span>
+            </div>
+          )}
 
           {/* Category Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">

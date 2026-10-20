@@ -1,3 +1,4 @@
+import type { OfflineSyncResult } from "@/lib/offline/types";
 import { isMockApiEnabled } from "@/config/env";
 import {
   type DashboardMetrics,
@@ -1014,6 +1015,66 @@ export async function getSaleDetail(shopId: string, saleId: string) {
   } catch {
     return seedSales.find((s) => s.id === saleId) || null;
   }
+}
+
+export async function syncOfflineSalesBatch(
+  shopId: string,
+  sales: Array<{
+    clientSaleId: string;
+    customerId?: string | null;
+    paymentMethod: string;
+    discountAmount?: number;
+    paymentReference?: string;
+    bankName?: string;
+    createdAt?: string;
+    items: Array<{ productId: string; quantity: number; unitPrice?: number }>;
+  }>
+): Promise<OfflineSyncResult> {
+  if (isMockApiEnabled()) {
+    return {
+      total: sales.length,
+      syncedCount: sales.length,
+      alreadySyncedCount: 0,
+      failedCount: 0,
+      results: sales.map((s) => ({
+        clientSaleId: s.clientSaleId,
+        saleId: "sale-mock-" + Date.now(),
+        status: "SYNCED" as const,
+        totalAmount: 100,
+      })),
+    };
+  }
+
+  const payload = {
+    sales: sales.map((s) => {
+      const backendPaymentMethod =
+        s.paymentMethod === "BANK" || s.paymentMethod === "CARD"
+          ? "CARD"
+          : s.paymentMethod === "TELEBIRR" || s.paymentMethod === "MOBILE"
+          ? "MOBILE"
+          : "CASH";
+
+      return {
+        clientSaleId: s.clientSaleId,
+        customerId: s.customerId || undefined,
+        paymentMethod: backendPaymentMethod,
+        discountAmount: s.discountAmount || 0,
+        bankName: s.bankName || undefined,
+        paymentReference: s.paymentReference || undefined,
+        createdAt: s.createdAt,
+        items: s.items.map((it) => ({
+          productId: it.productId,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+        })),
+      };
+    }),
+  };
+
+  return await apiRequest<OfflineSyncResult>(API_ENDPOINTS.shops.syncSales(shopId), {
+    method: "POST",
+    body: payload,
+  });
 }
 
 export async function processSaleReturn(

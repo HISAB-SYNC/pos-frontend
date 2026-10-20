@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
     expiringProducts: (shopId: string) => `/shops/${shopId}/products/expiring`,
     product: (shopId: string, productId: string) => `/shops/${shopId}/products/${productId}`,
     sales: (shopId: string) => `/shops/${shopId}/sales`,
+    syncSales: (shopId: string) => `/shops/${shopId}/sales/sync`,
     saleDetail: (shopId: string, saleId: string) => `/shops/${shopId}/sales/${saleId}`,
     saleReturns: (shopId: string, saleId: string) => `/shops/${shopId}/sales/${saleId}/returns`,
     customers: (shopId: string) => `/shops/${shopId}/customers`,

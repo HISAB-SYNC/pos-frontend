@@ -15,6 +15,8 @@ import {
   Tag,
   Trash2,
   UploadCloud,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +24,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import {
+  useOfflineStatus,
+  queueOfflineProduct,
+  getCachedProducts,
+  cacheProducts,
+  type OfflineProduct,
+} from "@/lib/offline";
 import {
   createCategory,
   createProduct,
@@ -108,12 +117,14 @@ function AddProductModal({
   onCreated,
   shopId,
   categories,
+  isOnline = true,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
   shopId: string;
   categories: Category[];
+  isOnline?: boolean;
 }) {
   const [form, setForm] = useState({
     name: "",
@@ -198,6 +209,48 @@ function AddProductModal({
     if (!form.name.trim() || !form.salingPrice) return;
     setErrorMsg("");
 
+    if (!isOnline) {
+      try {
+        setIsSubmitting(true);
+        const tempId = "off-prod-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
+        const offProduct: OfflineProduct = {
+          id: tempId,
+          shopId,
+          sku: form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`,
+          name: form.name.trim(),
+          price: parseFloat(form.salingPrice) || 0,
+          buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : 0,
+          stockQuantity: parseInt(form.quantity, 10) || 0,
+          unit: form.unit,
+          lowStockThreshold: parseInt(form.threshold, 10) || 5,
+          categoryId: form.categoryId || undefined,
+          createdAt: new Date().toISOString(),
+          status: "PENDING",
+        };
+
+        await queueOfflineProduct(offProduct);
+        onCreated();
+        onClose();
+        setForm({
+          name: "",
+          sku: "",
+          categoryId: localCategories[0]?.id || "",
+          buyingPrice: "",
+          salingPrice: "",
+          quantity: "",
+          unit: "pcs",
+          threshold: "5",
+          expiryDate: "",
+          location: "",
+        });
+      } catch (err: unknown) {
+        setErrorMsg("Failed to save offline product.");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await createProduct(shopId, {
@@ -230,6 +283,36 @@ function AddProductModal({
         location: "",
       });
     } catch (err: unknown) {
+      const isNetworkErr =
+        (err && typeof err === "object" && "status" in err && (err as any).status === 0) ||
+        (err && typeof err === "object" && "message" in err && /connect|fetch|network/i.test(String((err as any).message)));
+
+      if (isNetworkErr) {
+        try {
+          const tempId = "off-prod-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
+          const offProduct: OfflineProduct = {
+            id: tempId,
+            shopId,
+            sku: form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`,
+            name: form.name.trim(),
+            price: parseFloat(form.salingPrice) || 0,
+            buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : 0,
+            stockQuantity: parseInt(form.quantity, 10) || 0,
+            unit: form.unit,
+            lowStockThreshold: parseInt(form.threshold, 10) || 5,
+            categoryId: form.categoryId || undefined,
+            createdAt: new Date().toISOString(),
+            status: "PENDING",
+          };
+          await queueOfflineProduct(offProduct);
+          onCreated();
+          onClose();
+          return;
+        } catch {
+          // ignore
+        }
+      }
+
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as any).message)
@@ -1131,16 +1214,39 @@ export default function ProductsPage() {
     return () => clearTimeout(handler);
   }, [search]);
 
+  const { isOnline, pendingCount } = useOfflineStatus(shopId);
+
   const load = useCallback(async () => {
     if (!shopId) return;
     try {
       setIsLoading(true);
-      const [prodsData, catsData] = await Promise.all([
-        getProducts(shopId),
-        getCategories(shopId),
-      ]);
-      setAllProducts(Array.isArray(prodsData) ? prodsData : []);
-      setCategories(Array.isArray(catsData) ? catsData : []);
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const cached = await getCachedProducts(shopId);
+        if (cached && cached.length > 0) {
+          setAllProducts(cached);
+        }
+        return;
+      }
+
+      try {
+        const [prodsData, catsData] = await Promise.all([
+          getProducts(shopId),
+          getCategories(shopId),
+        ]);
+        const validProds = Array.isArray(prodsData) ? prodsData : [];
+        setAllProducts(validProds);
+        setCategories(Array.isArray(catsData) ? catsData : []);
+        if (validProds.length > 0) {
+          cacheProducts(shopId, validProds).catch(() => {});
+        }
+      } catch (apiErr) {
+        console.warn("Could not load products from server, falling back to cache:", apiErr);
+        const cached = await getCachedProducts(shopId);
+        if (cached && cached.length > 0) {
+          setAllProducts(cached);
+        }
+      }
     } catch (err) {
       console.warn("Could not load products:", err);
       setAllProducts([]);
@@ -1281,6 +1387,7 @@ export default function ProductsPage() {
         onCreated={load}
         shopId={shopId}
         categories={categories}
+        isOnline={isOnline}
       />
 
       <EditProductModal
@@ -1365,6 +1472,18 @@ export default function ProductsPage() {
                 <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-zinc-600">
                   {filtered.length}
                 </span>
+                {!isOnline && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 border border-amber-300">
+                    <WifiOff className="size-2.5 text-amber-600" />
+                    <span>Offline (Cached)</span>
+                  </span>
+                )}
+                {pendingCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
+                    <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>{pendingCount} offline queued</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -1590,23 +1709,25 @@ export default function ProductsPage() {
                             <div className="flex items-center justify-end gap-1 text-zinc-400">
                               <button
                                 type="button"
+                                disabled={!isOnline}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setProductToEdit(product);
+                                  if (isOnline) setProductToEdit(product);
                                 }}
-                                title="Edit Product"
-                                className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                                title={!isOnline ? "Editing products is disabled in offline mode" : "Edit Product"}
+                                className="rounded p-1 hover:bg-zinc-100 hover:text-zinc-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 <Edit2 className="size-3.5" />
                               </button>
                               <button
                                 type="button"
+                                disabled={!isOnline}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setProductToDelete(product);
+                                  if (isOnline) setProductToDelete(product);
                                 }}
-                                title="Delete Product"
-                                className="rounded p-1 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                title={!isOnline ? "Deleting products is disabled in offline mode" : "Delete Product"}
+                                className="rounded p-1 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 <Trash2 className="size-3.5" />
                               </button>

@@ -19,6 +19,8 @@ import {
   ShoppingCart,
   Smartphone,
   TrendingUp,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -27,6 +29,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingState } from "@/components/shared/loading-state";
 import { getSales, processSaleReturn } from "@/lib/api/app-data";
 import type { Sale } from "@/lib/api/types";
+import {
+  useOfflineStatus,
+  getPendingSales,
+  cacheSalesHistory,
+  getCachedSalesHistory,
+  offlineSaleToSale,
+} from "@/lib/offline";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { useAuthStore } from "@/stores/auth-store";
@@ -990,11 +999,30 @@ export default function SalesHistoryPage() {
   const [returnTargetSale, setReturnTargetSale] = useState<Sale | null>(null);
   const [notificationToast, setNotificationToast] = useState("");
 
+  const { isOnline, pendingCount } = useOfflineStatus(shopId);
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getSales(shopId);
-      setSales(Array.isArray(data) ? data : []);
+      const pendingOffline = await getPendingSales(shopId);
+      const pendingMapped = pendingOffline.map(offlineSaleToSale);
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const cached = await getCachedSalesHistory(shopId);
+        setSales([...pendingMapped, ...cached]);
+        return;
+      }
+
+      try {
+        const data = await getSales(shopId);
+        const validData = Array.isArray(data) ? data : [];
+        cacheSalesHistory(shopId, validData).catch(() => {});
+        setSales([...pendingMapped, ...validData]);
+      } catch (apiErr) {
+        console.warn("Could not load sales history from server, falling back to cache:", apiErr);
+        const cached = await getCachedSalesHistory(shopId);
+        setSales([...pendingMapped, ...cached]);
+      }
     } catch (err) {
       console.warn("Could not load sales history:", err);
       setSales([]);
@@ -1391,6 +1419,18 @@ export default function SalesHistoryPage() {
                 <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-600">
                   {filteredSales.length}
                 </span>
+                {!isOnline && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 border border-amber-300">
+                    <WifiOff className="size-2.5 text-amber-600" />
+                    <span>Offline Mode</span>
+                  </span>
+                )}
+                {pendingCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
+                    <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>{pendingCount} offline queued</span>
+                  </span>
+                )}
               </div>
 
               {/* Action Buttons: Audit Print & Export */}
@@ -1745,6 +1785,11 @@ export default function SalesHistoryPage() {
                               <span className="size-1.5 rounded-full bg-amber-600" />
                               Part-Refunded
                             </span>
+                          ) : sale.status === "PENDING" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800">
+                              <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Offline Pending
+                            </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-700">
                               <span className="size-1.5 rounded-full bg-emerald-600" />
@@ -1767,8 +1812,16 @@ export default function SalesHistoryPage() {
                               !isSaleReturned(sale.status) && (
                                 <button
                                   type="button"
+                                  disabled={!isOnline || sale.status === "PENDING"}
                                   onClick={() => setReturnTargetSale(sale)}
-                                  className="inline-flex items-center gap-1 rounded-md border border-purple-200/80 bg-purple-50/70 px-2.5 py-1 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors shadow-2xs"
+                                  title={
+                                    !isOnline
+                                      ? "Returns require an active internet connection"
+                                      : sale.status === "PENDING"
+                                      ? "Offline sale must sync before processing a return"
+                                      : "Process return / refund"
+                                  }
+                                  className="inline-flex items-center gap-1 rounded-md border border-purple-200/80 bg-purple-50/70 px-2.5 py-1 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <RotateCcw className="size-3 text-purple-600" />
                                   <span>Return</span>

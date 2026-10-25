@@ -32,6 +32,7 @@ import {
 import type { Category, Product } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
+import { formatQuantity, isFractionalUnit } from "@/lib/utils/units";
 import { useShopStore } from "@/stores/shop-store";
 
 /* ------------------------------------------------------------------ */
@@ -57,14 +58,14 @@ function StockAdjustModal({
   if (!product) return null;
 
   const currentQty = product.stockQuantity || 0;
-  const adjustQtyNum = parseInt(quantity, 10) || 0;
+  const adjustQtyNum = parseFloat(quantity) || 0;
 
   let newQuantity = currentQty;
-  if (adjustmentType === "ADD") newQuantity = currentQty + adjustQtyNum;
-  else if (adjustmentType === "REMOVE") newQuantity = Math.max(0, currentQty - adjustQtyNum);
-  else if (adjustmentType === "SET") newQuantity = Math.max(0, adjustQtyNum);
+  if (adjustmentType === "ADD") newQuantity = Math.round((currentQty + adjustQtyNum) * 1000) / 1000;
+  else if (adjustmentType === "REMOVE") newQuantity = Math.max(0, Math.round((currentQty - adjustQtyNum) * 1000) / 1000);
+  else if (adjustmentType === "SET") newQuantity = Math.max(0, Math.round(adjustQtyNum * 1000) / 1000);
 
-  const delta = newQuantity - currentQty;
+  const delta = Math.round((newQuantity - currentQty) * 1000) / 1000;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,11 +154,12 @@ function StockAdjustModal({
               </label>
               <input
                 type="number"
-                min="1"
+                min="0.001"
+                step="any"
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                placeholder="e.g. 10"
+                placeholder={isFractionalUnit(product.unit) ? "e.g. 1.5" : "e.g. 10"}
                 className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
@@ -192,7 +194,7 @@ function StockAdjustModal({
           <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-zinc-500">Current Stock:</span>
-              <span className="font-mono font-semibold text-zinc-800 tabular-nums">{currentQty} {product.unit || "pcs"}</span>
+              <span className="font-mono font-semibold text-zinc-800 tabular-nums">{formatQuantity(currentQty, product.unit || "pcs")}</span>
             </div>
             <div className="mt-1.5 flex items-center justify-between text-xs border-t border-zinc-200/60 pt-1.5">
               <span className="text-zinc-600 font-medium">New Calculated Stock:</span>
@@ -203,11 +205,11 @@ function StockAdjustModal({
                       delta > 0 ? "text-emerald-600" : delta < 0 ? "text-rose-600" : "text-zinc-500"
                     }`}
                   >
-                    ({delta > 0 ? `+${delta}` : delta})
+                    ({delta > 0 ? `+${formatQuantity(delta)}` : formatQuantity(delta)})
                   </span>
                 )}
                 <span className="font-mono font-bold text-zinc-900 tabular-nums text-sm">
-                  {newQuantity} {product.unit || "pcs"}
+                  {formatQuantity(newQuantity, product.unit || "pcs")}
                 </span>
               </div>
             </div>
@@ -223,7 +225,7 @@ function StockAdjustModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !quantity || parseInt(quantity, 10) <= 0}
+              disabled={isSubmitting || !quantity || parseFloat(quantity) <= 0}
               className="rounded-md bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adjusting..." : "Apply Adjustment"}
@@ -620,7 +622,7 @@ export default function InventoryPage() {
                         <td className="px-4 py-3.5 font-mono text-zinc-500">{product.sku || "—"}</td>
                         <td className="px-4 py-3.5 text-zinc-600">{product.category?.name || "General"}</td>
                         <td className="px-4 py-3.5 font-mono font-bold text-zinc-900 tabular-nums">
-                          {qty} <span className="font-sans text-[10px] font-normal text-zinc-500">{product.unit || "pcs"}</span>
+                          {formatQuantity(qty, product.unit || "pcs")}
                         </td>
                         <td className="px-4 py-3.5 font-mono text-zinc-600 tabular-nums">{price.toLocaleString()} ETB</td>
                         <td className="px-4 py-3.5 font-mono font-semibold text-zinc-900 tabular-nums">

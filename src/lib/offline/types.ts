@@ -5,6 +5,9 @@ export type OfflineSaleItem = {
   quantity: number;
   unitPrice: number;
   name?: string;
+  unit?: string;
+  customTotal?: number;
+  isCustomPrice?: boolean;
 };
 
 export type OfflineSale = {

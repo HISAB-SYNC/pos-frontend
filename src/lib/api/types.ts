@@ -179,12 +179,16 @@ export type SaleItem = {
   quantity: number;
   unitPrice?: string | number;
   subtotal?: string | number;
+  unit?: string;
+  customTotal?: number;
+  isCustomPrice?: boolean;
   product?: {
     id: string;
     name: string;
     sku: string;
     price?: string;
     buyingPrice?: string | number | null;
+    unit?: string;
   };
 };
 

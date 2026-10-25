@@ -82,7 +82,7 @@ export async function decrementLocalProductStock(
       getReq.onsuccess = () => {
         const product = getReq.result as Product | undefined;
         if (product) {
-          product.stockQuantity = Math.max(0, (product.stockQuantity || 0) - item.quantity);
+          product.stockQuantity = Math.max(0, Math.round(((product.stockQuantity || 0) - item.quantity) * 1000) / 1000);
           store.put(product);
         }
       };
@@ -115,7 +115,7 @@ export async function queueOfflineSale(sale: OfflineSale): Promise<void> {
       getReq.onsuccess = () => {
         const product = getReq.result as Product | undefined;
         if (product) {
-          product.stockQuantity = Math.max(0, (product.stockQuantity || 0) - item.quantity);
+          product.stockQuantity = Math.max(0, Math.round(((product.stockQuantity || 0) - item.quantity) * 1000) / 1000);
           prodStore.put(product);
         }
       };

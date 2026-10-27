@@ -193,82 +193,249 @@ function QuickAddCustomerModal({
 /* ------------------------------------------------------------------ */
 /* Modal: Debt Confirmation Dialog                                    */
 /* ------------------------------------------------------------------ */
-function DebtConfirmationModal({
+/* Modal: Order Review & Confirmation                                 */
+/* ------------------------------------------------------------------ */
+function OrderConfirmationModal({
+  cart,
+  subtotal,
+  discountVal,
+  total,
+  effectivePaid,
+  changeAmount,
+  debtAdditionAmount,
+  paymentMethod,
+  bankName,
+  paymentReference,
   customer,
-  currentDebt,
-  debtToAdd,
-  newTotalDebt,
+  currentCustomerDebt,
+  newProjectedDebt,
   onClose,
   onConfirm,
   isSubmitting,
 }: {
-  customer: Customer;
-  currentDebt: number;
-  debtToAdd: number;
-  newTotalDebt: number;
+  cart: CartItem[];
+  subtotal: number;
+  discountVal: number;
+  total: number;
+  effectivePaid: number;
+  changeAmount: number;
+  debtAdditionAmount: number;
+  paymentMethod: PaymentMethodType;
+  bankName?: string;
+  paymentReference?: string;
+  customer?: Customer | null;
+  currentCustomerDebt: number;
+  newProjectedDebt: number;
   onClose: () => void;
   onConfirm: () => void;
   isSubmitting: boolean;
 }) {
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const methodLabel =
+    paymentMethod === "BANK"
+      ? bankName || "Bank Transfer"
+      : paymentMethod === "TELEBIRR"
+      ? "Telebirr"
+      : "Cash";
+
+  // Keyboard shortcut: Press Enter to confirm, Escape to cancel/back
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Enter" && !isSubmitting) {
+        e.preventDefault();
+        onConfirm();
+      } else if (e.key === "Escape" && !isSubmitting) {
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onConfirm, onClose, isSubmitting]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-in fade-in duration-100">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-xl animate-in zoom-in-95 duration-100">
-        <div className="flex items-center gap-3 border-b border-zinc-100 pb-3">
-          <div className="flex size-9 items-center justify-center rounded-md bg-amber-50 text-amber-700 ring-1 ring-amber-400/30">
-            <HandCoins className="size-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-zinc-950">Confirm Credit / Debt Sale</h2>
-            <p className="text-[11px] text-zinc-500">Record customer debt obligation on store ledger</p>
-          </div>
-        </div>
-
-        <div className="my-4 space-y-3 text-xs">
-          <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 p-3.5 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-zinc-600">Customer Name:</span>
-              <span className="font-semibold text-zinc-900">{customer.name}</span>
+      <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-100">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-md bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <Receipt className="size-4" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-600">Phone:</span>
-              <span className="font-mono text-zinc-800">{customer.phone || "—"}</span>
-            </div>
-            <div className="flex justify-between border-t border-amber-200/60 pt-2">
-              <span className="text-zinc-600">Previous Debt Balance:</span>
-              <span className="font-mono font-medium text-zinc-900 tabular-nums">{currentDebt.toLocaleString()} ETB</span>
-            </div>
-            <div className="flex justify-between font-semibold">
-              <span className="text-amber-800">New Added Debt:</span>
-              <span className="font-mono text-rose-600 tabular-nums">+{debtToAdd.toLocaleString()} ETB</span>
-            </div>
-            <div className="flex justify-between border-t border-amber-300 pt-2 text-sm font-bold">
-              <span className="text-zinc-950">New Total Customer Debt:</span>
-              <span className="font-mono text-rose-700 tabular-nums">{newTotalDebt.toLocaleString()} ETB</span>
+            <div>
+              <h2 className="text-sm font-bold text-zinc-950">Review &amp; Confirm Sale</h2>
+              <p className="text-[11px] text-zinc-500 font-mono">
+                {cart.length} item type{cart.length === 1 ? "" : "s"} ({formatQuantity(totalItemsCount)} total units) • {customer ? customer.name : "Walk-in Customer"}
+              </p>
             </div>
           </div>
-
-          <p className="text-center text-[11px] text-zinc-500">
-            This sale will be logged as an open credit voucher linked to {customer.name}.
-          </p>
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-md border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+            className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+            title="Close review"
           >
-            Cancel
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="my-3.5 space-y-3 text-xs">
+          {/* Itemized Order Table */}
+          <div className="rounded-lg border border-zinc-200/80 bg-white overflow-hidden shadow-2xs">
+            <div className="grid grid-cols-[1fr_90px_90px] px-3 py-1.5 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 bg-zinc-50/80 border-b border-zinc-200/70">
+              <span>Item &amp; Unit Rate</span>
+              <span className="text-center">Qty / Scale</span>
+              <span className="text-right">Line Total</span>
+            </div>
+            <div className="max-h-44 overflow-y-auto divide-y divide-zinc-100 px-3 py-0.5">
+              {cart.map((item) => {
+                const lineTotal = calculateLineTotal(item.quantity, item.unitPrice, item.customTotal);
+
+                return (
+                  <div key={item.product.id} className="grid grid-cols-[1fr_90px_90px] items-center py-2 text-xs">
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate font-semibold text-zinc-900" title={item.product.name}>
+                        {item.product.name}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mt-0.5">
+                        <span>
+                          {item.unitPrice.toLocaleString()} ETB/{item.product.unit || "pcs"}
+                        </span>
+                        {item.isCustomPrice && (
+                          <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-900 border border-amber-200">
+                            Deal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center font-mono font-bold text-zinc-900 tabular-nums">
+                      {formatQuantity(item.quantity)}{" "}
+                      <span className="text-[10px] font-normal text-zinc-500">{item.product.unit || "pcs"}</span>
+                    </div>
+                    <div className="text-right font-mono font-bold text-zinc-950 tabular-nums">
+                      {lineTotal.toLocaleString()} ETB
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Payment & Financial Breakdown */}
+          <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3 space-y-2">
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between text-zinc-600">
+                <span>Subtotal:</span>
+                <span className="font-mono tabular-nums">{subtotal.toLocaleString()} ETB</span>
+              </div>
+              {discountVal > 0 && (
+                <div className="flex justify-between text-rose-600 font-medium">
+                  <span>Discount Applied:</span>
+                  <span className="font-mono tabular-nums">-{discountVal.toLocaleString()} ETB</span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between border-t border-zinc-200/70 pt-1.5 font-bold">
+                <span className="text-zinc-900 uppercase text-[11px] tracking-wider">Total Payable:</span>
+                <span className="font-mono text-base text-zinc-950 tabular-nums">
+                  {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Channel Particulars */}
+            <div className="border-t border-zinc-200/70 pt-2 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Tender Channel:</span>
+                <span className="font-semibold text-zinc-900">{methodLabel}</span>
+              </div>
+              {paymentMethod === "CASH" ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Cash Received:</span>
+                    <span className="font-mono font-bold text-zinc-900 tabular-nums">
+                      {effectivePaid.toLocaleString()} ETB
+                    </span>
+                  </div>
+                  {changeAmount > 0 && (
+                    <div className="flex justify-between font-bold text-emerald-800 bg-emerald-50/80 border border-emerald-200/80 rounded px-2 py-1">
+                      <span>Cash Change Due:</span>
+                      <span className="font-mono tabular-nums">{changeAmount.toLocaleString()} ETB</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                paymentReference && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">TxID / Reference:</span>
+                    <span className="font-mono font-medium text-zinc-900">{paymentReference}</span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Credit Debt Notice if applicable */}
+          {debtAdditionAmount > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 space-y-1.5 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                <HandCoins className="size-3.5 text-amber-700" />
+                <span>Credit / Debt Obligation for {customer?.name || "Customer"}</span>
+              </div>
+              <div className="space-y-1 text-[11px]">
+                <div className="flex justify-between text-zinc-600">
+                  <span>Previous Balance:</span>
+                  <span className="font-mono tabular-nums">{currentCustomerDebt.toLocaleString()} ETB</span>
+                </div>
+                <div className="flex justify-between font-semibold text-amber-800">
+                  <span>Added to Debt:</span>
+                  <span className="font-mono text-rose-600 tabular-nums">
+                    +{debtAdditionAmount.toLocaleString()} ETB
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-amber-200 pt-1 text-xs font-bold text-rose-700">
+                  <span>New Total Customer Debt:</span>
+                  <span className="font-mono tabular-nums">{newProjectedDebt.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Actions */}
+        <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-md border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+          >
+            ← Back to Cart
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="flex items-center gap-1.5 rounded-md bg-[#5B4FE9] px-4 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-[#4D40D9] disabled:opacity-50"
+            className={`flex items-center gap-1.5 rounded-md px-5 py-2 text-xs font-bold text-white shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50 ${
+              debtAdditionAmount > 0
+                ? "bg-amber-500 hover:bg-amber-600"
+                : "bg-[#5B4FE9] hover:bg-[#4D40D9]"
+            }`}
           >
-            {isSubmitting ? "Completing..." : "Confirm & Charge Credit"}
-            <ArrowRight className="size-3.5" />
+            {isSubmitting ? (
+              <span>Processing Transaction...</span>
+            ) : debtAdditionAmount > 0 ? (
+              <>
+                <HandCoins className="size-3.5" />
+                <span>Confirm &amp; Record Credit (Enter)</span>
+              </>
+            ) : (
+              <>
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Confirm &amp; Complete Sale (Enter)</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -755,7 +922,7 @@ export default function PosPage() {
   // Modals
   const [measuringItem, setMeasuringItem] = useState<CartItem | null>(null);
   const [isAddCustModalOpen, setIsAddCustModalOpen] = useState(false);
-  const [isDebtConfirmModalOpen, setIsDebtConfirmModalOpen] = useState(false);
+  const [isConfirmOrderModalOpen, setIsConfirmOrderModalOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationError, setValidationError] = useState("");
@@ -990,12 +1157,7 @@ export default function PosPage() {
       return;
     }
 
-    if (debtAdditionAmount > 0 && selectedCustomer) {
-      setIsDebtConfirmModalOpen(true);
-      return;
-    }
-
-    executeSale();
+    setIsConfirmOrderModalOpen(true);
   }
 
   const processOfflineSale = async () => {
@@ -1091,7 +1253,7 @@ export default function PosPage() {
 
     refreshStats();
     setCompletedSale(syntheticSale);
-    setIsDebtConfirmModalOpen(false);
+    setIsConfirmOrderModalOpen(false);
     setIsCartDrawerOpen(false);
     clearCart();
   };
@@ -1162,7 +1324,7 @@ export default function PosPage() {
 
       await loadData();
       setCompletedSale(sale);
-      setIsDebtConfirmModalOpen(false);
+      setIsConfirmOrderModalOpen(false);
       setIsCartDrawerOpen(false);
       clearCart();
     } catch (err: unknown) {
@@ -1942,13 +2104,22 @@ export default function PosPage() {
         />
       )}
 
-      {isDebtConfirmModalOpen && selectedCustomer && (
-        <DebtConfirmationModal
+      {isConfirmOrderModalOpen && (
+        <OrderConfirmationModal
+          cart={cart}
+          subtotal={subtotal}
+          discountVal={discountVal}
+          total={total}
+          effectivePaid={effectivePaid}
+          changeAmount={changeAmount}
+          debtAdditionAmount={debtAdditionAmount}
+          paymentMethod={paymentMethod}
+          bankName={bankName}
+          paymentReference={paymentReference}
           customer={selectedCustomer}
-          currentDebt={currentCustomerDebt}
-          debtToAdd={debtAdditionAmount}
-          newTotalDebt={newProjectedDebt}
-          onClose={() => setIsDebtConfirmModalOpen(false)}
+          currentCustomerDebt={currentCustomerDebt}
+          newProjectedDebt={newProjectedDebt}
+          onClose={() => setIsConfirmOrderModalOpen(false)}
           onConfirm={executeSale}
           isSubmitting={isProcessing}
         />

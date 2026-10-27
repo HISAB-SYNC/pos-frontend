@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -25,6 +25,9 @@ import {
 import { DashboardPreview } from "@/components/landing/dashboard-preview";
 import { FacebookIcon, InstagramIcon, LinkedInIcon } from "@/components/landing/social-icons";
 import { AndalusLogo } from "@/components/shared/andalus-mark";
+import { useAuthStore } from "@/stores/auth-store";
+
+const emptySubscribe = () => () => {};
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -61,6 +64,27 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
+  const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
+
+  const isLoggedIn = hydrated && Boolean(isAuthenticated && accessToken && user);
+
+  const destination = useMemo(() => {
+    if (!user) return "/dashboard";
+    if (user.role === "SUPER_ADMIN" || user.role === "SYSTEM_ADMIN") return "/admin/dashboard";
+    if (user.role === "SALES") return "/pos";
+    return "/dashboard";
+  }, [user]);
+
+  const destinationLabel = useMemo(() => {
+    if (!user) return "Dashboard";
+    if (user.role === "SUPER_ADMIN" || user.role === "SYSTEM_ADMIN") return "Admin Console";
+    if (user.role === "SALES") return "POS Register";
+    return "Dashboard";
+  }, [user]);
+
   return (
     <main className="min-h-screen bg-[#fafbfc] text-neutral-900 selection:bg-[#5B4FE9]/10 selection:text-[#5B4FE9]">
       {/* 1. Header / Navbar */}
@@ -85,19 +109,31 @@ export default function LandingPage() {
 
           {/* Desktop Actions */}
           <div className="hidden items-center gap-3 sm:flex">
-            <Link
-              href="/login"
-              className="inline-flex h-8.5 items-center justify-center rounded-md px-3.5 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="group inline-flex h-8.5 items-center justify-center gap-1.5 rounded-md bg-[#5B4FE9] px-4 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#4d42c7] hover:shadow-md hover:shadow-[#5B4FE9]/20 active:scale-[0.98]"
-            >
-              <span>Launch Store</span>
-              <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href={destination}
+                className="group inline-flex h-8.5 items-center justify-center gap-1.5 rounded-md bg-[#5B4FE9] px-4 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#4d42c7] hover:shadow-md hover:shadow-[#5B4FE9]/20 active:scale-[0.98]"
+              >
+                <span>Go to {destinationLabel}</span>
+                <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex h-8.5 items-center justify-center rounded-md px-3.5 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 hover:text-neutral-950"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="group inline-flex h-8.5 items-center justify-center gap-1.5 rounded-md bg-[#5B4FE9] px-4 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#4d42c7] hover:shadow-md hover:shadow-[#5B4FE9]/20 active:scale-[0.98]"
+                >
+                  <span>Launch Store</span>
+                  <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -125,18 +161,30 @@ export default function LandingPage() {
                 </a>
               ))}
               <div className="pt-3 border-t border-neutral-100 flex flex-col gap-2">
-                <Link
-                  href="/login"
-                  className="flex h-9 w-full items-center justify-center rounded-md border border-neutral-200 text-xs font-medium text-neutral-900"
-                >
-                  Sign In to Terminal
-                </Link>
-                <Link
-                  href="/register"
-                  className="flex h-9 w-full items-center justify-center rounded-md bg-[#5B4FE9] text-xs font-semibold text-white"
-                >
-                  Launch Store Free
-                </Link>
+                {isLoggedIn ? (
+                  <Link
+                    href={destination}
+                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-[#5B4FE9] text-xs font-semibold text-white"
+                  >
+                    <span>Go to {destinationLabel}</span>
+                    <ArrowRight className="size-3" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="flex h-9 w-full items-center justify-center rounded-md border border-neutral-200 text-xs font-medium text-neutral-900"
+                    >
+                      Sign In to Terminal
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="flex h-9 w-full items-center justify-center rounded-md bg-[#5B4FE9] text-xs font-semibold text-white"
+                    >
+                      Launch Store Free
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -188,20 +236,32 @@ export default function LandingPage() {
 
               {/* Action Buttons with Micro-Interactions */}
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/register"
-                  className="group inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#5B4FE9] px-6 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#4d42c7] hover:shadow-md hover:shadow-[#5B4FE9]/25 active:scale-[0.98]"
-                >
-                  <span>Open Your Store Account</span>
-                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-neutral-300 bg-white px-5 text-xs font-medium text-neutral-800 transition-all hover:bg-neutral-50 hover:border-neutral-400 active:scale-[0.98]"
-                >
-                  <Store className="size-4 text-neutral-500" />
-                  <span>Terminal Sign In</span>
-                </Link>
+                {isLoggedIn ? (
+                  <Link
+                    href={destination}
+                    className="group inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#5B4FE9] px-6 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#4d42c7] hover:shadow-md hover:shadow-[#5B4FE9]/25 active:scale-[0.98]"
+                  >
+                    <span>Open {destinationLabel}</span>
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/register"
+                      className="group inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#5B4FE9] px-6 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#4d42c7] hover:shadow-md hover:shadow-[#5B4FE9]/25 active:scale-[0.98]"
+                    >
+                      <span>Open Your Store Account</span>
+                      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-neutral-300 bg-white px-5 text-xs font-medium text-neutral-800 transition-all hover:bg-neutral-50 hover:border-neutral-400 active:scale-[0.98]"
+                    >
+                      <Store className="size-4 text-neutral-500" />
+                      <span>Terminal Sign In</span>
+                    </Link>
+                  </>
+                )}
               </div>
 
               {/* Hard Operational Numbers Bar */}

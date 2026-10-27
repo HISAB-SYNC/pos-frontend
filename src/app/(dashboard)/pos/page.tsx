@@ -743,6 +743,7 @@ export default function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discountVal, setDiscountVal] = useState<number>(0);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [confirmClearCart, setConfirmClearCart] = useState(false);
 
   // Payment State
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -1204,27 +1205,53 @@ export default function PosPage() {
 
   const renderOrderPanel = (isDrawer: boolean) => (
     <>
-      <div className="space-y-3.5">
-        {/* Cart Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+      <div className="space-y-3">
+        {/* Cart Header with Accidental Clear Protection */}
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-md bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
               <ShoppingCart className="size-3.5" />
             </div>
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950">Current Order</h2>
-              <span className="text-[10px] text-zinc-400">{cart.length} item types in cart</span>
+              <span className="text-[10px] text-zinc-400 font-mono">{cart.length} item{cart.length === 1 ? "" : "s"} in cart</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {cart.length > 0 && (
-              <button
-                type="button"
-                onClick={clearCart}
-                className="text-[11px] font-medium text-rose-600 hover:underline"
-              >
-                Clear All
-              </button>
+              confirmClearCart ? (
+                <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-semibold text-rose-600">Clear all?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearCart();
+                      setConfirmClearCart(false);
+                    }}
+                    className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-rose-700 transition-colors"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearCart(false)}
+                    className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmClearCart(true);
+                    setTimeout(() => setConfirmClearCart(false), 4000);
+                  }}
+                  className="text-[11px] font-medium text-zinc-400 hover:text-rose-600 transition-colors"
+                >
+                  Clear All
+                </button>
+              )
             )}
             {isDrawer && (
               <button
@@ -1242,23 +1269,23 @@ export default function PosPage() {
 
         {/* Validation Message */}
         {validationError && (
-          <div className="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 p-2.5 text-xs font-medium text-rose-700">
+          <div className="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 p-2 text-xs font-medium text-rose-700">
             <AlertCircle className="size-4 shrink-0" />
             <span>{validationError}</span>
           </div>
         )}
 
-        {/* Selected Customer Selector */}
-        <div className="rounded-lg border border-zinc-200/90 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
+        {/* Customer Account Selector */}
+        <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-1.5 text-xs">
           <div className="flex items-center justify-between">
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Customer Account</label>
             <button
               type="button"
               onClick={() => setIsAddCustModalOpen(true)}
-              className="flex items-center gap-1 font-semibold text-zinc-900 hover:underline"
+              className="flex items-center gap-1 text-[11px] font-semibold text-zinc-900 hover:text-[#5B4FE9] transition-colors"
             >
               <UserPlus className="size-3 text-zinc-500" />
-              + Register Customer
+              + New Customer
             </button>
           </div>
 
@@ -1291,84 +1318,103 @@ export default function PosPage() {
           )}
         </div>
 
-        {/* Cart Items List */}
-        <div className="max-h-48 overflow-y-auto space-y-1.5 divide-y divide-zinc-100 pr-1">
+        {/* Cart Items List with Generous Breathing Room */}
+        <div className="max-h-64 sm:max-h-72 overflow-y-auto space-y-1.5 pr-1">
           {cart.length > 0 ? (
             cart.map((item) => {
               const lineTotal = calculateLineTotal(item.quantity, item.unitPrice, item.customTotal);
               const isFrac = isFractionalUnit(item.product.unit);
 
               return (
-                <div key={item.product.id} className="flex items-center justify-between pt-1.5">
-                  <div className="flex-1 pr-2 min-w-0">
-                    <p className="truncate text-xs font-semibold text-zinc-900">{item.product.name}</p>
-                    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-zinc-400">
-                      <span>
-                        {item.unitPrice.toLocaleString()} ETB / {item.product.unit || "pcs"}
-                      </span>
-                      {item.isCustomPrice && (
-                        <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">
-                          Deal ({lineTotal.toLocaleString()} ETB)
+                <div
+                  key={item.product.id}
+                  className="group rounded-lg border border-zinc-200/80 bg-white p-2 space-y-1.5 transition-colors hover:border-zinc-300 shadow-2xs"
+                >
+                  {/* Top Line: Name, Unit Price, and Remove */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-zinc-900" title={item.product.name}>
+                        {item.product.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
+                        <span className="font-mono">
+                          {item.unitPrice.toLocaleString()} ETB / {item.product.unit || "pcs"}
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {/* Quantity Stepper & Scale trigger */}
-                    <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50">
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.product.id, -1)}
-                        className="px-1.5 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-l transition-colors"
-                        title={isFrac ? "Subtract 0.25" : "Subtract 1"}
-                      >
-                        <Minus className="size-3" />
-                      </button>
-
-                      {/* Clickable quantity pill that opens MeasureItemModal */}
-                      <button
-                        type="button"
-                        onClick={() => setMeasuringItem(item)}
-                        className="group flex items-center gap-0.5 px-1.5 py-0.5 font-mono text-xs font-bold text-zinc-900 hover:bg-white rounded transition-colors"
-                        title="Click to edit measurement or set custom price deal"
-                      >
-                        <span className="tabular-nums">{formatQuantity(item.quantity)}</span>
-                        <span className="text-[10px] font-normal text-zinc-400">
-                          {item.product.unit || "pcs"}
-                        </span>
-                        <Scale className="size-2.5 text-[#5B4FE9] opacity-70 group-hover:opacity-100" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.product.id, 1)}
-                        className="px-1.5 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-r transition-colors"
-                        title={isFrac ? "Add 0.25" : "Add 1"}
-                      >
-                        <Plus className="size-3" />
-                      </button>
+                        {item.isCustomPrice && (
+                          <span className="rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-900 border border-amber-200">
+                            Deal Override
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <span className="w-16 text-right font-mono text-xs font-bold text-zinc-950 tabular-nums">
-                      {lineTotal.toLocaleString()} ETB
-                    </span>
-
+                    {/* Isolated Trash Button */}
                     <button
                       type="button"
                       onClick={() => removeFromCart(item.product.id)}
-                      className="text-zinc-400 hover:text-rose-600 transition-colors"
+                      className="rounded p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                       title="Remove item"
                     >
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>
+
+                  {/* Bottom Line: Adjust Control & Line Total */}
+                  <div className="flex items-center justify-between border-t border-zinc-100 pt-1.5">
+                    {isFrac ? (
+                      /* Measured / Scale Item: Single generous tap target without tiny -/+ buttons */
+                      <button
+                        type="button"
+                        onClick={() => setMeasuringItem(item)}
+                        className="flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50/80 px-2.5 py-1 text-xs font-semibold text-indigo-950 hover:bg-indigo-100 hover:border-indigo-300 transition-all active:scale-98"
+                        title="Tap to weigh, pick fraction, or bargain price"
+                      >
+                        <Scale className="size-3 text-[#5B4FE9]" />
+                        <span className="font-mono font-bold tabular-nums">
+                          {formatQuantity(item.quantity)} {item.product.unit || "kg"}
+                        </span>
+                        <span className="text-[10px] font-medium text-[#5B4FE9]">
+                          · Scale / Deal
+                        </span>
+                      </button>
+                    ) : (
+                      /* Piece Item: Generous, distinct - [Qty] + stepper */
+                      <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, -1)}
+                          className="flex size-6 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-l transition-colors"
+                          title="Subtract 1"
+                        >
+                          <Minus className="size-3" />
+                        </button>
+                        <span className="min-w-[28px] px-1 text-center font-mono text-xs font-bold text-zinc-900 tabular-nums">
+                          {formatQuantity(item.quantity)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, 1)}
+                          className="flex size-6 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-r transition-colors"
+                          title="Add 1"
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Line Total */}
+                    <div className="text-right">
+                      <span className="font-mono text-xs font-bold text-zinc-950 tabular-nums">
+                        {lineTotal.toLocaleString()} ETB
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             })
           ) : (
-            <div className="py-7 text-center text-xs text-zinc-400">
-              Cart is empty. Select products or scan SKU.
+            <div className="py-8 text-center text-xs text-zinc-400">
+              Cart is empty. Select products or scan barcode.
             </div>
           )}
         </div>

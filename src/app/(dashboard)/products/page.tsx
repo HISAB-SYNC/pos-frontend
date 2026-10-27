@@ -43,6 +43,7 @@ import {
 } from "@/lib/api";
 import type { Category, Product } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { formatQuantity, STANDARD_UNITS } from "@/lib/utils/units";
 import { exportToCsv } from "@/lib/utils/export";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
@@ -220,7 +221,7 @@ function AddProductModal({
           name: form.name.trim(),
           price: parseFloat(form.salingPrice) || 0,
           buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : 0,
-          stockQuantity: parseInt(form.quantity, 10) || 0,
+          stockQuantity: parseFloat(form.quantity) || 0,
           unit: form.unit,
           lowStockThreshold: parseInt(form.threshold, 10) || 5,
           categoryId: form.categoryId || undefined,
@@ -259,7 +260,7 @@ function AddProductModal({
         categoryId: form.categoryId || undefined,
         price: parseFloat(form.salingPrice) || 0,
         buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : 0,
-        stockQuantity: parseInt(form.quantity, 10) || 0,
+        stockQuantity: parseFloat(form.quantity) || 0,
         unit: form.unit,
         lowStockThreshold: parseInt(form.threshold, 10) || 5,
         expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : undefined,
@@ -297,7 +298,7 @@ function AddProductModal({
             name: form.name.trim(),
             price: parseFloat(form.salingPrice) || 0,
             buyingPrice: form.buyingPrice ? parseFloat(form.buyingPrice) : 0,
-            stockQuantity: parseInt(form.quantity, 10) || 0,
+            stockQuantity: parseFloat(form.quantity) || 0,
             unit: form.unit,
             lowStockThreshold: parseInt(form.threshold, 10) || 5,
             categoryId: form.categoryId || undefined,
@@ -472,6 +473,8 @@ function AddProductModal({
               <input
                 name="quantity"
                 type="number"
+                step="any"
+                min="0"
                 value={form.quantity}
                 onChange={handleChange}
                 placeholder="0"
@@ -523,6 +526,22 @@ function AddProductModal({
                 placeholder="pcs, kg, bottle, etc."
                 className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {STANDARD_UNITS.map((u) => (
+                  <button
+                    key={u.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, unit: u.value })}
+                    className={`rounded border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      form.unit === u.value
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
+                    }`}
+                  >
+                    {u.value}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -626,7 +645,7 @@ function EditProductModal({
         categoryId: form.categoryId || undefined,
         price: sellingNum,
         buyingPrice: buyingNum > 0 ? buyingNum : undefined,
-        stockQuantity: parseInt(form.stockQuantity, 10) || 0,
+        stockQuantity: parseFloat(form.stockQuantity) || 0,
         lowStockThreshold: parseInt(form.lowStockThreshold, 10) || 5,
         expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : null,
       });
@@ -732,6 +751,8 @@ function EditProductModal({
               <label className="mb-1 block font-medium text-zinc-600">Stock Quantity</label>
               <input
                 type="number"
+                step="any"
+                min="0"
                 value={form.stockQuantity}
                 onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
                 className="h-9 w-full rounded-lg border border-zinc-200 px-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
@@ -1682,10 +1703,7 @@ export default function ProductsPage() {
                           {product.category?.name ?? "General"}
                         </td>
                         <td className="px-5 py-3.5 font-mono font-medium text-zinc-900 tabular-nums">
-                          {product.stockQuantity}{" "}
-                          <span className="font-sans text-[11px] font-normal text-zinc-400">
-                            {product.unit || "pcs"}
-                          </span>
+                          {formatQuantity(product.stockQuantity, product.unit || "pcs")}
                         </td>
                         {!isCashier && (
                           <td className="px-5 py-3.5 font-mono text-zinc-500 tabular-nums">

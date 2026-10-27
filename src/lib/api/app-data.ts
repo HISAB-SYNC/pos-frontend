@@ -807,7 +807,7 @@ export async function createSale(
   input.items.forEach((item) => {
     const prod = seedProducts.find((p) => p.id === item.productId);
     if (prod) {
-      prod.stockQuantity = Math.max(0, prod.stockQuantity - item.quantity);
+      prod.stockQuantity = Math.max(0, Math.round((prod.stockQuantity - item.quantity) * 1000) / 1000);
       if (Array.isArray(seedProductHistory)) {
         seedProductHistory.unshift({
           id: `hist-${Date.now()}-${item.productId}`,
@@ -816,7 +816,7 @@ export async function createSale(
           type: "Sale",
           quantity: -item.quantity,
           store: "Main Warehouse",
-          value: (item.unitPrice || parseFloat(prod.price || "0")) * item.quantity,
+          value: Math.round(((item.unitPrice || parseFloat(prod.price || "0")) * item.quantity) * 100) / 100,
           date: dateStr,
           person: "POS Cashier",
         });
@@ -1131,11 +1131,11 @@ export async function processSaleReturn(
   for (const it of input.items) {
     const prod = seedProducts.find((p) => p.id === it.productId);
     if (prod) {
-      prod.stockQuantity += it.quantity;
+      prod.stockQuantity = Math.round((prod.stockQuantity + it.quantity) * 1000) / 1000;
     }
     const storeProd = store.products.find((p) => p.id === it.productId);
     if (storeProd) {
-      storeProd.stockQuantity += it.quantity;
+      storeProd.stockQuantity = Math.round((storeProd.stockQuantity + it.quantity) * 1000) / 1000;
     }
   }
 
@@ -1167,9 +1167,9 @@ export async function voidSale(shopId: string, saleId: string) {
   if (target?.items) {
     target.items.forEach((it) => {
       const prod = seedProducts.find((p) => p.id === it.productId);
-      if (prod) prod.stockQuantity += it.quantity;
+      if (prod) prod.stockQuantity = Math.round((prod.stockQuantity + it.quantity) * 1000) / 1000;
       const storeProd = store.products.find((p) => p.id === it.productId);
-      if (storeProd) storeProd.stockQuantity += it.quantity;
+      if (storeProd) storeProd.stockQuantity = Math.round((storeProd.stockQuantity + it.quantity) * 1000) / 1000;
     });
   }
 

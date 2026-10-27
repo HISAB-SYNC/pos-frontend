@@ -4,6 +4,7 @@ import {
   AlertCircle,
   ArrowRight,
   Banknote,
+  Calculator,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -17,6 +18,7 @@ import {
   Printer,
   Receipt,
   RefreshCw,
+  Scale,
   Search,
   ShoppingCart,
   Smartphone,
@@ -38,11 +40,20 @@ import type { Customer, Product, Sale } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useShopStore } from "@/stores/shop-store";
 import { cacheProducts, getCachedProducts, queueOfflineSale, useOfflineStatus, type OfflineSale } from "@/lib/offline";
+import {
+  formatQuantity,
+  isFractionalUnit,
+  calculateLineTotal,
+  calculateQuantityFromAmount,
+  FRACTION_PRESETS,
+} from "@/lib/utils/units";
 
 type CartItem = {
   product: Product;
   quantity: number;
   unitPrice: number;
+  customTotal?: number;
+  isCustomPrice?: boolean;
 };
 
 type PaymentMethodType = "CASH" | "CARD" | "BANK" | "BANK_TRANSFER" | "TELEBIRR" | "MOBILE" | "DEBT";
@@ -339,9 +350,16 @@ function SaleReceiptModal({
           <div className="max-h-32 overflow-y-auto rounded-md border border-zinc-200/80 p-2.5 space-y-1.5 text-[11px]">
             {sale.items?.map((it, idx) => (
               <div key={idx} className="flex items-center justify-between">
-                <span className="truncate pr-2 font-medium text-zinc-800">
-                  {it.quantity}x {it.product?.name || `Item #${it.productId.slice(0, 6)}`}
-                </span>
+                <div className="truncate pr-2">
+                  <span className="font-medium text-zinc-800">
+                    {formatQuantity(it.quantity, it.product?.unit || it.unit || "pcs")} × {it.product?.name || it.name || `Item #${it.productId.slice(0, 6)}`}
+                  </span>
+                  {it.isCustomPrice && (
+                    <span className="ml-1 rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">
+                      Deal
+                    </span>
+                  )}
+                </div>
                 <span className="font-mono font-semibold text-zinc-900 tabular-nums shrink-0">{it.subtotal} ETB</span>
               </div>
             ))}
@@ -394,6 +412,302 @@ function SaleReceiptModal({
 }
 
 /* ------------------------------------------------------------------ */
+/* Modal: Measure Item & Custom Price Calculator                      */
+/* ------------------------------------------------------------------ */
+function MeasureItemModal({
+  item,
+  onClose,
+  onSave,
+}: {
+  item: CartItem;
+  onClose: () => void;
+  onSave: (quantity: number, customTotal?: number) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"MEASURE" | "BUDGET">("MEASURE");
+  const [quantityInput, setQuantityInput] = useState<string>(String(item.quantity));
+  const [budgetInput, setBudgetInput] = useState<string>("");
+  const [isCustomPrice, setIsCustomPrice] = useState<boolean>(item.isCustomPrice || false);
+  const [customPriceInput, setCustomPriceInput] = useState<string>(
+    item.customTotal !== undefined ? String(item.customTotal) : ""
+  );
+
+  const unit = item.product.unit || "pcs";
+  const unitPrice = item.unitPrice || parseFloat(item.product.price || "0");
+  const parsedQty = parseFloat(quantityInput) || 0;
+  const standardTotal = calculateLineTotal(parsedQty, unitPrice);
+  const effectiveTotal =
+    isCustomPrice && parseFloat(customPriceInput) >= 0 ? parseFloat(customPriceInput) : standardTotal;
+
+  const handleBudgetChange = (val: string) => {
+    setBudgetInput(val);
+    const budgetNum = parseFloat(val) || 0;
+    if (budgetNum > 0 && unitPrice > 0) {
+      const computedQty = calculateQuantityFromAmount(budgetNum, unitPrice);
+      setQuantityInput(String(computedQty));
+    }
+  };
+
+  const handleApplyPreset = (val: number) => {
+    setQuantityInput(String(val));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (parsedQty <= 0) return;
+    const finalCustomTotal =
+      isCustomPrice && parseFloat(customPriceInput) >= 0 ? parseFloat(customPriceInput) : undefined;
+    onSave(parsedQty, finalCustomTotal);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-100">
+      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-100">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <Scale className="size-4.5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-zinc-950">{item.product.name}</h2>
+              <p className="font-mono text-[11px] text-zinc-500">
+                Rate: <span className="font-semibold text-zinc-800">{unitPrice.toLocaleString()} ETB / {unit}</span>
+                {item.product.stockQuantity !== undefined && (
+                  <span className="text-zinc-400"> • Stock: {formatQuantity(item.product.stockQuantity, unit)}</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Mode Selector Tabs */}
+        <div className="my-3.5 flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("MEASURE")}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 font-medium transition-all ${
+              activeTab === "MEASURE"
+                ? "bg-white text-zinc-900 shadow-2xs font-semibold"
+                : "text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Scale className="size-3.5" />
+            <span>By Measurement ({unit})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("BUDGET")}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 font-medium transition-all ${
+              activeTab === "BUDGET"
+                ? "bg-white text-zinc-900 shadow-2xs font-semibold"
+                : "text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Calculator className="size-3.5" />
+            <span>By Birr Amount</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+          {activeTab === "MEASURE" ? (
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block font-semibold text-zinc-700">
+                  Exact Quantity / Measurement ({unit})
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.001"
+                    required
+                    value={quantityInput}
+                    onChange={(e) => setQuantityInput(e.target.value)}
+                    placeholder="e.g. 1.5"
+                    className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-base font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                    autoFocus
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-semibold text-zinc-400">
+                    {unit}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Fraction Presets */}
+              <div>
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  Quick Fractions
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {FRACTION_PRESETS.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => handleApplyPreset(p.value)}
+                      className={`rounded-md border px-2.5 py-1 text-xs font-mono font-medium transition-colors ${
+                        parseFloat(quantityInput) === p.value
+                          ? "border-[#5B4FE9] bg-indigo-50 text-[#5B4FE9] font-bold"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block font-semibold text-zinc-700">
+                  Customer Budget / Target Cash (ETB)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="any"
+                    min="1"
+                    value={budgetInput}
+                    onChange={(e) => handleBudgetChange(e.target.value)}
+                    placeholder="e.g. 50"
+                    className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-base font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                    autoFocus
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-semibold text-zinc-400">
+                    ETB
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Birr Budget Chips */}
+              <div className="flex flex-wrap gap-1.5">
+                {[10, 20, 50, 100, 200].map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => handleBudgetChange(String(b))}
+                    className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 font-mono text-[11px] text-zinc-700 hover:bg-zinc-100"
+                  >
+                    +{b} ETB
+                  </button>
+                ))}
+              </div>
+
+              {/* Calculated Weight Card */}
+              {parsedQty > 0 && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50/70 p-2.5 text-emerald-900">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-700">
+                    Calculated Weight to Measure:
+                  </div>
+                  <div className="mt-0.5 font-mono text-base font-bold">
+                    {formatQuantity(parsedQty, unit)}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-emerald-700">
+                    {budgetInput || "0"} ETB ÷ {unitPrice} ETB/{unit} = {parsedQty} {unit}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Custom Price / Bargain Override Section */}
+          <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-zinc-800">
+                <input
+                  type="checkbox"
+                  checked={isCustomPrice}
+                  onChange={(e) => {
+                    setIsCustomPrice(e.target.checked);
+                    if (e.target.checked && !customPriceInput) {
+                      setCustomPriceInput(String(standardTotal));
+                    }
+                  }}
+                  className="rounded border-zinc-300 text-[#5B4FE9] focus:ring-[#5B4FE9]"
+                />
+                <span>Custom Agreed Price (Bargain / Special Deal)</span>
+              </label>
+              {isCustomPrice && (
+                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 uppercase tracking-wider">
+                  Override Active
+                </span>
+              )}
+            </div>
+
+            {isCustomPrice && (
+              <div className="pt-1 space-y-1.5 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={customPriceInput}
+                      onChange={(e) => setCustomPriceInput(e.target.value)}
+                      placeholder={String(standardTotal)}
+                      className="h-8 w-full rounded border border-zinc-200 bg-white px-2.5 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-zinc-400">
+                      ETB Total
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-zinc-500">
+                  Standard total would be <span className="font-mono font-medium">{standardTotal.toLocaleString()} ETB</span>.
+                  Charging a custom lump sum.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Summary Box */}
+          <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-100/60 px-3 py-2 text-xs">
+            <div>
+              <span className="text-zinc-500">Line Total:</span>
+              <div className="font-mono text-sm font-bold text-zinc-950 tabular-nums">
+                {effectiveTotal.toLocaleString()} ETB
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-zinc-500">Quantity:</span>
+              <div className="font-mono text-xs font-semibold text-zinc-800">
+                {formatQuantity(parsedQty, unit)}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-zinc-200 px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={parsedQty <= 0}
+              className="rounded-md bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              Apply to Cart
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Main POS Page Component                                            */
 /* ------------------------------------------------------------------ */
 export default function PosPage() {
@@ -438,6 +752,7 @@ export default function PosPage() {
   const [amountPaidInput, setAmountPaidInput] = useState<string>("");
 
   // Modals
+  const [measuringItem, setMeasuringItem] = useState<CartItem | null>(null);
   const [isAddCustModalOpen, setIsAddCustModalOpen] = useState(false);
   const [isDebtConfirmModalOpen, setIsDebtConfirmModalOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
@@ -521,7 +836,10 @@ export default function PosPage() {
 
   // Totals calculations
   const subtotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    return cart.reduce(
+      (sum, item) => sum + calculateLineTotal(item.quantity, item.unitPrice, item.customTotal),
+      0
+    );
   }, [cart]);
 
   const total = useMemo(() => {
@@ -557,16 +875,56 @@ export default function PosPage() {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stockQuantity) {
-          setValidationError(`Max available stock (${product.stockQuantity} pcs) reached for ${product.name}.`);
+        const step = isFractionalUnit(product.unit) ? 0.25 : 1;
+        const nextQty = Math.round((existing.quantity + step) * 1000) / 1000;
+        if (nextQty > product.stockQuantity) {
+          setValidationError(
+            `Max available stock (${formatQuantity(product.stockQuantity, product.unit)}) reached for ${product.name}.`
+          );
           return prev;
         }
         return prev.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+          item.product.id === product.id
+            ? { ...item, quantity: nextQty, customTotal: undefined, isCustomPrice: false }
+            : item
         );
       }
-      return [...prev, { product, quantity: 1, unitPrice: parseFloat(product.price || "0") }];
+      return [
+        ...prev,
+        {
+          product,
+          quantity: 1,
+          unitPrice: parseFloat(product.price || "0"),
+        },
+      ];
     });
+  }
+
+  function updateCartItem(productId: string, quantity: number, customTotal?: number) {
+    setValidationError("");
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id === productId) {
+          if (quantity > item.product.stockQuantity) {
+            setValidationError(
+              `Cannot exceed available stock (${formatQuantity(item.product.stockQuantity, item.product.unit)}) for ${item.product.name}.`
+            );
+            return item;
+          }
+          return {
+            ...item,
+            quantity: Math.round(quantity * 1000) / 1000,
+            customTotal: customTotal !== undefined && customTotal >= 0 ? customTotal : undefined,
+            isCustomPrice: customTotal !== undefined && customTotal >= 0,
+          };
+        }
+        return item;
+      })
+    );
   }
 
   function updateQuantity(productId: string, delta: number) {
@@ -575,13 +933,22 @@ export default function PosPage() {
       return prev
         .map((item) => {
           if (item.product.id === productId) {
-            const nextQty = item.quantity + delta;
+            const isFrac = isFractionalUnit(item.product.unit);
+            const step = isFrac ? (delta > 0 ? (delta === 1 ? 0.25 : delta) : (delta === -1 ? -0.25 : delta)) : delta;
+            const nextQty = Math.round((item.quantity + step) * 1000) / 1000;
             if (nextQty <= 0) return null;
             if (nextQty > item.product.stockQuantity) {
-              setValidationError(`Cannot exceed available stock (${item.product.stockQuantity} pcs) for ${item.product.name}.`);
+              setValidationError(
+                `Cannot exceed available stock (${formatQuantity(item.product.stockQuantity, item.product.unit)}) for ${item.product.name}.`
+              );
               return item;
             }
-            return { ...item, quantity: nextQty };
+            return {
+              ...item,
+              quantity: nextQty,
+              customTotal: undefined,
+              isCustomPrice: false,
+            };
           }
           return item;
         })
@@ -647,12 +1014,19 @@ export default function PosPage() {
       shopId: activeShopId,
       customerId: selectedCustomer?.id || null,
       customerName: selectedCustomer?.name || null,
-      items: cart.map((it) => ({
-        productId: it.product.id,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice,
-        name: it.product.name,
-      })),
+      items: cart.map((it) => {
+        const lineTotal = calculateLineTotal(it.quantity, it.unitPrice, it.customTotal);
+        const effectiveUnitPrice = it.quantity > 0 ? Math.round((lineTotal / it.quantity) * 100) / 100 : it.unitPrice;
+        return {
+          productId: it.product.id,
+          quantity: it.quantity,
+          unitPrice: effectiveUnitPrice,
+          name: it.product.name,
+          unit: it.product.unit,
+          customTotal: it.customTotal,
+          isCustomPrice: it.isCustomPrice,
+        };
+      }),
       subtotal,
       taxAmount: 0,
       discountAmount: discountVal,
@@ -670,7 +1044,10 @@ export default function PosPage() {
       prev.map((p) => {
         const inCart = cart.find((it) => it.product.id === p.id);
         if (inCart) {
-          return { ...p, stockQuantity: Math.max(0, p.stockQuantity - inCart.quantity) };
+          return {
+            ...p,
+            stockQuantity: Math.max(0, Math.round((p.stockQuantity - inCart.quantity) * 1000) / 1000),
+          };
         }
         return p;
       })
@@ -690,13 +1067,24 @@ export default function PosPage() {
       paymentReference: offlineReference + " (Offline - Pending Sync)",
       status: "COMPLETED",
       createdAt: offlineSale.createdAt,
-      items: cart.map((it) => ({
-        productId: it.product.id,
-        name: it.product.name,
-        quantity: it.quantity,
-        unitPrice: it.unitPrice,
-        subtotal: (it.unitPrice * it.quantity).toFixed(2),
-      })),
+      items: cart.map((it) => {
+        const lineTotal = calculateLineTotal(it.quantity, it.unitPrice, it.customTotal);
+        const effectiveUnitPrice = it.quantity > 0 ? Math.round((lineTotal / it.quantity) * 100) / 100 : it.unitPrice;
+        return {
+          productId: it.product.id,
+          name: it.product.name,
+          quantity: it.quantity,
+          unitPrice: effectiveUnitPrice,
+          subtotal: lineTotal.toFixed(2),
+          unit: it.product.unit,
+          customTotal: it.customTotal,
+          isCustomPrice: it.isCustomPrice,
+          product: {
+            ...it.product,
+            unit: it.product.unit,
+          },
+        };
+      }),
       customer: selectedCustomer,
     };
 
@@ -730,12 +1118,16 @@ export default function PosPage() {
     try {
       const sale = await createSale(activeShopId, {
         customerId: selectedCustomer?.id,
-        items: cart.map((it) => ({
-          productId: it.product.id,
-          quantity: it.quantity,
-          unitPrice: it.unitPrice,
-          name: it.product.name,
-        })),
+        items: cart.map((it) => {
+          const lineTotal = calculateLineTotal(it.quantity, it.unitPrice, it.customTotal);
+          const effectiveUnitPrice = it.quantity > 0 ? Math.round((lineTotal / it.quantity) * 100) / 100 : it.unitPrice;
+          return {
+            productId: it.product.id,
+            quantity: it.quantity,
+            unitPrice: effectiveUnitPrice,
+            name: it.product.name,
+          };
+        }),
         discountAmount: discountVal,
         totalAmount: total,
         amountPaid: effectivePaid,
@@ -748,13 +1140,17 @@ export default function PosPage() {
       });
 
       if (debtAdditionAmount > 0 && selectedCustomer) {
-        const debtItems = cart.map((it) => ({
-          productId: it.product.id,
-          quantity: it.quantity,
-          unitPrice: it.unitPrice,
-          totalPrice: it.unitPrice * it.quantity,
-          name: it.product.name,
-        }));
+        const debtItems = cart.map((it) => {
+          const lineTotal = calculateLineTotal(it.quantity, it.unitPrice, it.customTotal);
+          const effectiveUnitPrice = it.quantity > 0 ? Math.round((lineTotal / it.quantity) * 100) / 100 : it.unitPrice;
+          return {
+            productId: it.product.id,
+            quantity: it.quantity,
+            unitPrice: effectiveUnitPrice,
+            totalPrice: lineTotal,
+            name: it.product.name,
+          };
+        });
         if (sale && sale.id) {
           saveCreditSaleItems(sale.id, debtItems);
         }
@@ -898,51 +1294,78 @@ export default function PosPage() {
         {/* Cart Items List */}
         <div className="max-h-48 overflow-y-auto space-y-1.5 divide-y divide-zinc-100 pr-1">
           {cart.length > 0 ? (
-            cart.map((item) => (
-              <div key={item.product.id} className="flex items-center justify-between pt-1.5">
-                <div className="flex-1 pr-2 min-w-0">
-                  <p className="truncate text-xs font-semibold text-zinc-900">{item.product.name}</p>
-                  <span className="font-mono text-[10px] text-zinc-400">
-                    {item.unitPrice.toLocaleString()} ETB each
-                  </span>
-                </div>
+            cart.map((item) => {
+              const lineTotal = calculateLineTotal(item.quantity, item.unitPrice, item.customTotal);
+              const isFrac = isFractionalUnit(item.product.unit);
 
-                <div className="flex items-center gap-2">
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50">
-                    <button
-                      type="button"
-                      onClick={() => updateQuantity(item.product.id, -1)}
-                      className="px-2 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-l"
-                    >
-                      <Minus className="size-3" />
-                    </button>
-                    <span className="w-6 text-center font-mono text-xs font-bold text-zinc-900 tabular-nums">
-                      {item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateQuantity(item.product.id, 1)}
-                      className="px-2 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-r"
-                    >
-                      <Plus className="size-3" />
-                    </button>
+              return (
+                <div key={item.product.id} className="flex items-center justify-between pt-1.5">
+                  <div className="flex-1 pr-2 min-w-0">
+                    <p className="truncate text-xs font-semibold text-zinc-900">{item.product.name}</p>
+                    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-zinc-400">
+                      <span>
+                        {item.unitPrice.toLocaleString()} ETB / {item.product.unit || "pcs"}
+                      </span>
+                      {item.isCustomPrice && (
+                        <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">
+                          Deal ({lineTotal.toLocaleString()} ETB)
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <span className="w-16 text-right font-mono text-xs font-bold text-zinc-950 tabular-nums">
-                    {(item.unitPrice * item.quantity).toLocaleString()} ETB
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {/* Quantity Stepper & Scale trigger */}
+                    <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.product.id, -1)}
+                        className="px-1.5 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-l transition-colors"
+                        title={isFrac ? "Subtract 0.25" : "Subtract 1"}
+                      >
+                        <Minus className="size-3" />
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => removeFromCart(item.product.id)}
-                    className="text-zinc-400 hover:text-rose-600 transition-colors"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
+                      {/* Clickable quantity pill that opens MeasureItemModal */}
+                      <button
+                        type="button"
+                        onClick={() => setMeasuringItem(item)}
+                        className="group flex items-center gap-0.5 px-1.5 py-0.5 font-mono text-xs font-bold text-zinc-900 hover:bg-white rounded transition-colors"
+                        title="Click to edit measurement or set custom price deal"
+                      >
+                        <span className="tabular-nums">{formatQuantity(item.quantity)}</span>
+                        <span className="text-[10px] font-normal text-zinc-400">
+                          {item.product.unit || "pcs"}
+                        </span>
+                        <Scale className="size-2.5 text-[#5B4FE9] opacity-70 group-hover:opacity-100" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.product.id, 1)}
+                        className="px-1.5 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-r transition-colors"
+                        title={isFrac ? "Add 0.25" : "Add 1"}
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+
+                    <span className="w-16 text-right font-mono text-xs font-bold text-zinc-950 tabular-nums">
+                      {lineTotal.toLocaleString()} ETB
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.product.id)}
+                      className="text-zinc-400 hover:text-rose-600 transition-colors"
+                      title="Remove item"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="py-7 text-center text-xs text-zinc-400">
               Cart is empty. Select products or scan SKU.
@@ -1351,18 +1774,47 @@ export default function PosPage() {
                   <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2.5">
                     <div className="font-mono text-sm font-bold text-zinc-950 tabular-nums">
                       {parseFloat(product.price || "0").toLocaleString()}{" "}
-                      <span className="font-sans text-[10px] font-semibold text-zinc-400">ETB</span>
+                      <span className="font-sans text-[10px] font-semibold text-zinc-400">
+                        ETB / {product.unit || "pcs"}
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={isOutOfStock}
-                      onClick={() => addToCart(product)}
-                      className="flex size-7 items-center justify-center rounded-md bg-slate-900 text-white transition-all hover:bg-[#5B4FE9] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                      title="Add item to cart"
-                    >
-                      <Plus className="size-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {isFractionalUnit(product.unit) && (
+                        <button
+                          type="button"
+                          disabled={isOutOfStock}
+                          onClick={() => {
+                            const existing = cart.find((it) => it.product.id === product.id);
+                            if (existing) {
+                              setMeasuringItem(existing);
+                            } else {
+                              const newItem: CartItem = {
+                                product,
+                                quantity: 1,
+                                unitPrice: parseFloat(product.price || "0"),
+                              };
+                              setCart((prev) => [...prev, newItem]);
+                              setMeasuringItem(newItem);
+                            }
+                          }}
+                          className="flex h-7 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-bold text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                          title="Measure weight or enter custom deal"
+                        >
+                          <Scale className="size-3 text-[#5B4FE9]" />
+                          <span>Measure</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={isOutOfStock}
+                        onClick={() => addToCart(product)}
+                        className="flex size-7 items-center justify-center rounded-md bg-slate-900 text-white transition-all hover:bg-[#5B4FE9] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                        title="Add item to cart"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1448,6 +1900,17 @@ export default function PosPage() {
           onNewSale={() => {
             setCompletedSale(null);
             clearCart();
+          }}
+        />
+      )}
+
+      {measuringItem && (
+        <MeasureItemModal
+          item={measuringItem}
+          onClose={() => setMeasuringItem(null)}
+          onSave={(qty, customTotal) => {
+            updateCartItem(measuringItem.product.id, qty, customTotal);
+            setMeasuringItem(null);
           }}
         />
       )}

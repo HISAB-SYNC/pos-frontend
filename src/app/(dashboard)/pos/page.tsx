@@ -1420,7 +1420,7 @@ export default function PosPage() {
         </div>
 
         {/* Payment Method Selector */}
-        <div className="space-y-2 border-t border-zinc-100 pt-3 text-xs">
+        <div className="space-y-2 border-t border-zinc-100 pt-2.5 text-xs">
           <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Tender Channel</label>
           <div className="grid grid-cols-3 gap-1.5">
             {[
@@ -1444,50 +1444,105 @@ export default function PosPage() {
                       setBankName("Commercial Bank of Ethiopia (CBE)");
                     }
                   }}
-                  className={`flex flex-col items-center justify-center rounded-md border py-2 px-1.5 text-center transition-all ${
+                  className={`flex flex-col items-center justify-center rounded-md border py-1.5 px-1 text-center transition-all ${
                     isSelected
                       ? "border-slate-900 bg-slate-900 text-white shadow-2xs font-semibold"
                       : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
                   }`}
                 >
-                  <IconComponent className="size-4" />
+                  <IconComponent className="size-3.5" />
                   <span className="mt-1 text-[11px]">{m.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Bank Details when non-cash */}
-          {paymentMethod !== "CASH" && (
-            <div className="rounded-md border border-zinc-200/90 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
-              {paymentMethod === "BANK" ? (
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                    Bank Name:
-                  </label>
-                  <select
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+          {/* CASH ONLY: Amount Paid & Quick Ethiopian Birr Tender Chips */}
+          {paymentMethod === "CASH" && (
+            <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Cash Received:</label>
+                <span className="font-mono text-[11px] font-semibold text-zinc-600">Total: {total.toLocaleString()} ETB</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={amountPaidInput}
+                  onChange={(e) => setAmountPaidInput(e.target.value)}
+                  placeholder={String(total)}
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2.5 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                />
+                <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              </div>
+
+              {/* Quick Cash Tender Chips */}
+              <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total))}
+                  className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-800 hover:bg-zinc-100"
+                >
+                  Exact ({total} ETB)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total + 50))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  +50
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total + 100))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  +100
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total + 500))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  +500
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(Math.round(total / 2)))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  Half
+                </button>
+                {selectedCustomerId && (
+                  <button
+                    type="button"
+                    onClick={() => setAmountPaidInput("0")}
+                    className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100"
+                    title="Charge 0 ETB cash and record full amount as debt on customer account"
                   >
-                    {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                    Mobile Wallet:
-                  </label>
-                  <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
-                    <Smartphone className="size-3.5 text-emerald-600" />
-                    <span>Telebirr Instant Transfer</span>
-                  </div>
+                    Credit (0 ETB)
+                  </button>
+                )}
+              </div>
+
+              {/* Cash Change Due */}
+              {changeAmount > 0 && (
+                <div className="flex items-center justify-between rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1 text-xs font-bold text-emerald-800">
+                  <span>Cash Change Due:</span>
+                  <span className="font-mono text-emerald-900 tabular-nums">{changeAmount.toLocaleString()} ETB</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TELEBIRR ONLY: Clean wallet banner + reference */}
+          {paymentMethod === "TELEBIRR" && (
+            <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
+              <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
+                <Smartphone className="size-3.5 text-emerald-600" />
+                <span>Telebirr Instant Transfer ({total.toLocaleString()} ETB)</span>
+              </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
                   TxID / Reference (Optional):
@@ -1503,79 +1558,39 @@ export default function PosPage() {
             </div>
           )}
 
-          {/* Amount Paid & Quick Ethiopian Birr Tender Chips */}
-          <div className="rounded-md border border-zinc-200 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Amount Tendered:</label>
-              <span className="font-mono text-[11px] font-semibold text-zinc-600">Total: {total.toLocaleString()} ETB</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                value={amountPaidInput}
-                onChange={(e) => setAmountPaidInput(e.target.value)}
-                placeholder={String(total)}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
-              />
-              <span className="text-xs font-semibold text-zinc-500">ETB</span>
-            </div>
-
-            {/* Cashier Speed Quick Tender Chips */}
-            <div className="flex flex-wrap items-center gap-1 pt-1">
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total))}
-                className="rounded border border-zinc-200 bg-white px-2 py-1 text-[10px] font-semibold text-zinc-800 hover:bg-zinc-100"
-              >
-                Exact ({total} ETB)
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total + 50))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                +50 ETB
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total + 100))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                +100 ETB
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total + 500))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                +500 ETB
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(Math.round(total / 2)))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                Half
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput("0")}
-                className="rounded border border-rose-200 bg-rose-50 px-1.5 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
-              >
-                0 (Full Credit)
-              </button>
-            </div>
-
-            {/* Change calculation */}
-            {changeAmount > 0 && (
-              <div className="flex items-center justify-between rounded-md bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-bold text-emerald-800">
-                <span>Cash Change Due:</span>
-                <span className="font-mono text-emerald-900 tabular-nums">{changeAmount.toLocaleString()} ETB</span>
+          {/* BANK ONLY: Bank selector + reference */}
+          {paymentMethod === "BANK" && (
+            <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  Bank Name:
+                </label>
+                <select
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                >
+                  {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-          </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  TxID / Slip # (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="e.g. CBE12345678"
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Credit Notice Banner */}
@@ -1608,7 +1623,7 @@ export default function PosPage() {
       </div>
 
       {/* Cart Subtotal, Discount & Checkout Button */}
-      <div className="mt-4 space-y-2.5 border-t border-zinc-100 pt-3 text-xs">
+      <div className="mt-3 space-y-2 border-t border-zinc-100 pt-2.5 text-xs">
         <div className="space-y-1">
           <div className="flex justify-between text-zinc-500">
             <span>Subtotal</span>
@@ -1627,7 +1642,7 @@ export default function PosPage() {
               <span>ETB</span>
             </div>
           </div>
-          <div className="flex items-baseline justify-between border-t border-zinc-100 pt-2">
+          <div className="flex items-baseline justify-between border-t border-zinc-100 pt-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Total Payable</span>
             <span className="font-mono text-lg font-bold text-zinc-950 tabular-nums">
               {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>

@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import {
   AuthShell,
@@ -14,11 +14,19 @@ import {
   authSubtitleClassName,
   authTitleClassName,
 } from "@/components/auth/auth-shell";
+import { LoadingState } from "@/components/shared/loading-state";
 import { registerOwner } from "@/lib/api/auth";
 import type { ApiError } from "@/lib/api/types";
+import { useAuthStore } from "@/stores/auth-store";
+
+const emptySubscribe = () => () => {};
 
 export default function RegisterPage() {
   const router = useRouter();
+  const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,6 +34,24 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  // If already logged in, redirect directly to user's destination
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isAuthenticated && accessToken && user) {
+      if (user.role === "SUPER_ADMIN" || user.role === "SYSTEM_ADMIN") {
+        router.replace("/admin/dashboard");
+      } else if (user.role === "SALES") {
+        router.replace("/pos");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [hydrated, isAuthenticated, accessToken, user, router]);
+
+  if (hydrated && isAuthenticated && accessToken && user) {
+    return <LoadingState />;
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

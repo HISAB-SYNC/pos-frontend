@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AlertCircle, Clock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
@@ -14,6 +14,7 @@ import {
   authSubtitleClassName,
   authTitleClassName,
 } from "@/components/auth/auth-shell";
+import { LoadingState } from "@/components/shared/loading-state";
 import { login } from "@/lib/api/auth";
 import { getOwnerShops } from "@/lib/api/shops";
 import type { ApiError } from "@/lib/api/types";
@@ -21,8 +22,14 @@ import { isBackendRole } from "@/lib/permissions/roles";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
+const emptySubscribe = () => () => {};
+
 export default function LoginPage() {
   const router = useRouter();
+  const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
   const setSession = useAuthStore((state) => state.setSession);
   const setActiveShop = useShopStore((state) => state.setActiveShop);
 
@@ -32,6 +39,24 @@ export default function LoginPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("Invalid email or password.");
   const [isPendingActivation, setIsPendingActivation] = useState(false);
+
+  // If already logged in, redirect directly to user's destination
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isAuthenticated && accessToken && user) {
+      if (user.role === "SUPER_ADMIN" || user.role === "SYSTEM_ADMIN") {
+        router.replace("/admin/dashboard");
+      } else if (user.role === "SALES") {
+        router.replace("/pos");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [hydrated, isAuthenticated, accessToken, user, router]);
+
+  if (hydrated && isAuthenticated && accessToken && user) {
+    return <LoadingState />;
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

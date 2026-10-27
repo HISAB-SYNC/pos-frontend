@@ -193,82 +193,249 @@ function QuickAddCustomerModal({
 /* ------------------------------------------------------------------ */
 /* Modal: Debt Confirmation Dialog                                    */
 /* ------------------------------------------------------------------ */
-function DebtConfirmationModal({
+/* Modal: Order Review & Confirmation                                 */
+/* ------------------------------------------------------------------ */
+function OrderConfirmationModal({
+  cart,
+  subtotal,
+  discountVal,
+  total,
+  effectivePaid,
+  changeAmount,
+  debtAdditionAmount,
+  paymentMethod,
+  bankName,
+  paymentReference,
   customer,
-  currentDebt,
-  debtToAdd,
-  newTotalDebt,
+  currentCustomerDebt,
+  newProjectedDebt,
   onClose,
   onConfirm,
   isSubmitting,
 }: {
-  customer: Customer;
-  currentDebt: number;
-  debtToAdd: number;
-  newTotalDebt: number;
+  cart: CartItem[];
+  subtotal: number;
+  discountVal: number;
+  total: number;
+  effectivePaid: number;
+  changeAmount: number;
+  debtAdditionAmount: number;
+  paymentMethod: PaymentMethodType;
+  bankName?: string;
+  paymentReference?: string;
+  customer?: Customer | null;
+  currentCustomerDebt: number;
+  newProjectedDebt: number;
   onClose: () => void;
   onConfirm: () => void;
   isSubmitting: boolean;
 }) {
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const methodLabel =
+    paymentMethod === "BANK"
+      ? bankName || "Bank Transfer"
+      : paymentMethod === "TELEBIRR"
+      ? "Telebirr"
+      : "Cash";
+
+  // Keyboard shortcut: Press Enter to confirm, Escape to cancel/back
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Enter" && !isSubmitting) {
+        e.preventDefault();
+        onConfirm();
+      } else if (e.key === "Escape" && !isSubmitting) {
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onConfirm, onClose, isSubmitting]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-in fade-in duration-100">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-xl animate-in zoom-in-95 duration-100">
-        <div className="flex items-center gap-3 border-b border-zinc-100 pb-3">
-          <div className="flex size-9 items-center justify-center rounded-md bg-amber-50 text-amber-700 ring-1 ring-amber-400/30">
-            <HandCoins className="size-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-zinc-950">Confirm Credit / Debt Sale</h2>
-            <p className="text-[11px] text-zinc-500">Record customer debt obligation on store ledger</p>
-          </div>
-        </div>
-
-        <div className="my-4 space-y-3 text-xs">
-          <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 p-3.5 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-zinc-600">Customer Name:</span>
-              <span className="font-semibold text-zinc-900">{customer.name}</span>
+      <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-100">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-md bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
+              <Receipt className="size-4" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-600">Phone:</span>
-              <span className="font-mono text-zinc-800">{customer.phone || "—"}</span>
-            </div>
-            <div className="flex justify-between border-t border-amber-200/60 pt-2">
-              <span className="text-zinc-600">Previous Debt Balance:</span>
-              <span className="font-mono font-medium text-zinc-900 tabular-nums">{currentDebt.toLocaleString()} ETB</span>
-            </div>
-            <div className="flex justify-between font-semibold">
-              <span className="text-amber-800">New Added Debt:</span>
-              <span className="font-mono text-rose-600 tabular-nums">+{debtToAdd.toLocaleString()} ETB</span>
-            </div>
-            <div className="flex justify-between border-t border-amber-300 pt-2 text-sm font-bold">
-              <span className="text-zinc-950">New Total Customer Debt:</span>
-              <span className="font-mono text-rose-700 tabular-nums">{newTotalDebt.toLocaleString()} ETB</span>
+            <div>
+              <h2 className="text-sm font-bold text-zinc-950">Review &amp; Confirm Sale</h2>
+              <p className="text-[11px] text-zinc-500 font-mono">
+                {cart.length} item type{cart.length === 1 ? "" : "s"} ({formatQuantity(totalItemsCount)} total units) • {customer ? customer.name : "Walk-in Customer"}
+              </p>
             </div>
           </div>
-
-          <p className="text-center text-[11px] text-zinc-500">
-            This sale will be logged as an open credit voucher linked to {customer.name}.
-          </p>
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-md border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+            className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+            title="Close review"
           >
-            Cancel
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="my-3.5 space-y-3 text-xs">
+          {/* Itemized Order Table */}
+          <div className="rounded-lg border border-zinc-200/80 bg-white overflow-hidden shadow-2xs">
+            <div className="grid grid-cols-[1fr_90px_90px] px-3 py-1.5 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 bg-zinc-50/80 border-b border-zinc-200/70">
+              <span>Item &amp; Unit Rate</span>
+              <span className="text-center">Qty / Scale</span>
+              <span className="text-right">Line Total</span>
+            </div>
+            <div className="max-h-44 overflow-y-auto divide-y divide-zinc-100 px-3 py-0.5">
+              {cart.map((item) => {
+                const lineTotal = calculateLineTotal(item.quantity, item.unitPrice, item.customTotal);
+
+                return (
+                  <div key={item.product.id} className="grid grid-cols-[1fr_90px_90px] items-center py-2 text-xs">
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate font-semibold text-zinc-900" title={item.product.name}>
+                        {item.product.name}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mt-0.5">
+                        <span>
+                          {item.unitPrice.toLocaleString()} ETB/{item.product.unit || "pcs"}
+                        </span>
+                        {item.isCustomPrice && (
+                          <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-900 border border-amber-200">
+                            Deal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-center font-mono font-bold text-zinc-900 tabular-nums">
+                      {formatQuantity(item.quantity)}{" "}
+                      <span className="text-[10px] font-normal text-zinc-500">{item.product.unit || "pcs"}</span>
+                    </div>
+                    <div className="text-right font-mono font-bold text-zinc-950 tabular-nums">
+                      {lineTotal.toLocaleString()} ETB
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Payment & Financial Breakdown */}
+          <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3 space-y-2">
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between text-zinc-600">
+                <span>Subtotal:</span>
+                <span className="font-mono tabular-nums">{subtotal.toLocaleString()} ETB</span>
+              </div>
+              {discountVal > 0 && (
+                <div className="flex justify-between text-rose-600 font-medium">
+                  <span>Discount Applied:</span>
+                  <span className="font-mono tabular-nums">-{discountVal.toLocaleString()} ETB</span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between border-t border-zinc-200/70 pt-1.5 font-bold">
+                <span className="text-zinc-900 uppercase text-[11px] tracking-wider">Total Payable:</span>
+                <span className="font-mono text-base text-zinc-950 tabular-nums">
+                  {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Channel Particulars */}
+            <div className="border-t border-zinc-200/70 pt-2 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Tender Channel:</span>
+                <span className="font-semibold text-zinc-900">{methodLabel}</span>
+              </div>
+              {paymentMethod === "CASH" ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Cash Received:</span>
+                    <span className="font-mono font-bold text-zinc-900 tabular-nums">
+                      {effectivePaid.toLocaleString()} ETB
+                    </span>
+                  </div>
+                  {changeAmount > 0 && (
+                    <div className="flex justify-between font-bold text-emerald-800 bg-emerald-50/80 border border-emerald-200/80 rounded px-2 py-1">
+                      <span>Cash Change Due:</span>
+                      <span className="font-mono tabular-nums">{changeAmount.toLocaleString()} ETB</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                paymentReference && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">TxID / Reference:</span>
+                    <span className="font-mono font-medium text-zinc-900">{paymentReference}</span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Credit Debt Notice if applicable */}
+          {debtAdditionAmount > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 space-y-1.5 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                <HandCoins className="size-3.5 text-amber-700" />
+                <span>Credit / Debt Obligation for {customer?.name || "Customer"}</span>
+              </div>
+              <div className="space-y-1 text-[11px]">
+                <div className="flex justify-between text-zinc-600">
+                  <span>Previous Balance:</span>
+                  <span className="font-mono tabular-nums">{currentCustomerDebt.toLocaleString()} ETB</span>
+                </div>
+                <div className="flex justify-between font-semibold text-amber-800">
+                  <span>Added to Debt:</span>
+                  <span className="font-mono text-rose-600 tabular-nums">
+                    +{debtAdditionAmount.toLocaleString()} ETB
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-amber-200 pt-1 text-xs font-bold text-rose-700">
+                  <span>New Total Customer Debt:</span>
+                  <span className="font-mono tabular-nums">{newProjectedDebt.toLocaleString()} ETB</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Actions */}
+        <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-md border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+          >
+            ← Back to Cart
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="flex items-center gap-1.5 rounded-md bg-[#5B4FE9] px-4 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-[#4D40D9] disabled:opacity-50"
+            className={`flex items-center gap-1.5 rounded-md px-5 py-2 text-xs font-bold text-white shadow-2xs transition-all active:scale-[0.98] disabled:opacity-50 ${
+              debtAdditionAmount > 0
+                ? "bg-amber-500 hover:bg-amber-600"
+                : "bg-[#5B4FE9] hover:bg-[#4D40D9]"
+            }`}
           >
-            {isSubmitting ? "Completing..." : "Confirm & Charge Credit"}
-            <ArrowRight className="size-3.5" />
+            {isSubmitting ? (
+              <span>Processing Transaction...</span>
+            ) : debtAdditionAmount > 0 ? (
+              <>
+                <HandCoins className="size-3.5" />
+                <span>Confirm &amp; Record Credit (Enter)</span>
+              </>
+            ) : (
+              <>
+                <Check className="size-3.5 stroke-[3]" />
+                <span>Confirm &amp; Complete Sale (Enter)</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -743,6 +910,7 @@ export default function PosPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discountVal, setDiscountVal] = useState<number>(0);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [confirmClearCart, setConfirmClearCart] = useState(false);
 
   // Payment State
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -754,7 +922,7 @@ export default function PosPage() {
   // Modals
   const [measuringItem, setMeasuringItem] = useState<CartItem | null>(null);
   const [isAddCustModalOpen, setIsAddCustModalOpen] = useState(false);
-  const [isDebtConfirmModalOpen, setIsDebtConfirmModalOpen] = useState(false);
+  const [isConfirmOrderModalOpen, setIsConfirmOrderModalOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationError, setValidationError] = useState("");
@@ -989,12 +1157,7 @@ export default function PosPage() {
       return;
     }
 
-    if (debtAdditionAmount > 0 && selectedCustomer) {
-      setIsDebtConfirmModalOpen(true);
-      return;
-    }
-
-    executeSale();
+    setIsConfirmOrderModalOpen(true);
   }
 
   const processOfflineSale = async () => {
@@ -1090,7 +1253,7 @@ export default function PosPage() {
 
     refreshStats();
     setCompletedSale(syntheticSale);
-    setIsDebtConfirmModalOpen(false);
+    setIsConfirmOrderModalOpen(false);
     setIsCartDrawerOpen(false);
     clearCart();
   };
@@ -1161,7 +1324,7 @@ export default function PosPage() {
 
       await loadData();
       setCompletedSale(sale);
-      setIsDebtConfirmModalOpen(false);
+      setIsConfirmOrderModalOpen(false);
       setIsCartDrawerOpen(false);
       clearCart();
     } catch (err: unknown) {
@@ -1204,27 +1367,53 @@ export default function PosPage() {
 
   const renderOrderPanel = (isDrawer: boolean) => (
     <>
-      <div className="space-y-3.5">
-        {/* Cart Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+      <div className="space-y-3">
+        {/* Cart Header with Accidental Clear Protection */}
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-md bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
               <ShoppingCart className="size-3.5" />
             </div>
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950">Current Order</h2>
-              <span className="text-[10px] text-zinc-400">{cart.length} item types in cart</span>
+              <span className="text-[10px] text-zinc-400 font-mono">{cart.length} item{cart.length === 1 ? "" : "s"} in cart</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {cart.length > 0 && (
-              <button
-                type="button"
-                onClick={clearCart}
-                className="text-[11px] font-medium text-rose-600 hover:underline"
-              >
-                Clear All
-              </button>
+              confirmClearCart ? (
+                <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
+                  <span className="text-[10px] font-semibold text-rose-600">Clear all?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearCart();
+                      setConfirmClearCart(false);
+                    }}
+                    className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-rose-700 transition-colors"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearCart(false)}
+                    className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmClearCart(true);
+                    setTimeout(() => setConfirmClearCart(false), 4000);
+                  }}
+                  className="text-[11px] font-medium text-zinc-400 hover:text-rose-600 transition-colors"
+                >
+                  Clear All
+                </button>
+              )
             )}
             {isDrawer && (
               <button
@@ -1242,23 +1431,23 @@ export default function PosPage() {
 
         {/* Validation Message */}
         {validationError && (
-          <div className="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 p-2.5 text-xs font-medium text-rose-700">
+          <div className="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 p-2 text-xs font-medium text-rose-700">
             <AlertCircle className="size-4 shrink-0" />
             <span>{validationError}</span>
           </div>
         )}
 
-        {/* Selected Customer Selector */}
-        <div className="rounded-lg border border-zinc-200/90 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
+        {/* Customer Account Selector */}
+        <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-1.5 text-xs">
           <div className="flex items-center justify-between">
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Customer Account</label>
             <button
               type="button"
               onClick={() => setIsAddCustModalOpen(true)}
-              className="flex items-center gap-1 font-semibold text-zinc-900 hover:underline"
+              className="flex items-center gap-1 text-[11px] font-semibold text-zinc-900 hover:text-[#5B4FE9] transition-colors"
             >
               <UserPlus className="size-3 text-zinc-500" />
-              + Register Customer
+              + New Customer
             </button>
           </div>
 
@@ -1291,90 +1480,109 @@ export default function PosPage() {
           )}
         </div>
 
-        {/* Cart Items List */}
-        <div className="max-h-48 overflow-y-auto space-y-1.5 divide-y divide-zinc-100 pr-1">
+        {/* Cart Items List with Generous Breathing Room */}
+        <div className="max-h-64 sm:max-h-72 overflow-y-auto space-y-1.5 pr-1">
           {cart.length > 0 ? (
             cart.map((item) => {
               const lineTotal = calculateLineTotal(item.quantity, item.unitPrice, item.customTotal);
               const isFrac = isFractionalUnit(item.product.unit);
 
               return (
-                <div key={item.product.id} className="flex items-center justify-between pt-1.5">
-                  <div className="flex-1 pr-2 min-w-0">
-                    <p className="truncate text-xs font-semibold text-zinc-900">{item.product.name}</p>
-                    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-zinc-400">
-                      <span>
-                        {item.unitPrice.toLocaleString()} ETB / {item.product.unit || "pcs"}
-                      </span>
-                      {item.isCustomPrice && (
-                        <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">
-                          Deal ({lineTotal.toLocaleString()} ETB)
+                <div
+                  key={item.product.id}
+                  className="group rounded-lg border border-zinc-200/80 bg-white p-2 space-y-1.5 transition-colors hover:border-zinc-300 shadow-2xs"
+                >
+                  {/* Top Line: Name, Unit Price, and Remove */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-zinc-900" title={item.product.name}>
+                        {item.product.name}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
+                        <span className="font-mono">
+                          {item.unitPrice.toLocaleString()} ETB / {item.product.unit || "pcs"}
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {/* Quantity Stepper & Scale trigger */}
-                    <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50">
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.product.id, -1)}
-                        className="px-1.5 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-l transition-colors"
-                        title={isFrac ? "Subtract 0.25" : "Subtract 1"}
-                      >
-                        <Minus className="size-3" />
-                      </button>
-
-                      {/* Clickable quantity pill that opens MeasureItemModal */}
-                      <button
-                        type="button"
-                        onClick={() => setMeasuringItem(item)}
-                        className="group flex items-center gap-0.5 px-1.5 py-0.5 font-mono text-xs font-bold text-zinc-900 hover:bg-white rounded transition-colors"
-                        title="Click to edit measurement or set custom price deal"
-                      >
-                        <span className="tabular-nums">{formatQuantity(item.quantity)}</span>
-                        <span className="text-[10px] font-normal text-zinc-400">
-                          {item.product.unit || "pcs"}
-                        </span>
-                        <Scale className="size-2.5 text-[#5B4FE9] opacity-70 group-hover:opacity-100" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.product.id, 1)}
-                        className="px-1.5 py-1 text-zinc-500 hover:bg-white hover:text-zinc-900 rounded-r transition-colors"
-                        title={isFrac ? "Add 0.25" : "Add 1"}
-                      >
-                        <Plus className="size-3" />
-                      </button>
+                        {item.isCustomPrice && (
+                          <span className="rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-900 border border-amber-200">
+                            Deal Override
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <span className="w-16 text-right font-mono text-xs font-bold text-zinc-950 tabular-nums">
-                      {lineTotal.toLocaleString()} ETB
-                    </span>
-
+                    {/* Isolated Trash Button */}
                     <button
                       type="button"
                       onClick={() => removeFromCart(item.product.id)}
-                      className="text-zinc-400 hover:text-rose-600 transition-colors"
+                      className="rounded p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                       title="Remove item"
                     >
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>
+
+                  {/* Bottom Line: Adjust Control & Line Total */}
+                  <div className="flex items-center justify-between border-t border-zinc-100 pt-1.5">
+                    {isFrac ? (
+                      /* Measured / Scale Item: Single generous tap target without tiny -/+ buttons */
+                      <button
+                        type="button"
+                        onClick={() => setMeasuringItem(item)}
+                        className="flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50/80 px-2.5 py-1 text-xs font-semibold text-indigo-950 hover:bg-indigo-100 hover:border-indigo-300 transition-all active:scale-98"
+                        title="Tap to weigh, pick fraction, or bargain price"
+                      >
+                        <Scale className="size-3 text-[#5B4FE9]" />
+                        <span className="font-mono font-bold tabular-nums">
+                          {formatQuantity(item.quantity)} {item.product.unit || "kg"}
+                        </span>
+                        <span className="text-[10px] font-medium text-[#5B4FE9]">
+                          · Scale / Deal
+                        </span>
+                      </button>
+                    ) : (
+                      /* Piece Item: Generous, distinct - [Qty] + stepper */
+                      <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, -1)}
+                          className="flex size-6 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-l transition-colors"
+                          title="Subtract 1"
+                        >
+                          <Minus className="size-3" />
+                        </button>
+                        <span className="min-w-[28px] px-1 text-center font-mono text-xs font-bold text-zinc-900 tabular-nums">
+                          {formatQuantity(item.quantity)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, 1)}
+                          className="flex size-6 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-r transition-colors"
+                          title="Add 1"
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Line Total */}
+                    <div className="text-right">
+                      <span className="font-mono text-xs font-bold text-zinc-950 tabular-nums">
+                        {lineTotal.toLocaleString()} ETB
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             })
           ) : (
-            <div className="py-7 text-center text-xs text-zinc-400">
-              Cart is empty. Select products or scan SKU.
+            <div className="py-8 text-center text-xs text-zinc-400">
+              Cart is empty. Select products or scan barcode.
             </div>
           )}
         </div>
 
         {/* Payment Method Selector */}
-        <div className="space-y-2 border-t border-zinc-100 pt-3 text-xs">
+        <div className="space-y-2 border-t border-zinc-100 pt-2.5 text-xs">
           <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Tender Channel</label>
           <div className="grid grid-cols-3 gap-1.5">
             {[
@@ -1398,50 +1606,105 @@ export default function PosPage() {
                       setBankName("Commercial Bank of Ethiopia (CBE)");
                     }
                   }}
-                  className={`flex flex-col items-center justify-center rounded-md border py-2 px-1.5 text-center transition-all ${
+                  className={`flex flex-col items-center justify-center rounded-md border py-1.5 px-1 text-center transition-all ${
                     isSelected
                       ? "border-slate-900 bg-slate-900 text-white shadow-2xs font-semibold"
                       : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
                   }`}
                 >
-                  <IconComponent className="size-4" />
+                  <IconComponent className="size-3.5" />
                   <span className="mt-1 text-[11px]">{m.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Bank Details when non-cash */}
-          {paymentMethod !== "CASH" && (
-            <div className="rounded-md border border-zinc-200/90 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
-              {paymentMethod === "BANK" ? (
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                    Bank Name:
-                  </label>
-                  <select
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+          {/* CASH ONLY: Amount Paid & Quick Ethiopian Birr Tender Chips */}
+          {paymentMethod === "CASH" && (
+            <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Cash Received:</label>
+                <span className="font-mono text-[11px] font-semibold text-zinc-600">Total: {total.toLocaleString()} ETB</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={amountPaidInput}
+                  onChange={(e) => setAmountPaidInput(e.target.value)}
+                  placeholder={String(total)}
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2.5 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                />
+                <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              </div>
+
+              {/* Quick Cash Tender Chips */}
+              <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total))}
+                  className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-800 hover:bg-zinc-100"
+                >
+                  Exact ({total} ETB)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total + 50))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  +50
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total + 100))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  +100
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(total + 500))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  +500
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmountPaidInput(String(Math.round(total / 2)))}
+                  className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
+                >
+                  Half
+                </button>
+                {selectedCustomerId && (
+                  <button
+                    type="button"
+                    onClick={() => setAmountPaidInput("0")}
+                    className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100"
+                    title="Charge 0 ETB cash and record full amount as debt on customer account"
                   >
-                    {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                    Mobile Wallet:
-                  </label>
-                  <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
-                    <Smartphone className="size-3.5 text-emerald-600" />
-                    <span>Telebirr Instant Transfer</span>
-                  </div>
+                    Credit (0 ETB)
+                  </button>
+                )}
+              </div>
+
+              {/* Cash Change Due */}
+              {changeAmount > 0 && (
+                <div className="flex items-center justify-between rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1 text-xs font-bold text-emerald-800">
+                  <span>Cash Change Due:</span>
+                  <span className="font-mono text-emerald-900 tabular-nums">{changeAmount.toLocaleString()} ETB</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TELEBIRR ONLY: Clean wallet banner + reference */}
+          {paymentMethod === "TELEBIRR" && (
+            <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
+              <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
+                <Smartphone className="size-3.5 text-emerald-600" />
+                <span>Telebirr Instant Transfer ({total.toLocaleString()} ETB)</span>
+              </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
                   TxID / Reference (Optional):
@@ -1457,79 +1720,39 @@ export default function PosPage() {
             </div>
           )}
 
-          {/* Amount Paid & Quick Ethiopian Birr Tender Chips */}
-          <div className="rounded-md border border-zinc-200 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Amount Tendered:</label>
-              <span className="font-mono text-[11px] font-semibold text-zinc-600">Total: {total.toLocaleString()} ETB</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                value={amountPaidInput}
-                onChange={(e) => setAmountPaidInput(e.target.value)}
-                placeholder={String(total)}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
-              />
-              <span className="text-xs font-semibold text-zinc-500">ETB</span>
-            </div>
-
-            {/* Cashier Speed Quick Tender Chips */}
-            <div className="flex flex-wrap items-center gap-1 pt-1">
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total))}
-                className="rounded border border-zinc-200 bg-white px-2 py-1 text-[10px] font-semibold text-zinc-800 hover:bg-zinc-100"
-              >
-                Exact ({total} ETB)
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total + 50))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                +50 ETB
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total + 100))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                +100 ETB
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(total + 500))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                +500 ETB
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput(String(Math.round(total / 2)))}
-                className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
-              >
-                Half
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmountPaidInput("0")}
-                className="rounded border border-rose-200 bg-rose-50 px-1.5 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
-              >
-                0 (Full Credit)
-              </button>
-            </div>
-
-            {/* Change calculation */}
-            {changeAmount > 0 && (
-              <div className="flex items-center justify-between rounded-md bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-bold text-emerald-800">
-                <span>Cash Change Due:</span>
-                <span className="font-mono text-emerald-900 tabular-nums">{changeAmount.toLocaleString()} ETB</span>
+          {/* BANK ONLY: Bank selector + reference */}
+          {paymentMethod === "BANK" && (
+            <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  Bank Name:
+                </label>
+                <select
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
+                >
+                  {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-          </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
+                  TxID / Slip # (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="e.g. CBE12345678"
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Credit Notice Banner */}
@@ -1562,7 +1785,7 @@ export default function PosPage() {
       </div>
 
       {/* Cart Subtotal, Discount & Checkout Button */}
-      <div className="mt-4 space-y-2.5 border-t border-zinc-100 pt-3 text-xs">
+      <div className="mt-3 space-y-2 border-t border-zinc-100 pt-2.5 text-xs">
         <div className="space-y-1">
           <div className="flex justify-between text-zinc-500">
             <span>Subtotal</span>
@@ -1581,7 +1804,7 @@ export default function PosPage() {
               <span>ETB</span>
             </div>
           </div>
-          <div className="flex items-baseline justify-between border-t border-zinc-100 pt-2">
+          <div className="flex items-baseline justify-between border-t border-zinc-100 pt-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Total Payable</span>
             <span className="font-mono text-lg font-bold text-zinc-950 tabular-nums">
               {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
@@ -1881,13 +2104,22 @@ export default function PosPage() {
         />
       )}
 
-      {isDebtConfirmModalOpen && selectedCustomer && (
-        <DebtConfirmationModal
+      {isConfirmOrderModalOpen && (
+        <OrderConfirmationModal
+          cart={cart}
+          subtotal={subtotal}
+          discountVal={discountVal}
+          total={total}
+          effectivePaid={effectivePaid}
+          changeAmount={changeAmount}
+          debtAdditionAmount={debtAdditionAmount}
+          paymentMethod={paymentMethod}
+          bankName={bankName}
+          paymentReference={paymentReference}
           customer={selectedCustomer}
-          currentDebt={currentCustomerDebt}
-          debtToAdd={debtAdditionAmount}
-          newTotalDebt={newProjectedDebt}
-          onClose={() => setIsDebtConfirmModalOpen(false)}
+          currentCustomerDebt={currentCustomerDebt}
+          newProjectedDebt={newProjectedDebt}
+          onClose={() => setIsConfirmOrderModalOpen(false)}
           onConfirm={executeSale}
           isSubmitting={isProcessing}
         />

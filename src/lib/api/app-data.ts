@@ -18,6 +18,11 @@ import type {
   Debt,
   Expense,
   ExpensesSummary,
+  FundAccount,
+  FundsEntries,
+  FundsLine,
+  FundsSummary,
+  MoneyAddedReason,
   NotificationFeedResponse,
   NotificationSeverity,
   NotificationType,
@@ -957,6 +962,8 @@ export async function createSale(
         paymentMethod: backendPaymentMethod,
         discountAmount: input.discountAmount || 0,
         isCredit: debtPortion > 0,
+        // Credit sales: what was paid at the till now; the backend books only the rest as debt.
+        amountPaid: debtPortion > 0 ? Math.max(0, Math.min(paid, input.totalAmount)) : undefined,
         bankName: input.bankName || undefined,
         paymentReference: input.paymentReference || undefined,
         items: input.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
@@ -1209,6 +1216,27 @@ export async function voidSale(shopId: string, saleId: string) {
 /* ------------------------------------------------------------------ */
 /* Expenses API                                                        */
 /* ------------------------------------------------------------------ */
+/** Expense form values (Cash / Bank / Telebirr) → backend enum. Bank transfer is stored as CARD. */
+function toBackendExpenseMethod(method: string) {
+  const pm = (method || "").toUpperCase();
+  if (pm.includes("CARD") || pm.includes("BANK")) return "CARD";
+  if (pm.includes("MOBILE") || pm.includes("TELEBIRR")) return "MOBILE";
+  return "CASH";
+}
+
+/** Backend enum → expense form values. */
+function fromBackendExpenseMethod(method?: string) {
+  if (method === "CARD") return "Bank";
+  if (method === "MOBILE") return "Telebirr";
+  return "Cash";
+}
+
+function fromBackendExpenseStatus(status?: string) {
+  if (status === "PENDING") return "Pending";
+  if (status === "OVERDUE") return "Overdue";
+  return "Paid";
+}
+
 export async function getExpensesSummary(shopId: string) {
   const expenses = await getExpenses(shopId);
   const totalAmount = expenses.reduce((sum, e) => sum + (typeof e.amount === "number" ? e.amount : parseFloat(String(e.amount).replace(/,/g, "")) || 0), 0);
@@ -1243,8 +1271,8 @@ export async function getExpenses(shopId: string): Promise<Expense[]> {
       description: e.title || e.description || "Store Expense",
       category: e.category || "General",
       amount: typeof e.amount === "number" ? e.amount : parseFloat(e.amount || "0"),
-      paymentMethod: e.paymentMethod === "CARD" ? "Card" : e.paymentMethod === "MOBILE" ? "Mobile" : e.paymentMethod || "Cash",
-      status: "Paid",
+      paymentMethod: fromBackendExpenseMethod(e.paymentMethod),
+      status: fromBackendExpenseStatus(e.status),
       date: e.expenseDate
         ? new Date(e.expenseDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
         : (e.createdAt ? new Date(e.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Today"),
@@ -1268,8 +1296,7 @@ export async function createExpense(
   },
 ) {
   const numAmount = typeof input.amount === "number" ? input.amount : parseFloat(String(input.amount).replace(/,/g, "")) || 0;
-  const pm = (input.paymentMethod || "").toUpperCase();
-  const normalizedMethod = pm.includes("CARD") ? "CARD" : pm.includes("MOBILE") || pm.includes("TELEBIRR") ? "MOBILE" : "CASH";
+  const normalizedMethod = toBackendExpenseMethod(input.paymentMethod);
 
   if (isMockApiEnabled()) {
     const { seedExpenses } = await import("@/lib/mock/data");
@@ -1296,6 +1323,7 @@ export async function createExpense(
       amount: numAmount,
       notes: input.notes || "",
       paymentMethod: normalizedMethod,
+      status: (input.status || "Paid").toUpperCase(),
       expenseDate: new Date().toISOString(),
     },
   });
@@ -1306,8 +1334,8 @@ export async function createExpense(
     description: res.title || input.description,
     category: res.category || input.category,
     amount: typeof res.amount === "number" ? res.amount : parseFloat(res.amount || "0"),
-    paymentMethod: res.paymentMethod || normalizedMethod,
-    status: "Paid",
+    paymentMethod: fromBackendExpenseMethod(res.paymentMethod || normalizedMethod),
+    status: fromBackendExpenseStatus(res.status),
     date: res.expenseDate
       ? new Date(res.expenseDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
       : "Today",
@@ -1337,8 +1365,10 @@ export async function updateExpense(
   }
   if (input.notes) body.notes = input.notes;
   if (input.paymentMethod) {
-    const pm = input.paymentMethod.toUpperCase();
-    body.paymentMethod = pm.includes("CARD") ? "CARD" : pm.includes("MOBILE") || pm.includes("TELEBIRR") ? "MOBILE" : "CASH";
+    body.paymentMethod = toBackendExpenseMethod(input.paymentMethod);
+  }
+  if (input.status) {
+    body.status = input.status.toUpperCase();
   }
 
   const res = await apiRequest<any>(API_ENDPOINTS.shops.expense(shopId, expenseId), {
@@ -1352,8 +1382,8 @@ export async function updateExpense(
     description: res.title || input.description || "Expense",
     category: res.category || input.category || "General",
     amount: res.amount !== undefined ? (typeof res.amount === "number" ? res.amount : parseFloat(res.amount)) : (input.amount || 0),
-    paymentMethod: res.paymentMethod || input.paymentMethod || "Cash",
-    status: "Paid",
+    paymentMethod: fromBackendExpenseMethod(res.paymentMethod),
+    status: fromBackendExpenseStatus(res.status),
     date: res.expenseDate ? new Date(res.expenseDate).toLocaleDateString("en-US") : "Today",
     notes: res.notes || input.notes || "",
   } as Expense;
@@ -1469,7 +1499,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     const breakdown = { cash: 0, bank: 0, telebirr: 0 };
     shopSales.forEach((s) => {
       const method = (s.paymentMethod || "").toUpperCase();
-      const paid = s.amountPaid !== undefined ? parseFloat(String(s.amountPaid)) : (s.splitDetails?.cashAmount ?? parseFloat(s.totalAmount || "0"));
+      const paid = s.amountPaid != null ? parseFloat(String(s.amountPaid)) : (s.splitDetails?.cashAmount ?? parseFloat(s.totalAmount || "0"));
       if (method === "BANK" || method === "BANK_TRANSFER") breakdown.bank += paid;
       else if (method === "TELEBIRR" || method === "MOBILE") breakdown.telebirr += paid;
       else breakdown.cash += paid;
@@ -1646,7 +1676,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     const breakdown = { cash: 0, bank: 0, telebirr: 0 };
     validSales.forEach((s) => {
       const method = (s.paymentMethod || "").toUpperCase();
-      const paid = s.amountPaid !== undefined
+      const paid = s.amountPaid != null
         ? parseFloat(String(s.amountPaid))
         : (s.splitDetails?.cashAmount ?? (parseFloat(String(s.totalAmount || "0")) || 0));
       if (method === "BANK" || method === "BANK_TRANSFER" || method === "CARD") breakdown.bank += paid;
@@ -2780,3 +2810,72 @@ export type {
 
 
 
+
+/* ------------------------------------------------------------------ */
+/* Funds (Money Left) API                                              */
+/* ------------------------------------------------------------------ */
+
+const FUND_ACCOUNT_LABELS: Record<FundAccount, string> = {
+  CASH_DRAWER: "Cash Till",
+  BANK: "Bank",
+  TELEBIRR: "Telebirr",
+};
+
+function emptyFundsSummary(): FundsSummary {
+  const lines = { sales: 0, repayments: 0, added: 0, restocks: 0, expenses: 0, refunds: 0 };
+  return {
+    lines,
+    moneyIn: 0,
+    moneyOut: 0,
+    moneyLeft: 0,
+    accounts: (Object.keys(FUND_ACCOUNT_LABELS) as FundAccount[]).map((account) => ({
+      account,
+      label: FUND_ACCOUNT_LABELS[account],
+      lines: { ...lines },
+      moneyIn: 0,
+      moneyOut: 0,
+      balance: 0,
+    })),
+    owedToSuppliers: 0,
+    since: null,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+/** Money in − money out, in total and per account. Computed by the backend from source records. */
+export async function getFundsSummary(shopId: string): Promise<FundsSummary> {
+  if (isMockApiEnabled()) {
+    return emptyFundsSummary();
+  }
+  return apiRequest<FundsSummary>(API_ENDPOINTS.shops.funds(shopId));
+}
+
+/** The records behind one line of the Money Left card. */
+export async function getFundsEntries(
+  shopId: string,
+  params: { line?: FundsLine; account?: FundAccount; limit?: number } = {},
+): Promise<FundsEntries> {
+  if (isMockApiEnabled()) {
+    return { line: params.line ?? null, account: params.account ?? null, total: 0, count: 0, items: [] };
+  }
+  const query = new URLSearchParams();
+  if (params.line) query.set("line", params.line);
+  if (params.account) query.set("account", params.account);
+  if (params.limit) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  return apiRequest<FundsEntries>(`${API_ENDPOINTS.shops.fundsEntries(shopId)}${qs ? `?${qs}` : ""}`);
+}
+
+/** Records money added to an account from outside sales. */
+export async function addMoneyToAccount(
+  shopId: string,
+  input: { account: FundAccount; amount: number; reason: MoneyAddedReason; notes?: string },
+) {
+  if (isMockApiEnabled()) {
+    return { id: `adj-${Date.now()}`, ...input };
+  }
+  return apiRequest(API_ENDPOINTS.shops.fundsAdjustments(shopId), {
+    method: "POST",
+    body: input,
+  });
+}

@@ -97,6 +97,55 @@ export type ProductPurchase = {
   status: "completed" | "pending";
 };
 
+/** Account the money sits in. Card and bank-transfer sales both land in BANK. */
+export type FundAccount = "CASH_DRAWER" | "BANK" | "TELEBIRR";
+export type PurchaseFunding = FundAccount | "SUPPLIER_CREDIT";
+export type MoneyAddedReason = "OWNER_MONEY" | "ALREADY_IN_ACCOUNT";
+
+/** Lines of the Money Left card. sales/repayments/added are money in; the rest money out. */
+export type FundsLine = "sales" | "repayments" | "added" | "restocks" | "expenses" | "refunds";
+
+export type FundsLines = Record<FundsLine, number>;
+
+export type FundsAccountSummary = {
+  account: FundAccount;
+  label: string;
+  lines: FundsLines;
+  moneyIn: number;
+  moneyOut: number;
+  balance: number;
+};
+
+export type FundsSummary = {
+  lines: FundsLines;
+  moneyIn: number;
+  moneyOut: number;
+  moneyLeft: number;
+  accounts: FundsAccountSummary[];
+  owedToSuppliers: number;
+  since: string | null;
+  generatedAt: string;
+};
+
+export type FundsEntry = {
+  id: string;
+  line: FundsLine;
+  direction: "IN" | "OUT";
+  account: FundAccount;
+  amount: number;
+  date: string;
+  label: string;
+  notes?: string;
+};
+
+export type FundsEntries = {
+  line: FundsLine | null;
+  account: FundAccount | null;
+  total: number;
+  count: number;
+  items: FundsEntry[];
+};
+
 export type ProductAdjustment = {
   id: string;
   productId: string;

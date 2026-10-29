@@ -62,7 +62,7 @@ const PAID_FROM_OPTIONS: Array<{
   { key: "CASH_DRAWER", label: "Cash Till", hint: "Paid with cash from the till", icon: Banknote },
   { key: "BANK", label: "Bank", hint: "Paid by bank transfer or card", icon: Landmark },
   { key: "TELEBIRR", label: "Telebirr", hint: "Paid from the shop's Telebirr", icon: Smartphone },
-  { key: "SUPPLIER_CREDIT", label: "Pay later", hint: "Supplier gave it on credit. Money Left won't change now.", icon: ReceiptText },
+  { key: "SUPPLIER_CREDIT", label: "Pay later", hint: "Supplier gave it on credit. Money Left changes when you pay them (dashboard or Suppliers page).", icon: ReceiptText },
 ];
 
 const ALREADY_IN_LABEL: Record<FundAccount, string> = {
@@ -152,8 +152,12 @@ function StockAdjustModal({
     : null;
   const paidLabel = PAID_FROM_OPTIONS.find((o) => o.key === paidFrom)?.label ?? "";
 
+  // Pay-later restocks must name who is owed, so the debt can be paid off later.
+  const needsSupplier = isRestock && paidFrom === "SUPPLIER_CREDIT" && !supplierId && !supplierName.trim();
+
   const canSubmit =
     adjustQtyNum > 0 &&
+    !needsSupplier &&
     (!isRestock || (unitCostNum > 0 && (shortfall === 0 || extraMoneyReason !== null)));
 
   async function handleSubmit(e: React.FormEvent) {
@@ -327,7 +331,9 @@ function StockAdjustModal({
           {isRestock && (
             <>
               <div>
-                <label className="mb-1 block font-semibold text-zinc-700">Supplier (optional)</label>
+                <label className="mb-1 block font-semibold text-zinc-700">
+                  {paidFrom === "SUPPLIER_CREDIT" ? "Supplier you owe *" : "Supplier (optional)"}
+                </label>
                 {suppliers.length > 0 ? (
                   <select
                     value={supplierId}
@@ -349,6 +355,9 @@ function StockAdjustModal({
                     placeholder="Supplier name"
                     className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
                   />
+                )}
+                {needsSupplier && (
+                  <p className="mt-1 text-[10px] text-amber-800">Pick the supplier for a pay-later restock, so you can pay them off later.</p>
                 )}
               </div>
 

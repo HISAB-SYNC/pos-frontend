@@ -78,9 +78,14 @@ function computeSaleFinancials(sale: Sale) {
 
   if (sale.items && sale.items.length > 0) {
     for (const it of sale.items) {
+      const rawCost =
+        (it as any).costPrice ??
+        (it as any).buyingPrice ??
+        it.product?.buyingPrice ??
+        (it.product as any)?.costPrice;
       const bp =
-        it.product?.buyingPrice !== undefined && it.product?.buyingPrice !== null
-          ? parseFloat(String(it.product.buyingPrice))
+        rawCost !== undefined && rawCost !== null
+          ? parseFloat(String(rawCost))
           : undefined;
       if (bp !== undefined && !isNaN(bp)) {
         cogs += it.quantity * bp;

@@ -143,10 +143,9 @@ export default function ReportsPage() {
       if (rawCatalog !== undefined && rawCatalog !== null && !isNaN(Number(rawCatalog))) {
         return Number(rawCatalog);
       }
-      const sp = getProductSellingPrice(item);
-      return sp > 0 ? parseFloat((sp * 0.7).toFixed(2)) : 0;
+      return 0;
     },
-    [productsCatalog, getProductSellingPrice],
+    [productsCatalog],
   );
 
   // Payment Breakdown Chart Data (Cash, Card/Bank, Mobile/Telebirr)

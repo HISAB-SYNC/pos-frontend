@@ -1390,6 +1390,49 @@ export async function getBackendDashboardMetrics(shopId: string) {
   return apiRequest<BackendDashboardMetrics>(API_ENDPOINTS.shops.dashboard(shopId));
 }
 
+function resolveItemCostPrice(it: any, matchedProduct?: Product): number {
+  const directItemCost = it?.costPrice ?? it?.buyingPrice ?? it?.product?.buyingPrice ?? it?.product?.costPrice;
+  if (directItemCost !== undefined && directItemCost !== null && !isNaN(Number(directItemCost)) && Number(directItemCost) > 0) {
+    return Number(directItemCost);
+  }
+
+  const prodCost = matchedProduct?.buyingPrice ?? (matchedProduct as any)?.costPrice;
+  if (prodCost !== undefined && prodCost !== null && !isNaN(Number(prodCost)) && Number(prodCost) > 0) {
+    return Number(prodCost);
+  }
+
+  const attrs = (matchedProduct?.attributes ?? {}) as Record<string, any>;
+  const attrCost = attrs?.buyingPrice ?? attrs?.costPrice;
+  if (attrCost !== undefined && attrCost !== null && !isNaN(Number(attrCost)) && Number(attrCost) > 0) {
+    return Number(attrCost);
+  }
+
+  return 0;
+}
+
+function computeSaleCogs(s: Sale, products: Product[]): number {
+  if (s.items && Array.isArray(s.items) && s.items.length > 0) {
+    return s.items.reduce((sum: number, it: any) => {
+      const prod = products.find(
+        (p) =>
+          p.id === it.productId ||
+          (it.product?.id && p.id === it.product.id) ||
+          (it.product?.sku && p.sku === it.product.sku) ||
+          (it.product?.name && p.name?.toLowerCase() === it.product.name.toLowerCase()),
+      );
+      const costPrice = resolveItemCostPrice(it, prod);
+      return sum + costPrice * (it.quantity || 1);
+    }, 0);
+  }
+
+  const directSaleCost = (s as any)?.totalCost ?? (s as any)?.cogs ?? (s as any)?.cost;
+  if (directSaleCost !== undefined && directSaleCost !== null && !isNaN(Number(directSaleCost)) && Number(directSaleCost) > 0) {
+    return Number(directSaleCost);
+  }
+
+  return 0;
+}
+
 export async function getDashboardMetrics(shopId: string): Promise<DashboardMetrics> {
   const store = getMockStore();
 
@@ -1407,16 +1450,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
 
     let totalCogs = 0;
     shopSales.forEach((s) => {
-      if (s.items && s.items.length > 0) {
-        s.items.forEach((it) => {
-          const prod = shopProducts.find((p) => p.id === it.productId);
-          const attrs = (prod?.attributes ?? {}) as Record<string, any>;
-          const costPrice = parseFloat(attrs.buyingPrice || attrs.costPrice || "0") || (parseFloat(prod?.price || "0") * 0.7);
-          totalCogs += costPrice * it.quantity;
-        });
-      } else {
-        totalCogs += parseFloat(s.totalAmount || "0") * 0.7;
-      }
+      totalCogs += computeSaleCogs(s, shopProducts);
     });
 
     const totalPaidExpenses = shopExpenses.reduce(
@@ -1424,8 +1458,8 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       0,
     );
 
-    const grossProfit = Math.max(0, totalSalesRev - totalCogs);
-    const netProfit = Math.max(0, grossProfit - totalPaidExpenses);
+    const grossProfit = totalSalesRev - totalCogs;
+    const netProfit = grossProfit - totalPaidExpenses;
 
     const totalOutstandingDebt = shopDebts.reduce((sum, d) => sum + (parseFloat(d.amount || "0") || 0), 0)
       || shopCustomers.reduce((sum, c) => sum + (parseFloat(c.debtBalance || "0") || 0), 0);
@@ -1481,6 +1515,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     }));
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const costRatio = totalSalesRev > 0 ? totalCogs / totalSalesRev : 0;
     const trendWeekly = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -1489,7 +1524,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       return {
         month: `${dayNames[d.getDay()]} ${d.getDate()}`,
         sales: daySales,
-        purchase: Math.round(daySales * 0.65),
+        purchase: Math.round(daySales * costRatio),
       };
     });
 
@@ -1629,21 +1664,12 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     // 5. Cost of goods sold & Profit
     let totalCogs = 0;
     validSales.forEach((s) => {
-      if (s.items && Array.isArray(s.items) && s.items.length > 0) {
-        s.items.forEach((it: any) => {
-          const prod = prods.find((p) => p.id === it.productId);
-          const attrs = (prod?.attributes ?? {}) as Record<string, any>;
-          const costPrice = parseFloat(attrs.buyingPrice || attrs.costPrice || "0") || ((parseFloat(String(prod?.price || "0")) || 0) * 0.65);
-          totalCogs += costPrice * (it.quantity || 1);
-        });
-      } else {
-        totalCogs += (parseFloat(String(s.totalAmount || "0")) || 0) * 0.65;
-      }
+      totalCogs += computeSaleCogs(s, prods);
     });
 
     totalCogs = Math.round(totalCogs);
-    const grossProfit = Math.max(0, Math.round(totalRevenue - totalCogs));
-    const netProfit = Math.max(0, Math.round(grossProfit - totalLiveExpenses));
+    const grossProfit = Math.round(totalRevenue - totalCogs);
+    const netProfit = Math.round(grossProfit - totalLiveExpenses);
 
     // 6. Recent sales list
     const recent = validSales.slice(0, 4).map((s) => {
@@ -1731,6 +1757,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
         const m = last6Months.find((item) => item.monthIndex === d.getMonth() && item.year === d.getFullYear());
         if (m) {
           m.sales += parseFloat(String(s.totalAmount || "0")) || 0;
+          m.purchase += computeSaleCogs(s, prods);
         }
       }
     });
@@ -1738,7 +1765,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     const salesAndPurchase = last6Months.map((m) => ({
       month: m.month,
       sales: Math.round(m.sales),
-      purchase: Math.round(m.sales * 0.65),
+      purchase: Math.round(m.purchase),
     }));
 
     // Weekly trend (last 7 days)
@@ -1768,6 +1795,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
         const dayItem = last7Days.find((item) => item.dateKey === d.toDateString());
         if (dayItem) {
           dayItem.sales += parseFloat(String(s.totalAmount || "0")) || 0;
+          dayItem.purchase += computeSaleCogs(s, prods);
         }
       }
     });
@@ -1775,7 +1803,7 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     const trendWeekly = last7Days.map((d) => ({
       month: d.month,
       sales: Math.round(d.sales),
-      purchase: Math.round(d.sales * 0.65),
+      purchase: Math.round(d.purchase),
     }));
 
     return {

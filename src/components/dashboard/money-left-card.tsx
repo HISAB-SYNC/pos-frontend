@@ -3,6 +3,7 @@
 import { Banknote, ChevronRight, Info, Landmark, RotateCcw, Smartphone, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { PaySupplierModal } from "@/components/funds/pay-supplier-modal";
 import { getFundsEntries, getFundsSummary } from "@/lib/api/app-data";
 import type { FundAccount, FundsEntries, FundsLine, FundsSummary } from "@/lib/api/types";
 
@@ -13,6 +14,7 @@ const LINE_LABELS: Record<FundsLine, string> = {
   restocks: "Restocks",
   expenses: "Expenses",
   refunds: "Refunds",
+  supplierPayments: "Supplier payments",
 };
 
 const LINE_HINTS: Partial<Record<FundsLine, string>> = {
@@ -22,7 +24,7 @@ const LINE_HINTS: Partial<Record<FundsLine, string>> = {
 };
 
 const IN_LINES: FundsLine[] = ["sales", "repayments", "added"];
-const OUT_LINES: FundsLine[] = ["restocks", "expenses", "refunds"];
+const OUT_LINES: FundsLine[] = ["restocks", "supplierPayments", "expenses", "refunds"];
 // Always shown even at zero; the rest only appear once they have money.
 const ALWAYS_SHOWN: FundsLine[] = ["sales", "restocks", "expenses"];
 
@@ -139,6 +141,7 @@ export function MoneyLeftCard({ shopId }: { shopId: string }) {
   const [funds, setFunds] = useState<FundsSummary | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [openFilter, setOpenFilter] = useState<EntriesFilter | null>(null);
+  const [isPayingSupplier, setIsPayingSupplier] = useState(false);
 
   const fetchFunds = useCallback(
     () =>
@@ -249,11 +252,20 @@ export function MoneyLeftCard({ shopId }: { shopId: string }) {
             </span>
           </div>
           {funds.owedToSuppliers > 0 && (
-            <p className="mt-2 px-2 text-[11px] text-amber-800">
-              Owed to suppliers (restocks on credit):{" "}
-              <span className="font-mono font-semibold tabular-nums">{formatEtb(funds.owedToSuppliers)} ETB</span>. Not
-              taken out of Money Left yet.
-            </p>
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50/60 px-2.5 py-2">
+              <p className="text-[11px] text-amber-900">
+                Owed to suppliers (pay-later restocks):{" "}
+                <span className="font-mono font-semibold tabular-nums">{formatEtb(funds.owedToSuppliers)} ETB</span>.
+                Comes out of Money Left when you pay.
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsPayingSupplier(true)}
+                className="shrink-0 rounded-md bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
+              >
+                Pay
+              </button>
+            </div>
           )}
         </div>
 
@@ -286,6 +298,9 @@ export function MoneyLeftCard({ shopId }: { shopId: string }) {
       </div>
 
       {openFilter && <EntriesModal shopId={shopId} filter={openFilter} onClose={() => setOpenFilter(null)} />}
+      {isPayingSupplier && (
+        <PaySupplierModal shopId={shopId} onClose={() => setIsPayingSupplier(false)} onPaid={fetchFunds} />
+      )}
     </section>
   );
 }

@@ -24,6 +24,8 @@ import type {
   FundsLine,
   FundsSummary,
   MoneyAddedReason,
+  SupplierPayables,
+  SupplierPayment,
   NotificationFeedResponse,
   NotificationSeverity,
   NotificationType,
@@ -2925,7 +2927,7 @@ const FUND_ACCOUNT_LABELS: Record<FundAccount, string> = {
 };
 
 function emptyFundsSummary(): FundsSummary {
-  const lines = { sales: 0, repayments: 0, added: 0, restocks: 0, expenses: 0, refunds: 0 };
+  const lines = { sales: 0, repayments: 0, added: 0, restocks: 0, expenses: 0, refunds: 0, supplierPayments: 0 };
   return {
     lines,
     moneyIn: 0,
@@ -2980,5 +2982,61 @@ export async function addMoneyToAccount(
   return apiRequest(API_ENDPOINTS.shops.fundsAdjustments(shopId), {
     method: "POST",
     body: input,
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Supplier payables (pay-later restocks)                              */
+/* ------------------------------------------------------------------ */
+
+/** What the shop still owes each supplier for pay-later restocks. */
+export async function getSupplierPayables(shopId: string): Promise<SupplierPayables> {
+  if (isMockApiEnabled()) {
+    return { totalOwed: 0, suppliers: [] };
+  }
+  return apiRequest<SupplierPayables>(API_ENDPOINTS.shops.supplierPayables(shopId));
+}
+
+/** Supplier payment history, newest first. */
+export async function getSupplierPayments(
+  shopId: string,
+  params: { supplierId?: string | null; supplierName?: string | null; limit?: number } = {},
+): Promise<SupplierPayment[]> {
+  if (isMockApiEnabled()) {
+    return [];
+  }
+  const query = new URLSearchParams();
+  if (params.supplierId) query.set("supplierId", params.supplierId);
+  else if (params.supplierName) query.set("supplierName", params.supplierName);
+  if (params.limit) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  return apiRequest<SupplierPayment[]>(`${API_ENDPOINTS.shops.supplierPayments(shopId)}${qs ? `?${qs}` : ""}`);
+}
+
+/**
+ * Pays a supplier. Settles the oldest pay-later restocks first and takes the
+ * money out of the chosen account.
+ */
+export async function paySupplier(
+  shopId: string,
+  input: {
+    supplierId?: string | null;
+    supplierName?: string | null;
+    amount: number;
+    account: FundAccount;
+    notes?: string;
+    moneyAdded?: { amount: number; reason: MoneyAddedReason; notes?: string };
+  },
+): Promise<{ remainingOwed: number }> {
+  if (isMockApiEnabled()) {
+    return { remainingOwed: 0 };
+  }
+  return apiRequest(API_ENDPOINTS.shops.supplierPayments(shopId), {
+    method: "POST",
+    body: {
+      ...input,
+      supplierId: input.supplierId || undefined,
+      supplierName: input.supplierId ? undefined : input.supplierName || undefined,
+    },
   });
 }

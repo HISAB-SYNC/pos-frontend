@@ -103,7 +103,7 @@ export type PurchaseFunding = FundAccount | "SUPPLIER_CREDIT";
 export type MoneyAddedReason = "OWNER_MONEY" | "ALREADY_IN_ACCOUNT";
 
 /** Lines of the Money Left card. sales/repayments/added are money in; the rest money out. */
-export type FundsLine = "sales" | "repayments" | "added" | "restocks" | "expenses" | "refunds";
+export type FundsLine = "sales" | "repayments" | "added" | "restocks" | "expenses" | "refunds" | "supplierPayments";
 
 export type FundsLines = Record<FundsLine, number>;
 
@@ -144,6 +144,38 @@ export type FundsEntries = {
   total: number;
   count: number;
   items: FundsEntry[];
+};
+
+/** What the shop still owes one supplier for pay-later restocks. */
+export type SupplierPayable = {
+  /** null for suppliers typed in by name without a supplier record */
+  supplierId: string | null;
+  supplierName: string | null;
+  owed: number;
+  purchases: Array<{
+    id: string;
+    productName: string;
+    quantity: number;
+    totalCost: number;
+    amountPaid: number;
+    remaining: number;
+    purchasedAt: string;
+  }>;
+};
+
+export type SupplierPayables = {
+  totalOwed: number;
+  suppliers: SupplierPayable[];
+};
+
+export type SupplierPayment = {
+  id: string;
+  supplierId: string | null;
+  supplierName: string | null;
+  amount: number;
+  account: FundAccount;
+  notes: string | null;
+  paidAt: string;
 };
 
 export type ProductAdjustment = {

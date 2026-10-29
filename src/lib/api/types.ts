@@ -331,6 +331,38 @@ export type Debt = {
   createdAt?: string;
 };
 
+/** Server-side dashboard totals (database sums; no full sales download). */
+export type BackendDashboardOverview = {
+  timeZone: string;
+  salesCount: number;
+  revenue: number;
+  cogs: number;
+  expensesTotal: number;
+  today: { count: number; revenue: number };
+  /** Money taken at the till per backend method: CASH, CARD (bank), MOBILE (Telebirr). */
+  paymentBreakdown: Partial<Record<"CASH" | "CARD" | "MOBILE", number>>;
+  /** period = "YYYY-MM" in the requested time zone */
+  monthly: Array<{ period: string; sales: number; purchase: number }>;
+  /** period = "YYYY-MM-DD" in the requested time zone */
+  daily: Array<{ period: string; sales: number; purchase: number }>;
+  topSelling: Array<{
+    productId: string;
+    name: string;
+    soldQuantity: number;
+    remainingQuantity: number;
+    unit: string;
+    price: number;
+  }>;
+  recentSales: Array<{
+    id: string;
+    customerName: string | null;
+    totalAmount: number;
+    paymentMethod: string;
+    status: string;
+    createdAt: string;
+  }>;
+};
+
 export type BackendDashboardMetrics = {
   todaysSales: {
     count: number;
@@ -341,6 +373,8 @@ export type BackendDashboardMetrics = {
     count: number;
     totalAmount: number;
   };
+  /** Present on backends that compute dashboard totals server-side. */
+  overview?: BackendDashboardOverview;
 };
 
 export type OrderRecord = {

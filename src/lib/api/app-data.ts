@@ -13,6 +13,7 @@ import type {
   AnalyticsPeriod,
   AppNotification,
   BackendDashboardMetrics,
+  BackendDashboardOverview,
   Category,
   Customer,
   Debt,
@@ -1463,6 +1464,92 @@ function computeSaleCogs(s: Sale, products: Product[]): number {
   return 0;
 }
 
+function localDateKey(d: Date, withDay: boolean) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  if (!withDay) return `${y}-${m}`;
+  return `${y}-${m}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function paymentLabel(method: string) {
+  const m = (method || "CASH").toUpperCase();
+  if (m === "BANK" || m === "BANK_TRANSFER" || m === "CARD") return "Bank";
+  if (m === "TELEBIRR" || m === "MOBILE") return "Telebirr";
+  return "Cash";
+}
+
+/** Builds dashboard metrics from the backend's server-side totals. */
+function metricsFromOverview(
+  metrics: BackendDashboardMetrics,
+  overview: BackendDashboardOverview,
+  lowStock: Product[],
+): DashboardMetrics {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthly = new Map(overview.monthly.map((m) => [m.period, m]));
+  const daily = new Map(overview.daily.map((d) => [d.period, d]));
+  const now = new Date();
+
+  const salesAndPurchase = Array.from({ length: 6 }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+    const row = monthly.get(localDateKey(d, false));
+    return { month: monthNames[d.getMonth()], sales: Math.round(row?.sales ?? 0), purchase: Math.round(row?.purchase ?? 0) };
+  });
+
+  const trendWeekly = Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - idx));
+    const row = daily.get(localDateKey(d, true));
+    return { month: `${dayNames[d.getDay()]} ${d.getDate()}`, sales: Math.round(row?.sales ?? 0), purchase: Math.round(row?.purchase ?? 0) };
+  });
+
+  const cogs = Math.round(overview.cogs);
+  const grossProfit = Math.round(overview.revenue - overview.cogs);
+
+  return {
+    salesOverview: {
+      sales: overview.salesCount,
+      revenue: overview.revenue,
+      profit: grossProfit,
+      cost: cogs,
+    },
+    netProfit: Math.round(grossProfit - overview.expensesTotal),
+    grossProfit,
+    totalExpenses: Math.round(overview.expensesTotal),
+    cogs,
+    outstandingDebt: Math.round(metrics.outstandingDebts.totalAmount),
+    debtorsCount: metrics.outstandingDebts.count,
+    todaySalesCount: overview.today.count,
+    todayRevenue: Math.round(overview.today.revenue),
+    paymentBreakdown: {
+      cash: Math.round(overview.paymentBreakdown.CASH ?? 0),
+      bank: Math.round(overview.paymentBreakdown.CARD ?? 0),
+      telebirr: Math.round(overview.paymentBreakdown.MOBILE ?? 0),
+    },
+    salesAndPurchase,
+    trendWeekly,
+    topSellingStock: overview.topSelling.map((p) => ({
+      name: p.name,
+      soldQuantity: p.soldQuantity,
+      remainingQuantity: p.remainingQuantity,
+      price: `${p.price.toLocaleString()} Birr`,
+    })),
+    lowQuantityStock: lowStock.map((p) => ({
+      id: p.id,
+      name: p.name,
+      remainingQuantity: p.stockQuantity,
+      unit: p.unit || "pcs",
+    })),
+    recentSales: overview.recentSales.map((s) => ({
+      id: s.id.slice(0, 8),
+      customerName: s.customerName || "Walk-in Customer",
+      totalAmount: s.totalAmount,
+      paymentMethod: paymentLabel(s.paymentMethod),
+      date: new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      status: s.status,
+    })),
+  };
+}
+
 export async function getDashboardMetrics(shopId: string): Promise<DashboardMetrics> {
   const store = getMockStore();
 
@@ -1592,6 +1679,22 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     return computeMockDashboardMetrics(shopId);
   }
 
+  // Fast path: the backend computes every total with database sums, so the
+  // dashboard needs two small requests instead of downloading every sale.
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const [dash, lowStock] = await Promise.all([
+      apiRequest<BackendDashboardMetrics>(`${API_ENDPOINTS.shops.dashboard(shopId)}?tz=${encodeURIComponent(tz)}`),
+      apiRequest<Product[]>(API_ENDPOINTS.shops.lowStockProducts(shopId)).catch(() => [] as Product[]),
+    ]);
+    if (dash?.overview) {
+      return metricsFromOverview(dash, dash.overview, Array.isArray(lowStock) ? lowStock : []);
+    }
+  } catch (err) {
+    console.warn("Dashboard overview unavailable, using the slower fallback:", err);
+  }
+
+  // Fallback for backends without the overview block.
   try {
     const [backendMetrics, products, lowStock, liveSales, liveExpenses, liveDebts, liveAnalytics] = await Promise.allSettled([
       apiRequest<BackendDashboardMetrics>(API_ENDPOINTS.shops.dashboard(shopId)),

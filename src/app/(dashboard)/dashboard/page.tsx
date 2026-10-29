@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { DashboardCard, SeeAllLink } from "@/components/dashboard/dashboard-widgets";
+import { MoneyLeftCard } from "@/components/dashboard/money-left-card";
 import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
@@ -270,6 +271,9 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Money Left: real money in the till, bank and Telebirr right now */}
+        <MoneyLeftCard shopId={shopId} />
 
         {/* ================================================================= */}
         {/* 2. Middle Row: Sales & Purchase Chart + Payment Breakdown         */}

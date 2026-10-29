@@ -5,7 +5,9 @@ import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 import type {
   Category,
+  MoneyAddedReason,
   Product,
+  PurchaseFunding,
   Shop,
   Supplier,
 } from "./types";
@@ -269,6 +271,51 @@ export async function deleteProduct(shopId: string, productId: string) {
 
   return apiRequest<{ message: string }>(API_ENDPOINTS.shops.product(shopId, productId), {
     method: "DELETE",
+  });
+}
+
+/**
+ * Records a restock in one backend transaction: adds the stock, updates the
+ * buying price and saves how it was paid. Errors are thrown so the caller can
+ * show them; a restock must never be dropped silently.
+ */
+export async function createPurchase(
+  shopId: string,
+  input: {
+    productId: string;
+    quantity: number;
+    unitCost: number;
+    fundingSource: PurchaseFunding;
+    supplierId?: string;
+    supplier?: string;
+    reference?: string;
+    notes?: string;
+    moneyAdded?: { amount: number; reason: MoneyAddedReason; notes?: string };
+  },
+): Promise<{ purchase: { id: string; totalCost: string | number }; product: Product }> {
+  if (isMockApiEnabled()) {
+    const totalCost = Math.round(input.quantity * input.unitCost * 100) / 100;
+    const purchase = await mockShops.mockCreateProductPurchase(input.productId, {
+      purchaseId: `PUR-${Date.now().toString().slice(-6)}`,
+      supplier: input.supplier || "Direct Wholesaler",
+      quantity: input.quantity,
+      unitCost: input.unitCost,
+      totalCost,
+      date: new Date().toISOString(),
+      status: "completed",
+    });
+    const products = await mockShops.mockGetProducts(shopId);
+    const current = products.find((p) => p.id === input.productId);
+    const product = await mockShops.mockUpdateProduct(shopId, input.productId, {
+      stockQuantity: Math.round(((current?.stockQuantity ?? 0) + input.quantity) * 1000) / 1000,
+      buyingPrice: input.unitCost,
+    });
+    return { purchase: { id: purchase.id, totalCost }, product: product as Product };
+  }
+
+  return apiRequest(API_ENDPOINTS.shops.purchases(shopId), {
+    method: "POST",
+    body: input,
   });
 }
 

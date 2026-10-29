@@ -178,7 +178,7 @@ function AddExpenseModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Payment Method
+                Paid From
               </label>
               <select
                 name="paymentMethod"
@@ -186,8 +186,8 @@ function AddExpenseModal({
                 onChange={handleChange}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                <option value="Cash">Cash</option>
-                <option value="Bank">Bank Transfer</option>
+                <option value="Cash">Cash Till</option>
+                <option value="Bank">Bank (transfer or card)</option>
                 <option value="Telebirr">Telebirr</option>
               </select>
             </div>
@@ -206,6 +206,7 @@ function AddExpenseModal({
                 <option value="Pending">Pending</option>
                 <option value="Overdue">Overdue</option>
               </select>
+              <p className="text-[10px] text-zinc-500">Only Paid expenses come out of Money Left.</p>
             </div>
           </div>
 
@@ -371,15 +372,15 @@ function EditExpenseModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Payment Method
+                Paid From
               </label>
               <select
                 value={form.paymentMethod}
                 onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                <option value="Cash">Cash</option>
-                <option value="Bank">Bank Transfer</option>
+                <option value="Cash">Cash Till</option>
+                <option value="Bank">Bank (transfer or card)</option>
                 <option value="Telebirr">Telebirr</option>
               </select>
             </div>
@@ -397,6 +398,7 @@ function EditExpenseModal({
                 <option value="Pending">Pending</option>
                 <option value="Overdue">Overdue</option>
               </select>
+              <p className="text-[10px] text-zinc-500">Only Paid expenses come out of Money Left.</p>
             </div>
           </div>
 

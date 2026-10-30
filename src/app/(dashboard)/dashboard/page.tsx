@@ -5,17 +5,13 @@ import {
   ArrowUpRight,
   Banknote,
   CheckCircle2,
-  CircleDollarSign,
   HandCoins,
   Landmark,
   Package,
   Plus,
   RotateCcw,
-  ShoppingCart,
   Smartphone,
   Store,
-  TrendingUp,
-  Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { DashboardCard, SeeAllLink } from "@/components/dashboard/dashboard-widgets";
+import { KpiPeriodCards } from "@/components/dashboard/kpi-period-cards";
 import { MoneyLeftCard } from "@/components/dashboard/money-left-card";
 import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -170,107 +167,19 @@ export default function DashboardPage() {
         </div>
 
         {/* ================================================================= */}
-        {/* 1. Core Financial & Business KPI Cards                            */}
+        {/* 1. KPI cards for a chosen period (Today / 7 days / Month / All)   */}
         {/* ================================================================= */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {/* Total Sales Revenue */}
-          <div className="group relative overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                Total Revenue
-              </span>
-              <div className="flex size-8 items-center justify-center rounded-md bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
-                <TrendingUp className="size-4" />
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
-                {metrics.salesOverview.revenue.toLocaleString()}{" "}
-                <span className="text-xs font-semibold text-zinc-500">ETB</span>
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
-                <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-800">
-                  {metrics.salesOverview.sales} sales
-                </span>
-                <span>completed</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Net Profit Card (High-Contrast Slate-900 Accent) */}
-          <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xs transition-all hover:border-slate-700">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Net Profit (Live)
-              </span>
-              <div className="flex size-8 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
-                <Wallet className="size-4" />
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className="font-mono text-2xl font-bold tracking-tight text-white tabular-nums">
-                {metrics.netProfit.toLocaleString()}{" "}
-                <span className="text-xs font-semibold text-slate-400">ETB</span>
-              </div>
-              <p className="mt-2 truncate text-[11px] text-slate-400">
-                COGS: {metrics.cogs.toLocaleString()} ETB · Exp: {metrics.totalExpenses.toLocaleString()} ETB
-              </p>
-            </div>
-          </div>
-
-          {/* Outstanding Customer Debt */}
-          <div className="relative overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                Outstanding Debt
-              </span>
-              <div className="flex size-8 items-center justify-center rounded-md bg-amber-50 text-amber-700 ring-1 ring-amber-400/30">
-                <CircleDollarSign className="size-4" />
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className="font-mono text-2xl font-bold tracking-tight text-amber-900 tabular-nums">
-                {metrics.outstandingDebt.toLocaleString()}{" "}
-                <span className="text-xs font-semibold text-zinc-500">ETB</span>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs">
-                <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-amber-800">
-                  {metrics.debtorsCount} accounts
-                </span>
-                <Link
-                  href="/debts"
-                  className="inline-flex items-center gap-1 font-semibold text-zinc-900 hover:underline"
-                >
-                  <span>Ledger</span>
-                  <ArrowUpRight className="size-3" />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Today's Sales */}
-          <div className="relative overflow-hidden rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                Today&apos;s Revenue
-              </span>
-              <div className="flex size-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-800">
-                <ShoppingCart className="size-4" />
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
-                {metrics.todayRevenue.toLocaleString()}{" "}
-                <span className="text-xs font-semibold text-zinc-500">ETB</span>
-              </div>
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
-                <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-indigo-700">
-                  {metrics.todaySalesCount} sales today
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <KpiPeriodCards
+          shopId={shopId}
+          allTime={{
+            revenue: metrics.salesOverview.revenue,
+            salesCount: metrics.salesOverview.sales,
+            cogs: metrics.cogs,
+            expenses: metrics.totalExpenses,
+          }}
+          outstandingDebt={metrics.outstandingDebt}
+          debtorsCount={metrics.debtorsCount}
+        />
 
         {/* Money Left: real money in the till, bank and Telebirr right now */}
         <MoneyLeftCard shopId={shopId} />

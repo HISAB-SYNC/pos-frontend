@@ -58,6 +58,11 @@ export function useOfflineStatus(
   const onSyncCompleteRef = useRef(options?.onSyncComplete);
   onSyncCompleteRef.current = options?.onSyncComplete;
 
+  // Guards a sync in flight without making callbacks depend on state, so their
+  // identities stay stable and the polling effect below doesn't re-run (and
+  // re-probe /health) every time a sync starts or finishes.
+  const isSyncingRef = useRef(false);
+
   const refreshStats = useCallback(async () => {
     if (!shopId) return;
     try {
@@ -69,9 +74,10 @@ export function useOfflineStatus(
   }, [shopId]);
 
   const triggerSync = useCallback(async (): Promise<SyncEngineResult | null> => {
-    if (!shopId || isSyncing) return null;
+    if (!shopId || isSyncingRef.current) return null;
     if (isForcedOffline) return null;
 
+    isSyncingRef.current = true;
     setIsSyncing(true);
     try {
       const result = await runOfflineSync(shopId);
@@ -83,9 +89,10 @@ export function useOfflineStatus(
     } catch {
       return null;
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [shopId, isSyncing, isForcedOffline, refreshStats]);
+  }, [shopId, isForcedOffline, refreshStats]);
 
   const checkConnectivity = useCallback(async (): Promise<boolean> => {
     if (isForcedOffline) {
@@ -117,6 +124,15 @@ export function useOfflineStatus(
       return next;
     });
   }, [checkConnectivity]);
+
+  // Latest values for the polling interval, read without re-running the effect.
+  const pollStateRef = useRef({ isNetworkReachable, pendingCount: 0 });
+  useEffect(() => {
+    pollStateRef.current = {
+      isNetworkReachable,
+      pendingCount: queueStats.pendingSales + queueStats.pendingProducts,
+    };
+  }, [isNetworkReachable, queueStats.pendingSales, queueStats.pendingProducts]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -153,9 +169,10 @@ export function useOfflineStatus(
     const interval = setInterval(() => {
       refreshStats();
       if (!isForcedOffline) {
-        if (!isNetworkReachable) {
+        const { isNetworkReachable: reachable, pendingCount } = pollStateRef.current;
+        if (!reachable) {
           checkConnectivity();
-        } else if (queueStats.pendingSales > 0 || queueStats.pendingProducts > 0) {
+        } else if (pendingCount > 0) {
           triggerSync();
         }
       }
@@ -167,16 +184,7 @@ export function useOfflineStatus(
       window.removeEventListener("pos:network-offline", handleApiNetworkFailure);
       clearInterval(interval);
     };
-  }, [
-    shopId,
-    isForcedOffline,
-    isNetworkReachable,
-    checkConnectivity,
-    refreshStats,
-    triggerSync,
-    queueStats.pendingSales,
-    queueStats.pendingProducts,
-  ]);
+  }, [isForcedOffline, checkConnectivity, refreshStats, triggerSync]);
 
   return {
     isOnline,

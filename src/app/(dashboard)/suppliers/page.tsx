@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
@@ -27,7 +28,8 @@ import {
   getSuppliers,
   updateSupplier,
 } from "@/lib/api";
-import type { Supplier } from "@/lib/api/types";
+import { getSupplierPayables } from "@/lib/api/app-data";
+import type { Supplier, SupplierPayables } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
@@ -473,6 +475,10 @@ export default function SuppliersPage() {
   const [supplierToEdit, setSupplierToEdit] = useState<Supplier | null>(null);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
 
+  // What is owed to each supplier for pay-later restocks
+  const [payables, setPayables] = useState<SupplierPayables | null>(null);
+  const [payKey, setPayKey] = useState<string | null>(null);
+
   // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -486,8 +492,12 @@ export default function SuppliersPage() {
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getSuppliers(shopId);
+      const [data, owed] = await Promise.all([
+        getSuppliers(shopId),
+        getSupplierPayables(shopId).catch(() => null),
+      ]);
       setSuppliers(data ?? []);
+      setPayables(owed);
     } finally {
       setIsLoading(false);
     }
@@ -496,6 +506,14 @@ export default function SuppliersPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const owedBySupplierId = useMemo(() => {
+    const map = new Map<string, number>();
+    payables?.suppliers.forEach((p) => {
+      if (p.supplierId) map.set(p.supplierId, p.owed);
+    });
+    return map;
+  }, [payables]);
 
   // Operational Metrics
   const metrics = useMemo(() => {
@@ -563,6 +581,15 @@ export default function SuppliersPage() {
         shopId={shopId}
       />
 
+      {payKey !== null && (
+        <PaySupplierModal
+          shopId={shopId}
+          initialSupplierKey={payKey || undefined}
+          onClose={() => setPayKey(null)}
+          onPaid={load}
+        />
+      )}
+
       <div className="space-y-6">
         {/* ------------------------------------------------------------------ */}
         {/* 1. Header Toolbar & Title                                          */}
@@ -589,6 +616,16 @@ export default function SuppliersPage() {
               <Download className="size-3.5 text-zinc-500" />
               Export Directory
             </button>
+            {payables && payables.totalOwed > 0 && (
+              <button
+                type="button"
+                onClick={() => setPayKey("")}
+                className="flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3.5 text-xs font-semibold text-amber-900 shadow-2xs transition-colors hover:bg-amber-100 active:scale-95"
+              >
+                Pay supplier
+                <span className="font-mono tabular-nums">· {payables.totalOwed.toLocaleString("en-US")} owed</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
@@ -757,19 +794,20 @@ export default function SuppliersPage() {
                   <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Email Address</th>
                   <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Return Policy</th>
                   <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Incoming Supply</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">Owed</th>
                   <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12">
+                    <td colSpan={8} className="px-6 py-12">
                       <LoadingState />
                     </td>
                   </tr>
                 ) : currentSuppliers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-zinc-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-zinc-400">
                       No suppliers found matching filters.
                     </td>
                   </tr>
@@ -816,8 +854,26 @@ export default function SuppliersPage() {
                         <td className="px-4 py-3.5 font-mono text-zinc-600">
                           {supplier.onTheWay ?? "—"}
                         </td>
+                        <td className="px-4 py-3.5 text-right font-mono tabular-nums">
+                          {owedBySupplierId.get(supplier.id) ? (
+                            <span className="font-semibold text-amber-800">
+                              {owedBySupplierId.get(supplier.id)!.toLocaleString("en-US")} ETB
+                            </span>
+                          ) : (
+                            <span className="text-zinc-400">—</span>
+                          )}
+                        </td>
                         <td className="px-6 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {owedBySupplierId.get(supplier.id) ? (
+                              <button
+                                type="button"
+                                onClick={() => setPayKey(supplierKey({ supplierId: supplier.id, supplierName: supplier.name }))}
+                                className="rounded-md bg-slate-900 px-2.5 py-1 text-[11px] font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
+                              >
+                                Pay
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => setSupplierToEdit(supplier)}

@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bell,
   Building2,
+  Coins,
   HandCoins,
   LayoutDashboard,
   LogOut,
@@ -54,6 +55,7 @@ const mainNav: NavItem[] = [
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Debts / Credit", href: "/debts", icon: HandCoins },
   { label: "Expenses", href: "/expenses", icon: Wallet },
+  { label: "Funds", href: "/funds", icon: Coins },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Manage Team", href: "/users", icon: UserCog },
 ];
@@ -164,6 +166,7 @@ export function DashboardSidebar() {
         { label: "Customers", href: "/customers", icon: Users },
         { label: "Debts / Credit", href: "/debts", icon: HandCoins },
         { label: "Expenses", href: "/expenses", icon: Wallet },
+        { label: "Funds", href: "/funds", icon: Coins },
         { label: "Reports", href: "/reports", icon: BarChart3 },
         { label: "Manage Sellers", href: "/users", icon: UserCog },
       ];

@@ -101,6 +101,42 @@ function computeSaleFinancials(sale: Sale) {
   return { revenue, cogs, netProfit, marginPct, hasCostData };
 }
 
+/**
+ * Date range sent to the server for a preset, so the page only downloads the
+ * sales it shows. "All Time" (and an empty custom range) loads everything.
+ */
+function getPresetRange(
+  preset: DatePreset,
+  startStr: string,
+  endStr: string,
+): { startDate?: string; endDate?: string } {
+  const now = new Date();
+  if (preset === "TODAY") {
+    return { startDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString() };
+  }
+  if (preset === "THIS_WEEK") {
+    return { startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() };
+  }
+  if (preset === "THIS_MONTH") {
+    return { startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString() };
+  }
+  if (preset === "CUSTOM") {
+    const range: { startDate?: string; endDate?: string } = {};
+    if (startStr) {
+      const start = new Date(startStr);
+      start.setHours(0, 0, 0, 0);
+      range.startDate = start.toISOString();
+    }
+    if (endStr) {
+      const end = new Date(endStr);
+      end.setHours(23, 59, 59, 999);
+      range.endDate = end.toISOString();
+    }
+    return range;
+  }
+  return {};
+}
+
 function isDateInFilter(
   dateStr: string,
   preset: DatePreset,
@@ -991,7 +1027,7 @@ export default function SalesHistoryPage() {
 
   // Search & Filter State
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState<DatePreset>("ALL");
+  const [dateFilter, setDateFilter] = useState<DatePreset>("THIS_MONTH");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string>("ALL");
@@ -1019,7 +1055,7 @@ export default function SalesHistoryPage() {
       }
 
       try {
-        const data = await getSales(shopId);
+        const data = await getSales(shopId, getPresetRange(dateFilter, customStartDate, customEndDate));
         const validData = Array.isArray(data) ? data : [];
         cacheSalesHistory(shopId, validData).catch(() => {});
         setSales([...pendingMapped, ...validData]);
@@ -1034,7 +1070,7 @@ export default function SalesHistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, dateFilter, customStartDate, customEndDate]);
 
   useEffect(() => {
     loadData();

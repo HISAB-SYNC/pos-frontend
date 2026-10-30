@@ -13,6 +13,8 @@ import type {
   AnalyticsPeriod,
   AppNotification,
   BackendDashboardMetrics,
+  BackendDashboardOverview,
+  DashboardPeriod,
   Category,
   Customer,
   Debt,
@@ -23,6 +25,8 @@ import type {
   FundsLine,
   FundsSummary,
   MoneyAddedReason,
+  SupplierPayables,
+  SupplierPayment,
   NotificationFeedResponse,
   NotificationSeverity,
   NotificationType,
@@ -1463,6 +1467,92 @@ function computeSaleCogs(s: Sale, products: Product[]): number {
   return 0;
 }
 
+function localDateKey(d: Date, withDay: boolean) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  if (!withDay) return `${y}-${m}`;
+  return `${y}-${m}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function paymentLabel(method: string) {
+  const m = (method || "CASH").toUpperCase();
+  if (m === "BANK" || m === "BANK_TRANSFER" || m === "CARD") return "Bank";
+  if (m === "TELEBIRR" || m === "MOBILE") return "Telebirr";
+  return "Cash";
+}
+
+/** Builds dashboard metrics from the backend's server-side totals. */
+function metricsFromOverview(
+  metrics: BackendDashboardMetrics,
+  overview: BackendDashboardOverview,
+  lowStock: Product[],
+): DashboardMetrics {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthly = new Map(overview.monthly.map((m) => [m.period, m]));
+  const daily = new Map(overview.daily.map((d) => [d.period, d]));
+  const now = new Date();
+
+  const salesAndPurchase = Array.from({ length: 6 }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+    const row = monthly.get(localDateKey(d, false));
+    return { month: monthNames[d.getMonth()], sales: Math.round(row?.sales ?? 0), purchase: Math.round(row?.purchase ?? 0) };
+  });
+
+  const trendWeekly = Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - idx));
+    const row = daily.get(localDateKey(d, true));
+    return { month: `${dayNames[d.getDay()]} ${d.getDate()}`, sales: Math.round(row?.sales ?? 0), purchase: Math.round(row?.purchase ?? 0) };
+  });
+
+  const cogs = Math.round(overview.cogs);
+  const grossProfit = Math.round(overview.revenue - overview.cogs);
+
+  return {
+    salesOverview: {
+      sales: overview.salesCount,
+      revenue: overview.revenue,
+      profit: grossProfit,
+      cost: cogs,
+    },
+    netProfit: Math.round(grossProfit - overview.expensesTotal),
+    grossProfit,
+    totalExpenses: Math.round(overview.expensesTotal),
+    cogs,
+    outstandingDebt: Math.round(metrics.outstandingDebts.totalAmount),
+    debtorsCount: metrics.outstandingDebts.count,
+    todaySalesCount: overview.today.count,
+    todayRevenue: Math.round(overview.today.revenue),
+    paymentBreakdown: {
+      cash: Math.round(overview.paymentBreakdown.CASH ?? 0),
+      bank: Math.round(overview.paymentBreakdown.CARD ?? 0),
+      telebirr: Math.round(overview.paymentBreakdown.MOBILE ?? 0),
+    },
+    salesAndPurchase,
+    trendWeekly,
+    topSellingStock: overview.topSelling.map((p) => ({
+      name: p.name,
+      soldQuantity: p.soldQuantity,
+      remainingQuantity: p.remainingQuantity,
+      price: `${p.price.toLocaleString()} Birr`,
+    })),
+    lowQuantityStock: lowStock.map((p) => ({
+      id: p.id,
+      name: p.name,
+      remainingQuantity: p.stockQuantity,
+      unit: p.unit || "pcs",
+    })),
+    recentSales: overview.recentSales.map((s) => ({
+      id: s.id.slice(0, 8),
+      customerName: s.customerName || "Walk-in Customer",
+      totalAmount: s.totalAmount,
+      paymentMethod: paymentLabel(s.paymentMethod),
+      date: new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      status: s.status,
+    })),
+  };
+}
+
 export async function getDashboardMetrics(shopId: string): Promise<DashboardMetrics> {
   const store = getMockStore();
 
@@ -1592,6 +1682,22 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
     return computeMockDashboardMetrics(shopId);
   }
 
+  // Fast path: the backend computes every total with database sums, so the
+  // dashboard needs two small requests instead of downloading every sale.
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const [dash, lowStock] = await Promise.all([
+      apiRequest<BackendDashboardMetrics>(`${API_ENDPOINTS.shops.dashboard(shopId)}?tz=${encodeURIComponent(tz)}`),
+      apiRequest<Product[]>(API_ENDPOINTS.shops.lowStockProducts(shopId)).catch(() => [] as Product[]),
+    ]);
+    if (dash?.overview) {
+      return metricsFromOverview(dash, dash.overview, Array.isArray(lowStock) ? lowStock : []);
+    }
+  } catch (err) {
+    console.warn("Dashboard overview unavailable, using the slower fallback:", err);
+  }
+
+  // Fallback for backends without the overview block.
   try {
     const [backendMetrics, products, lowStock, liveSales, liveExpenses, liveDebts, liveAnalytics] = await Promise.allSettled([
       apiRequest<BackendDashboardMetrics>(API_ENDPOINTS.shops.dashboard(shopId)),
@@ -2822,7 +2928,7 @@ const FUND_ACCOUNT_LABELS: Record<FundAccount, string> = {
 };
 
 function emptyFundsSummary(): FundsSummary {
-  const lines = { sales: 0, repayments: 0, added: 0, restocks: 0, expenses: 0, refunds: 0 };
+  const lines = { sales: 0, repayments: 0, added: 0, restocks: 0, expenses: 0, refunds: 0, supplierPayments: 0 };
   return {
     lines,
     moneyIn: 0,
@@ -2853,7 +2959,7 @@ export async function getFundsSummary(shopId: string): Promise<FundsSummary> {
 /** The records behind one line of the Money Left card. */
 export async function getFundsEntries(
   shopId: string,
-  params: { line?: FundsLine; account?: FundAccount; limit?: number } = {},
+  params: { line?: FundsLine; account?: FundAccount; limit?: number; from?: string; to?: string } = {},
 ): Promise<FundsEntries> {
   if (isMockApiEnabled()) {
     return { line: params.line ?? null, account: params.account ?? null, total: 0, count: 0, items: [] };
@@ -2862,6 +2968,8 @@ export async function getFundsEntries(
   if (params.line) query.set("line", params.line);
   if (params.account) query.set("account", params.account);
   if (params.limit) query.set("limit", String(params.limit));
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
   const qs = query.toString();
   return apiRequest<FundsEntries>(`${API_ENDPOINTS.shops.fundsEntries(shopId)}${qs ? `?${qs}` : ""}`);
 }
@@ -2878,4 +2986,86 @@ export async function addMoneyToAccount(
     method: "POST",
     body: input,
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Supplier payables (pay-later restocks)                              */
+/* ------------------------------------------------------------------ */
+
+/** What the shop still owes each supplier for pay-later restocks. */
+export async function getSupplierPayables(shopId: string): Promise<SupplierPayables> {
+  if (isMockApiEnabled()) {
+    return { totalOwed: 0, suppliers: [] };
+  }
+  return apiRequest<SupplierPayables>(API_ENDPOINTS.shops.supplierPayables(shopId));
+}
+
+/** Supplier payment history, newest first. */
+export async function getSupplierPayments(
+  shopId: string,
+  params: { supplierId?: string | null; supplierName?: string | null; limit?: number } = {},
+): Promise<SupplierPayment[]> {
+  if (isMockApiEnabled()) {
+    return [];
+  }
+  const query = new URLSearchParams();
+  if (params.supplierId) query.set("supplierId", params.supplierId);
+  else if (params.supplierName) query.set("supplierName", params.supplierName);
+  if (params.limit) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  return apiRequest<SupplierPayment[]>(`${API_ENDPOINTS.shops.supplierPayments(shopId)}${qs ? `?${qs}` : ""}`);
+}
+
+/**
+ * Pays a supplier. Settles the oldest pay-later restocks first and takes the
+ * money out of the chosen account.
+ */
+export async function paySupplier(
+  shopId: string,
+  input: {
+    supplierId?: string | null;
+    supplierName?: string | null;
+    amount: number;
+    account: FundAccount;
+    /** Settle only these restocks (oldest first). Omit to settle all, oldest first. */
+    purchaseIds?: string[];
+    notes?: string;
+    moneyAdded?: { amount: number; reason: MoneyAddedReason; notes?: string };
+  },
+): Promise<{ remainingOwed: number }> {
+  if (isMockApiEnabled()) {
+    return { remainingOwed: 0 };
+  }
+  return apiRequest(API_ENDPOINTS.shops.supplierPayments(shopId), {
+    method: "POST",
+    body: {
+      ...input,
+      supplierId: input.supplierId || undefined,
+      supplierName: input.supplierId ? undefined : input.supplierName || undefined,
+    },
+  });
+}
+
+/**
+ * KPI totals for one period plus the period it is compared with. Returns null
+ * for "all time" or when the backend doesn't support periods yet.
+ */
+export async function getDashboardPeriod(
+  shopId: string,
+  range: { from: Date; to: Date; prevFrom?: Date; prevTo?: Date },
+): Promise<DashboardPeriod | null> {
+  if (isMockApiEnabled()) return null;
+  const query = new URLSearchParams({
+    periodOnly: "true",
+    from: range.from.toISOString(),
+    to: range.to.toISOString(),
+  });
+  if (range.prevFrom && range.prevTo) {
+    query.set("prevFrom", range.prevFrom.toISOString());
+    query.set("prevTo", range.prevTo.toISOString());
+  }
+  const res = await apiRequest<{ period?: DashboardPeriod | null }>(
+    `${API_ENDPOINTS.shops.dashboard(shopId)}?${query.toString()}`,
+  );
+  return res?.period ?? null;
 }

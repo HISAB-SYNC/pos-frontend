@@ -3,25 +3,16 @@
 import {
   Activity,
   AlertTriangle,
-  Check,
   CheckCircle2,
-  ChevronDown,
-  Clock,
   Download,
   Edit2,
   History,
   KeyRound,
-  Lock,
-  Plus,
-  RefreshCw,
   Search,
   Shield,
-  ShieldAlert,
   ShieldCheck,
-  SlidersHorizontal,
   Trash2,
   UserCheck,
-  UserCog,
   UserPlus,
   Users,
   X,
@@ -43,11 +34,8 @@ import type { AuditLogRecord, TeamMember, TeamSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import {
-  type AppPermission,
   DEFAULT_ROLE_PERMISSIONS,
-  getAllowedPermissionsToAssign,
   getAllowedRolesToCreate,
-  canManageRole,
 } from "@/lib/permissions/rbac";
 import type { Role } from "@/lib/permissions/roles";
 import { useAuthStore } from "@/stores/auth-store";
@@ -813,16 +801,6 @@ export default function UsersPage() {
     loadData();
   }, [loadData]);
 
-  // Hierarchical Access Check: If user is SALES, block access with 403 screen!
-  if (authUser?.role === "SALES") {
-    return (
-      <AccessDenied
-        requiredRole="OWNER or ADMIN"
-        requiredPermission="user.view, seller.manage"
-        description="Cashiers / Sales personnel are not authorized to access employee accounts or role configuration."
-      />
-    );
-  }
 
   // Filtered members list
   const filteredMembers = useMemo(() => {
@@ -873,6 +851,17 @@ export default function UsersPage() {
     setAuditLogs((prev) => [log, ...prev]);
     setActionSuccessMsg(`Updated account status for ${member.name} to ${newStatus}`);
     setTimeout(() => setActionSuccessMsg(""), 3500);
+  }
+
+  // Hierarchical Access Check (after all hooks, so hook order never changes): If user is SALES, block access with 403 screen!
+  if (authUser?.role === "SALES") {
+    return (
+      <AccessDenied
+        requiredRole="OWNER or ADMIN"
+        requiredPermission="user.view, seller.manage"
+        description="Cashiers / Sales personnel are not authorized to access employee accounts or role configuration."
+      />
+    );
   }
 
   if (loading && members.length === 0) {

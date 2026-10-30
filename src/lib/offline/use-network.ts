@@ -56,7 +56,9 @@ export function useOfflineStatus(
   const isOnline = !isForcedOffline && isNetworkReachable;
 
   const onSyncCompleteRef = useRef(options?.onSyncComplete);
-  onSyncCompleteRef.current = options?.onSyncComplete;
+  useEffect(() => {
+    onSyncCompleteRef.current = options?.onSyncComplete;
+  }, [options?.onSyncComplete]);
 
   // Guards a sync in flight without making callbacks depend on state, so their
   // identities stay stable and the polling effect below doesn't re-run (and

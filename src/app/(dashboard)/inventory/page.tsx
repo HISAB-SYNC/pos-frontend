@@ -2,21 +2,13 @@
 
 import {
   AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
   Banknote,
-  Check,
-  CheckCircle2,
-  ChevronRight,
   Download,
-  Filter,
   Landmark,
   Package,
   PackageCheck,
   PackageX,
-  Plus,
   ReceiptText,
-  RotateCcw,
   Search,
   SlidersHorizontal,
   Smartphone,
@@ -579,6 +571,8 @@ export default function InventoryPage() {
   // Modals
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null);
   const [showStockLog, setShowStockLog] = useState(false);
+  // Fixed for this visit so expiry checks don't read the clock on every render.
+  const [pageOpenedAt] = useState(() => Date.now());
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -633,7 +627,7 @@ export default function InventoryPage() {
 
       if (p.expiryDate) {
         const expTime = new Date(p.expiryDate).getTime();
-        if (!isNaN(expTime) && expTime <= Date.now() + 7 * 86400000) {
+        if (!isNaN(expTime) && expTime <= pageOpenedAt + 7 * 86400000) {
           expiringCount++;
         }
       }
@@ -647,7 +641,7 @@ export default function InventoryPage() {
       expiringCount,
       totalValuation,
     };
-  }, [products]);
+  }, [products, pageOpenedAt]);
 
   // Filtered Products
   const filtered = useMemo(() => {
@@ -666,12 +660,12 @@ export default function InventoryPage() {
       if (selectedStatus === "EXPIRING") {
         if (!p.expiryDate) return false;
         const expTime = new Date(p.expiryDate).getTime();
-        if (isNaN(expTime) || expTime > Date.now() + 7 * 86400000) return false;
+        if (isNaN(expTime) || expTime > pageOpenedAt + 7 * 86400000) return false;
       }
 
       return true;
     });
-  }, [products, selectedCategory, selectedStatus]);
+  }, [products, selectedCategory, selectedStatus, pageOpenedAt]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentRows = useMemo(

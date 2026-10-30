@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  Check,
-  ChevronRight,
   Download,
   Edit2,
   Filter,
@@ -14,16 +12,12 @@ import {
   Search,
   Tag,
   Trash2,
-  UploadCloud,
-  Wifi,
   WifiOff,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { LoadingState } from "@/components/shared/loading-state";
 import {
   useOfflineStatus,
   queueOfflineProduct,
@@ -1192,6 +1186,8 @@ function StatusBadge({ quantity, threshold }: { quantity: number; threshold: num
 const PAGE_SIZE = 10;
 
 export default function ProductsPage() {
+  // Fixed for this visit so expiry checks don't read the clock on every render.
+  const [pageOpenedAt] = useState(() => Date.now());
   const router = useRouter();
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
@@ -1313,7 +1309,7 @@ export default function ProductsPage() {
         p.categoryId === selectedCategory;
 
       const isLow = p.stockQuantity <= (p.lowStockThreshold || 5);
-      const nowTime = Date.now();
+      const nowTime = pageOpenedAt;
       const expTime = p.expiryDate ? new Date(p.expiryDate).getTime() : NaN;
       const isExpiringSoon = !isNaN(expTime) && expTime > nowTime && expTime <= nowTime + 7 * 86400000;
       const isExpired = !isNaN(expTime) && expTime <= nowTime;
@@ -1326,7 +1322,7 @@ export default function ProductsPage() {
 
       return matchesSearch && matchesCat && matchesStatus;
     });
-  }, [allProducts, debouncedSearch, selectedCategory, selectedStatus]);
+  }, [allProducts, debouncedSearch, selectedCategory, selectedStatus, pageOpenedAt]);
 
   const [sortField, setSortField] = useState<"name" | "price" | "stock" | "expiry">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");

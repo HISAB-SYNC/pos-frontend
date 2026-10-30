@@ -4,7 +4,6 @@ import {
   Building2,
   Download,
   Edit2,
-  Filter,
   PackageCheck,
   Plus,
   RotateCcw,
@@ -13,7 +12,6 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Trash2,
-  Truck,
   UploadCloud,
   X,
 } from "lucide-react";

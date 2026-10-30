@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Download,
   Edit2,
-  Filter,
   Plus,
   RotateCcw,
   Search,

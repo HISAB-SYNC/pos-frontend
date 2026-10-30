@@ -1,11 +1,7 @@
 "use client";
 
 import {
-  Activity,
-  CheckCircle2,
   Database,
-  Globe,
-  HardDrive,
   RefreshCw,
   Server,
   ShieldCheck,

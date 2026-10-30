@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
   Building2,
-  CreditCard,
   HandCoins,
   LayoutDashboard,
   LogOut,
@@ -15,8 +14,6 @@ import {
   Settings,
   ShoppingCart,
   Store,
-  Truck,
-  UserCog,
   Users,
   Wallet,
 } from "lucide-react";

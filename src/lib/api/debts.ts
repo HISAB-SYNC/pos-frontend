@@ -2,7 +2,7 @@ import { isMockApiEnabled } from "@/config/env";
 import { getMockStore } from "@/lib/mock/store";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { Customer, Debt, Product } from "./types";
+import type { Debt } from "./types";
 
 import { getCachedCreditSaleItems } from "./local-cache";
 import { getSales } from "./sales";
@@ -121,7 +121,7 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
     if (Array.isArray(liveData)) {
       // If some debts have saleId but no items, attempt to resolve them from sales list
       const needsSaleHydration = liveData.some((d) => d.saleId && (!d.items || d.items.length === 0) && !d.sale?.items);
-      let salesMap: Record<string, any> = {};
+      const salesMap: Record<string, any> = {};
       if (needsSaleHydration) {
         try {
           const allSales = await getSales(shopId);
@@ -493,7 +493,7 @@ export async function recordDebtPayment(
 
   for (const item of allocations) {
     const { debtId, payAmount } = item;
-    let debtRecord = item.debtRecord || store.debts.find((d) => d.id === debtId);
+    const debtRecord = item.debtRecord || store.debts.find((d) => d.id === debtId);
 
     // Call individual payment endpoint if live backend active
     if (!isMockApiEnabled()) {

@@ -7,10 +7,8 @@ import {
   Crown,
   RefreshCw,
   Search,
-  ShieldAlert,
   ShieldCheck,
   UserCheck,
-  UserCog,
   Users,
   X,
 } from "lucide-react";

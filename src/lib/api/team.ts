@@ -2,7 +2,7 @@ import { isMockApiEnabled } from "@/config/env";
 import { getMockStore } from "@/lib/mock/store";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { Sale, TeamMember, TeamSummary } from "./types";
+import type { TeamMember, TeamSummary } from "./types";
 
 import { getStaffOverrides, saveStaffOverride } from "./local-cache";
 

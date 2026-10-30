@@ -3,7 +3,7 @@ import { isMockApiEnabled } from "@/config/env";
 import { getMockStore } from "@/lib/mock/store";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { Debt, Product, Sale } from "./types";
+import type { Debt, Sale } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* POS & Sales API                                                     */
@@ -105,7 +105,7 @@ export async function createSale(
       customerObj.debtHistory.unshift(debtTx);
 
       // Sync with seedDebts and mock store debts list
-      let debtRecord = store.debts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID") ||
+      const debtRecord = store.debts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID") ||
         seedDebts.find((d) => d.customerId === customerObj!.id && d.status !== "PAID");
 
       if (debtRecord) {

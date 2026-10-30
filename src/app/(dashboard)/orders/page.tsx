@@ -2,12 +2,10 @@
 
 import {
   Banknote,
-  Calendar,
   CalendarDays,
   CheckCircle2,
   Download,
   Eye,
-  FileSpreadsheet,
   FileText,
   Filter,
   Landmark,
@@ -19,7 +17,6 @@ import {
   ShoppingCart,
   Smartphone,
   TrendingUp,
-  Wifi,
   WifiOff,
   X,
 } from "lucide-react";

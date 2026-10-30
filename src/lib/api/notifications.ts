@@ -2,7 +2,7 @@ import { isMockApiEnabled } from "@/config/env";
 import { getMockStore } from "@/lib/mock/store";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { NotificationFeedResponse, NotificationSeverity, NotificationType, Product } from "./types";
+import type { NotificationFeedResponse, NotificationSeverity, NotificationType } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* Shop Notifications API                                             */

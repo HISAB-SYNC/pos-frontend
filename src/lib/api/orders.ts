@@ -1,6 +1,6 @@
 import { isMockApiEnabled } from "@/config/env";
 import { getMockStore } from "@/lib/mock/store";
-import type { OrderRecord, OverallOrdersSummary, Sale } from "./types";
+import type { OrderRecord, OverallOrdersSummary } from "./types";
 
 import { getSales } from "./sales";
 

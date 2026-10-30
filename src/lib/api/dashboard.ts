@@ -3,7 +3,7 @@ import type { DashboardMetrics } from "@/lib/mock";
 import { getMockStore } from "@/lib/mock/store";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { BackendDashboardMetrics, BackendDashboardOverview, DashboardPeriod, Customer, Debt, Product, Sale } from "./types";
+import type { BackendDashboardMetrics, BackendDashboardOverview, DashboardPeriod, Debt, Product, Sale } from "./types";
 
 export async function getBackendDashboardMetrics(shopId: string) {
   if (isMockApiEnabled()) {

@@ -13,7 +13,6 @@ import {
   Lock,
   Percent,
   Shield,
-  ShieldCheck,
   Store,
   User as UserIcon,
   X,

@@ -1,22 +1,18 @@
 "use client";
 
 import {
-  AlertTriangle,
   ArrowUpRight,
   Banknote,
   CheckCircle2,
   HandCoins,
   Landmark,
-  Package,
   Plus,
-  RotateCcw,
   Smartphone,
   Store,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DashboardCard, SeeAllLink } from "@/components/dashboard/dashboard-widgets";
 import { KpiPeriodCards } from "@/components/dashboard/kpi-period-cards";
@@ -31,7 +27,6 @@ import type { DashboardMetrics } from "@/lib/mock/data";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
-import { useUiStore } from "@/stores/ui-store";
 
 /* ------------------------------------------------------------------ */
 /* Low Quantity Stock item with Restock action                        */

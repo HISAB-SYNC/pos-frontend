@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   activateUser,
@@ -353,6 +354,8 @@ export default function AdminRequestsPage() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [viewingOwner, setViewingOwner] = useState<AdminUser | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -364,6 +367,7 @@ export default function AdminRequestsPage() {
       setShops(shopsRes);
     } catch (err) {
       console.warn("Could not load owner requests:", err);
+      setLoadError(true);
       setUsers([]);
       setShops([]);
     } finally {
@@ -398,6 +402,7 @@ export default function AdminRequestsPage() {
   }, [ownerUsers, statusFilter, searchQuery]);
 
   async function handleToggleStatus(owner: AdminUser) {
+    setActionError("");
     try {
       if (owner.isActive) {
         const res = await suspendUser(owner.id);
@@ -411,13 +416,27 @@ export default function AdminRequestsPage() {
         setActionSuccessMsg(`Owner ${owner.name} approved and activated successfully. They can now log in.`);
       }
       await loadData();
-    } catch {
-      // Fallback
+    } catch (err) {
+      setActionSuccessMsg("");
+      setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
     }
   }
 
   if (loading) {
     return <LoadingState />;
+  }
+
+  if (loadError && !loading && users.length === 0) {
+    return (
+      <LoadError
+        what="owner requests"
+        onRetry={() => {
+          setLoadError(false);
+          setLoading(true);
+          loadData();
+        }}
+      />
+    );
   }
 
   return (
@@ -458,6 +477,8 @@ export default function AdminRequestsPage() {
       </div>
 
       {/* Success Notification Toast */}
+      {actionError && <ActionError message={actionError} onDismiss={() => setActionError("")} />}
+
       {actionSuccessMsg && (
         <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900 animate-in fade-in duration-150">
           <div className="flex items-center gap-2">

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
 import { activateShop, getAdminShops, suspendShop } from "@/lib/api/admin";
 import type { AdminShop } from "@/lib/api/types";
@@ -25,6 +26,8 @@ export default function AdminShopsPage() {
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   const loadShops = useCallback(async () => {
     try {
@@ -32,6 +35,7 @@ export default function AdminShopsPage() {
       setShops(data);
     } catch (err) {
       console.warn("Could not load admin shops:", err);
+      setLoadError(true);
       setShops([]);
     } finally {
       setLoading(false);
@@ -59,6 +63,7 @@ export default function AdminShopsPage() {
   }, [shops, statusFilter, searchQuery]);
 
   async function handleToggleStatus(shop: AdminShop) {
+    setActionError("");
     try {
       if (shop.isActive) {
         await suspendShop(shop.id);
@@ -69,13 +74,27 @@ export default function AdminShopsPage() {
       }
       await loadShops();
       setTimeout(() => setActionSuccessMsg(""), 3500);
-    } catch {
-      // Fallback
+    } catch (err) {
+      setActionSuccessMsg("");
+      setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
     }
   }
 
   if (loading && shops.length === 0) {
     return <LoadingState />;
+  }
+
+  if (loadError && !loading && shops.length === 0) {
+    return (
+      <LoadError
+        what="shops"
+        onRetry={() => {
+          setLoadError(false);
+          setLoading(true);
+          loadShops();
+        }}
+      />
+    );
   }
 
   const activeCount = shops.filter((s) => s.isActive).length;
@@ -115,6 +134,8 @@ export default function AdminShopsPage() {
       </div>
 
       {/* Success Notification */}
+      {actionError && <ActionError message={actionError} onDismiss={() => setActionError("")} />}
+
       {actionSuccessMsg && (
         <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800 animate-in fade-in duration-150">
           <div className="flex items-center gap-2">

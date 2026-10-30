@@ -43,6 +43,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   activateShop,
@@ -386,6 +387,8 @@ export default function AdminDashboardPage() {
   const [userToSuspend, setUserToSuspend] = useState<AdminUser | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedTraction, setCopiedTraction] = useState(false);
 
@@ -403,6 +406,7 @@ export default function AdminDashboardPage() {
       setUsers(usersData.users);
     } catch (err) {
       console.warn("Could not load admin dashboard data:", err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -445,6 +449,7 @@ export default function AdminDashboardPage() {
   }, [users, searchQuery]);
 
   async function handleToggleUserStatus(user: AdminUser) {
+    setActionError("");
     setIsProcessingAction(true);
     try {
       if (user.isActive) {
@@ -460,12 +465,17 @@ export default function AdminDashboardPage() {
       }
       await loadAdminData();
       setUserToSuspend(null);
+    } catch (err) {
+      setActionSuccessMsg("");
+      setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
+      setUserToSuspend(null);
     } finally {
       setIsProcessingAction(false);
     }
   }
 
   async function handleToggleShopStatus(shop: AdminShop) {
+    setActionError("");
     try {
       if (shop.isActive) {
         await suspendShop(shop.id);
@@ -475,13 +485,27 @@ export default function AdminDashboardPage() {
         setActionSuccessMsg(`Shop ${shop.name} activated.`);
       }
       await loadAdminData();
-    } catch {
-      // Fallback
+    } catch (err) {
+      setActionSuccessMsg("");
+      setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
     }
   }
 
   if (loading && !stats) {
     return <LoadingState />;
+  }
+
+  if (loadError && !loading && !stats) {
+    return (
+      <LoadError
+        what="the admin dashboard"
+        onRetry={() => {
+          setLoadError(false);
+          setLoading(true);
+          loadAdminData();
+        }}
+      />
+    );
   }
 
   return (
@@ -547,6 +571,8 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Notification Toast */}
+      {actionError && <ActionError message={actionError} onDismiss={() => setActionError("")} />}
+
       {actionSuccessMsg && (
         <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800 animate-in fade-in duration-150">
           <div className="flex items-center gap-2">

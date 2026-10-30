@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
 import { activateUser, getAdminUsers, suspendUser } from "@/lib/api/admin";
 import type { AdminUser } from "@/lib/api/types";
@@ -26,6 +27,8 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionSuccessMsg, setActionSuccessMsg] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [loadError, setLoadError] = useState(false);
   const [warningMsg, setWarningMsg] = useState("");
 
   const loadUsers = useCallback(async () => {
@@ -34,6 +37,7 @@ export default function AdminUsersPage() {
       setUsers(data.users);
     } catch (err) {
       console.warn("Could not load admin users:", err);
+      setLoadError(true);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -57,6 +61,7 @@ export default function AdminUsersPage() {
   }, [users, searchQuery]);
 
   async function handleToggleStatus(user: AdminUser) {
+    setActionError("");
     try {
       if (user.isActive) {
         const res = await suspendUser(user.id);
@@ -71,13 +76,27 @@ export default function AdminUsersPage() {
       }
       await loadUsers();
       setTimeout(() => setActionSuccessMsg(""), 3500);
-    } catch {
-      // Fallback
+    } catch (err) {
+      setActionSuccessMsg("");
+      setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
     }
   }
 
   if (loading && users.length === 0) {
     return <LoadingState />;
+  }
+
+  if (loadError && !loading && users.length === 0) {
+    return (
+      <LoadError
+        what="users"
+        onRetry={() => {
+          setLoadError(false);
+          setLoading(true);
+          loadUsers();
+        }}
+      />
+    );
   }
 
   const ownerCount = users.filter((u) => u.role === "OWNER").length;
@@ -133,6 +152,8 @@ export default function AdminUsersPage() {
       )}
 
       {/* Success Notification */}
+      {actionError && <ActionError message={actionError} onDismiss={() => setActionError("")} />}
+
       {actionSuccessMsg && (
         <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-800 animate-in fade-in duration-150">
           <div className="flex items-center gap-2">

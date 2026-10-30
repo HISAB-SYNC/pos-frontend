@@ -1551,7 +1551,7 @@ export default function PosPage() {
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.product.id, -1)}
-                          className="flex size-6 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-l transition-colors"
+                          className="flex size-6 pointer-coarse:size-9 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-l transition-colors"
                           title="Subtract 1"
                         >
                           <Minus className="size-3" />
@@ -1562,7 +1562,7 @@ export default function PosPage() {
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.product.id, 1)}
-                          className="flex size-6 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-r transition-colors"
+                          className="flex size-6 pointer-coarse:size-9 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-r transition-colors"
                           title="Add 1"
                         >
                           <Plus className="size-3" />
@@ -1848,7 +1848,7 @@ export default function PosPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[1fr_400px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_400px]">
         {/* ================================================================= */}
         {/* Left Column: Product Catalog & Category Filters                   */}
         {/* ================================================================= */}
@@ -1921,11 +1921,11 @@ export default function PosPage() {
                 </div>
               </div>
 
-              {/* Cart Drawer Trigger for < 2xl screens */}
+              {/* Cart Drawer Trigger for phones and portrait tablets (< lg) */}
               <button
                 type="button"
                 onClick={() => setIsCartDrawerOpen(true)}
-                className="flex 2xl:hidden h-9 items-center gap-2 rounded-md bg-slate-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-[#5B4FE9] active:scale-95 shrink-0"
+                className="flex lg:hidden h-9 items-center gap-2 rounded-md bg-slate-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-[#5B4FE9] active:scale-95 shrink-0"
                 title="Open checkout panel"
               >
                 <ShoppingCart className="size-3.5 text-indigo-400" />
@@ -1965,8 +1965,8 @@ export default function PosPage() {
             ))}
           </div>
 
-          {/* Products Grid: strictly 3 columns on tablet/laptop, 4 on wide desktop */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 2xl:grid-cols-3">
+          {/* Products grid: 2 columns on phones and next to the cart on tablets, 3 on laptops, 4 on wide screens */}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredProducts.map((product) => {
               const inCart = cart.find((it) => it.product.id === product.id);
               const isOutOfStock = product.stockQuantity <= 0;
@@ -2027,7 +2027,7 @@ export default function PosPage() {
                               setMeasuringItem(newItem);
                             }
                           }}
-                          className="flex h-7 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-bold text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                          className="flex h-7 pointer-coarse:h-10 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-bold text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                           title="Measure weight or enter custom deal"
                         >
                           <Scale className="size-3 text-[#5B4FE9]" />
@@ -2038,7 +2038,7 @@ export default function PosPage() {
                         type="button"
                         disabled={isOutOfStock}
                         onClick={() => addToCart(product)}
-                        className="flex size-7 items-center justify-center rounded-md bg-slate-900 text-white transition-all hover:bg-[#5B4FE9] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                        className="flex size-7 pointer-coarse:size-10 items-center justify-center rounded-md bg-slate-900 text-white transition-all hover:bg-[#5B4FE9] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                         title="Add item to cart"
                       >
                         <Plus className="size-3.5" />
@@ -2052,15 +2052,15 @@ export default function PosPage() {
         </div>
 
         {/* ================================================================= */}
-        {/* Right Column: Static Checkout Panel for 2xl Screens               */}
+        {/* Right Column: checkout panel beside the products from lg (1024px)  */}
         {/* ================================================================= */}
-        <div className="hidden 2xl:flex flex-col justify-between rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs min-w-0">
+        <div className="hidden lg:flex lg:sticky lg:top-4 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto flex-col justify-between rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs min-w-0">
           {renderOrderPanel(false)}
         </div>
       </div>
 
       {/* ================================================================= */}
-      {/* Slide-Over Checkout Drawer for < 2xl Screens (Laptops, Tablets)   */}
+      {/* Slide-Over Checkout Drawer for phones and portrait tablets (< lg)  */}
       {/* ================================================================= */}
       {isCartDrawerOpen && (
         <div
@@ -2076,9 +2076,9 @@ export default function PosPage() {
         </div>
       )}
 
-      {/* Floating Bottom Cart Bar for Screens < 2xl */}
+      {/* Floating Bottom Cart Bar for phones and portrait tablets (< lg) */}
       {cart.length > 0 && !isCartDrawerOpen && (
-        <div className="sticky bottom-3 z-30 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 text-white shadow-xl animate-in slide-in-from-bottom-2 2xl:hidden">
+        <div className="sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 text-white shadow-xl animate-in slide-in-from-bottom-2 lg:hidden">
           <div>
             <span className="text-[10px] text-slate-400">
               {cart.reduce((s, i) => s + i.quantity, 0)} items in cart

@@ -27,14 +27,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ProductAvatar, ExpiryBadge } from "@/app/(dashboard)/products/page";
 import { LoadingState } from "@/components/shared/loading-state";
+import { REASON_LABELS, REASONS_FOR, RecentProductChanges, StockLogModal } from "@/components/inventory/stock-log";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
   createPurchase,
+  createStockAdjustment,
   getCategories,
   getFundsSummary,
   getProducts,
   getSuppliers,
-  updateProduct,
 } from "@/lib/api";
 import type {
   Category,
@@ -43,6 +44,7 @@ import type {
   MoneyAddedReason,
   Product,
   PurchaseFunding,
+  StockAdjustmentReason,
   Supplier,
 } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -88,7 +90,9 @@ function StockAdjustModal({
 }) {
   const [adjustmentType, setAdjustmentType] = useState<"ADD" | "REMOVE" | "SET">("ADD");
   const [quantity, setQuantity] = useState("");
-  const [reason, setReason] = useState("Inventory Audit Count Correction");
+  // Why stock changes when no money is paid; must fit the kind of change.
+  const [reasonChoice, setReasonChoice] = useState<StockAdjustmentReason | "">("");
+  const [adjustNotes, setAdjustNotes] = useState("");
   const [storeLocation, setStoreLocation] = useState("Main Store");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +132,9 @@ function StockAdjustModal({
   const unitCostNum = parseFloat(unitCost) || 0;
   const totalCostNum = Math.round(adjustQtyNum * unitCostNum * 100) / 100;
   const isRestock = adjustmentType === "ADD" && isPurchase;
+  const reasonOptions = REASONS_FOR[adjustmentType];
+  const reason: StockAdjustmentReason =
+    reasonChoice && reasonOptions.includes(reasonChoice) ? reasonChoice : reasonOptions[0];
 
   let newQuantity = currentQty;
   if (adjustmentType === "ADD") newQuantity = Math.round((currentQty + adjustQtyNum) * 1000) / 1000;
@@ -181,7 +188,14 @@ function StockAdjustModal({
             : undefined,
         });
       } else {
-        await updateProduct(shopId, product.id, { stockQuantity: newQuantity });
+        await createStockAdjustment(shopId, {
+          productId: product.id,
+          type: adjustmentType,
+          quantity: adjustQtyNum,
+          reason,
+          notes: adjustNotes.trim() || undefined,
+          location: storeLocation.trim() || undefined,
+        });
       }
 
       onAdjusted();
@@ -443,20 +457,35 @@ function StockAdjustModal({
           )}
 
           {!isRestock && (
-            <div>
-              <label className="mb-1 block font-semibold text-zinc-700">Reason for Adjustment</label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-              >
-                <option value="Inventory Audit Count Correction">Inventory Audit Count Correction</option>
-                <option value="Damage / Wastage">Damage / Wastage / Expired</option>
-                <option value="Customer Return">Customer Return</option>
-                <option value="Internal Transfer">Internal Store Transfer</option>
-              </select>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block font-semibold text-zinc-700">Why? *</label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReasonChoice(e.target.value as StockAdjustmentReason)}
+                  className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
+                >
+                  {reasonOptions.map((r) => (
+                    <option key={r} value={r}>
+                      {REASON_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block font-semibold text-zinc-700">Note (optional)</label>
+                <input
+                  type="text"
+                  value={adjustNotes}
+                  onChange={(e) => setAdjustNotes(e.target.value)}
+                  placeholder="e.g. 2 bags torn in delivery"
+                  className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
+                />
+              </div>
             </div>
           )}
+
+          {!isRestock && <RecentProductChanges shopId={shopId} productId={product.id} unit={product.unit} />}
 
           {/* Real-time stock and money preview */}
           <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3.5">
@@ -552,6 +581,7 @@ export default function InventoryPage() {
 
   // Modals
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null);
+  const [showStockLog, setShowStockLog] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -685,6 +715,8 @@ export default function InventoryPage() {
 
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
+      {showStockLog && <StockLogModal shopId={shopId} onClose={() => setShowStockLog(false)} />}
+
       {productToAdjust && (
         <StockAdjustModal
           key={productToAdjust.id}
@@ -714,6 +746,14 @@ export default function InventoryPage() {
             >
               <Download className="size-3.5 text-zinc-500" />
               Export Inventory
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStockLog(true)}
+              className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
+            >
+              <ReceiptText className="size-3.5 text-zinc-500" />
+              Stock log
             </button>
             <Link
               href="/products"

@@ -26,6 +26,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getDashboardMetrics } from "@/lib/api/app-data";
+import { useT } from "@/lib/i18n/use-t";
 import type { DashboardMetrics } from "@/lib/mock/data";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useAuthStore } from "@/stores/auth-store";
@@ -86,6 +87,7 @@ export default function DashboardPage() {
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
+  const t = useT();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -149,8 +151,8 @@ export default function DashboardPage() {
         {/* ================================================================= */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 pb-4">
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-zinc-950">Store Overview</h1>
-            <p className="text-xs text-zinc-500">Live commercial performance, cash flow, and inventory status</p>
+            <h1 className="text-lg font-bold tracking-tight text-zinc-950">{t("dashboard.title")}</h1>
+            <p className="text-xs text-zinc-500">{t("dashboard.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -158,21 +160,21 @@ export default function DashboardPage() {
               className="inline-flex items-center gap-1.5 rounded-md bg-[#5B4FE9] px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-[#4D40D9] transition-all"
             >
               <Store className="size-3.5" />
-              <span>New Sale (POS)</span>
+              <span>{t("dashboard.newSale")}</span>
             </Link>
             <Link
               href="/products"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-950 transition-all"
             >
               <Plus className="size-3.5 text-zinc-500" />
-              <span>Add Product</span>
+              <span>{t("dashboard.addProduct")}</span>
             </Link>
             <Link
               href="/debts"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-950 transition-all"
             >
               <HandCoins className="size-3.5 text-zinc-500" />
-              <span>Debt Ledger</span>
+              <span>{t("dashboard.debtLedger")}</span>
             </Link>
           </div>
         </div>

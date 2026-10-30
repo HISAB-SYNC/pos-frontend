@@ -18,6 +18,8 @@ import {
   getAdminUnreadNotificationCount,
   getShopUnreadNotificationCount,
 } from "@/lib/api/app-data";
+import { LanguageSwitch } from "@/components/layout/language-switch";
+import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -28,6 +30,7 @@ import { ShopSwitcher } from "./shop-switcher";
 
 export function DashboardHeader() {
   const router = useRouter();
+  const t = useT();
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -99,7 +102,7 @@ export function DashboardHeader() {
         >
           <div className="flex items-center gap-2.5">
             <Search className="size-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors" />
-            <span className="font-normal text-zinc-500">Quick search pages, products, actions...</span>
+            <span className="font-normal text-zinc-500">{t("header.search")}</span>
           </div>
           <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 shadow-2xs">
             ⌘K
@@ -116,6 +119,8 @@ export function DashboardHeader() {
           >
             <Search className="size-4" />
           </button>
+
+          <LanguageSwitch />
 
           {/* Multi-shop dropdown switcher */}
           {!isSuperAdmin && <ShopSwitcher />}
@@ -199,7 +204,7 @@ export function DashboardHeader() {
                 className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100 cursor-pointer"
               >
                 <Settings className="size-3.5 text-zinc-400" />
-                <span>Account & Settings</span>
+                <span>{t("header.accountSettings")}</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -207,7 +212,7 @@ export function DashboardHeader() {
                 className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-100 cursor-pointer"
               >
                 <Store className="size-3.5 text-zinc-400" />
-                <span>POS Register</span>
+                <span>{t("header.posRegister")}</span>
               </DropdownMenuItem>
 
               <div className="my-1 h-px bg-zinc-100" />
@@ -217,7 +222,7 @@ export function DashboardHeader() {
                 className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-50 cursor-pointer"
               >
                 <LogOut className="size-3.5 text-red-500" />
-                <span>Sign Out</span>
+                <span>{t("nav.signOut")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

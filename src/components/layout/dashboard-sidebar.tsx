@@ -32,6 +32,8 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useT } from "@/lib/i18n/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
@@ -69,6 +71,27 @@ const adminNav: NavItem[] = [
 ];
 
 const footerNav: NavItem[] = [{ label: "Settings", href: "/settings", icon: Settings }];
+
+// Translation keys for the sidebar's English labels.
+const NAV_LABEL_KEYS: Record<string, MessageKey> = {
+  Dashboard: "nav.dashboard",
+  "POS Checkout": "nav.pos",
+  Products: "nav.products",
+  "Products Catalog": "nav.products",
+  Inventory: "nav.inventory",
+  Reports: "nav.reports",
+  Suppliers: "nav.suppliers",
+  "Sales History": "nav.orders",
+  Customers: "nav.customers",
+  "Debts / Credit": "nav.debts",
+  Expenses: "nav.expenses",
+  Funds: "nav.funds",
+  Notifications: "nav.notifications",
+  "Manage Team": "nav.team",
+  "Manage Sellers": "nav.sellers",
+  Settings: "nav.settings",
+  Live: "nav.live",
+};
 
 function NavLink({
   href,
@@ -135,6 +158,8 @@ export function DashboardSidebar() {
   const setActiveShop = useShopStore((state) => state.setActiveShop);
   const activeShopName = useShopStore((state) => state.activeShopName);
   const user = useAuthStore((state) => state.user);
+  const t = useT();
+  const navLabel = (label: string) => (NAV_LABEL_KEYS[label] ? t(NAV_LABEL_KEYS[label]) : label);
 
   const isSuperAdmin =
     user?.role === "SUPER_ADMIN" ||
@@ -236,9 +261,9 @@ export function DashboardSidebar() {
             <NavLink
               key={item.href}
               href={item.href}
-              label={item.label}
+              label={navLabel(item.label)}
               icon={item.icon}
-              badge={item.badge}
+              badge={item.badge ? navLabel(item.badge) : undefined}
               collapsed={collapsed}
               onNavigate={closeMobileSidebar}
               active={
@@ -273,7 +298,7 @@ export function DashboardSidebar() {
         >
           <div className="flex items-center gap-2.5">
             <Search className="size-3.5 shrink-0 text-zinc-400 group-hover:text-zinc-700" />
-            {!collapsed && <span>Quick Search</span>}
+            {!collapsed && <span>{t("nav.quickSearch")}</span>}
           </div>
           {!collapsed && (
             <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.2 font-mono text-[9px] text-zinc-400 shadow-2xs">
@@ -286,7 +311,7 @@ export function DashboardSidebar() {
           <NavLink
             key={item.href}
             href={item.href}
-            label={item.label}
+            label={navLabel(item.label)}
             icon={item.icon}
             collapsed={collapsed}
             onNavigate={closeMobileSidebar}
@@ -303,7 +328,7 @@ export function DashboardSidebar() {
           )}
         >
           <LogOut className="size-4 shrink-0 text-zinc-400 group-hover:text-red-600" />
-          {!collapsed && <span>Sign Out</span>}
+          {!collapsed && <span>{t("nav.signOut")}</span>}
         </button>
       </SidebarFooter>
     </Sidebar>

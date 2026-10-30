@@ -6,21 +6,28 @@ import { useEffect, useState } from "react";
 
 import { getDashboardPeriod } from "@/lib/api/app-data";
 import type { DashboardPeriod } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/use-t";
 
 type Preset = "TODAY" | "WEEK" | "MONTH" | "ALL";
 
-const PRESETS: Array<{ id: Preset; label: string }> = [
-  { id: "TODAY", label: "Today" },
-  { id: "WEEK", label: "7 days" },
-  { id: "MONTH", label: "This month" },
-  { id: "ALL", label: "All time" },
+const PRESETS: Array<{ id: Preset; label: MessageKey }> = [
+  { id: "TODAY", label: "kpi.today" },
+  { id: "WEEK", label: "kpi.week" },
+  { id: "MONTH", label: "kpi.month" },
+  { id: "ALL", label: "kpi.all" },
 ];
 
-const COMPARE_LABEL: Record<Preset, string> = {
-  TODAY: "vs yesterday",
-  WEEK: "vs previous 7 days",
-  MONTH: "vs same time last month",
-  ALL: "",
+const COMPARE_LABEL: Record<Exclude<Preset, "ALL">, MessageKey> = {
+  TODAY: "kpi.vsToday",
+  WEEK: "kpi.vsWeek",
+  MONTH: "kpi.vsMonth",
+};
+
+const NO_SALES_LABEL: Record<Exclude<Preset, "ALL">, MessageKey> = {
+  TODAY: "kpi.noSalesToday",
+  WEEK: "kpi.noSalesWeek",
+  MONTH: "kpi.noSalesMonth",
 };
 
 /** Local-time ranges for a preset, with the period it is compared against. */
@@ -56,9 +63,19 @@ function formatEtb(value: number) {
   return Math.round(value).toLocaleString("en-US");
 }
 
-function Delta({ current, previous, label }: { current: number; previous: number; label: string }) {
+function Delta({
+  current,
+  previous,
+  label,
+  noSalesLabel,
+}: {
+  current: number;
+  previous: number;
+  label: string;
+  noSalesLabel: string;
+}) {
   if (previous <= 0) {
-    return <span className="text-[11px] text-zinc-500">{current > 0 ? `No sales ${label.replace("vs ", "")}` : label}</span>;
+    return <span className="text-[11px] text-zinc-500">{current > 0 ? noSalesLabel : label}</span>;
   }
   const change = ((current - previous) / previous) * 100;
   const up = change >= 0;
@@ -90,6 +107,7 @@ export function KpiPeriodCards({
   outstandingDebt: number;
   debtorsCount: number;
 }) {
+  const t = useT();
   const [preset, setPreset] = useState<Preset>("MONTH");
   const [period, setPeriod] = useState<DashboardPeriod | null>(null);
   const [loadedPreset, setLoadedPreset] = useState<Preset | null>(null);
@@ -119,7 +137,8 @@ export function KpiPeriodCards({
   const current = isAll || !period ? allTime : period;
   const previous = !isAll ? period?.previous ?? null : null;
   const showsAllTime = isAll || (!isLoading && !period);
-  const periodLabel = showsAllTime ? "All time" : PRESETS.find((p) => p.id === preset)?.label;
+  const presetLabel = PRESETS.find((p) => p.id === preset)?.label;
+  const periodLabel = showsAllTime ? t("kpi.all") : presetLabel ? t(presetLabel) : "";
 
   const netProfit = current.revenue - current.cogs - current.expenses;
   const avgSale = current.salesCount > 0 ? current.revenue / current.salesCount : 0;
@@ -128,7 +147,7 @@ export function KpiPeriodCards({
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-          Performance · {periodLabel}
+          {t("kpi.performance")} · {periodLabel}
         </h2>
         <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1">
           {PRESETS.map((p) => (
@@ -142,7 +161,7 @@ export function KpiPeriodCards({
                   : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
               }`}
             >
-              {p.label}
+              {t(p.label)}
             </button>
           ))}
         </div>
@@ -152,7 +171,7 @@ export function KpiPeriodCards({
         {/* Revenue */}
         <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Revenue</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t("kpi.revenue")}</span>
             <div className="flex size-8 items-center justify-center rounded-md bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
               <TrendingUp className="size-4" />
             </div>
@@ -162,10 +181,15 @@ export function KpiPeriodCards({
               {formatEtb(current.revenue)} <span className="text-xs font-semibold text-zinc-500">ETB</span>
             </div>
             <div className="mt-2 min-h-5">
-              {previous ? (
-                <Delta current={current.revenue} previous={previous.revenue} label={COMPARE_LABEL[preset]} />
+              {previous && preset !== "ALL" ? (
+                <Delta
+                  current={current.revenue}
+                  previous={previous.revenue}
+                  label={t(COMPARE_LABEL[preset])}
+                  noSalesLabel={t(NO_SALES_LABEL[preset])}
+                />
               ) : (
-                <span className="text-[11px] text-zinc-500">Value of sales made, incl. credit sales</span>
+                <span className="text-[11px] text-zinc-500">{t("kpi.revenueHint")}</span>
               )}
             </div>
           </div>
@@ -174,7 +198,7 @@ export function KpiPeriodCards({
         {/* Net Profit */}
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xs transition-all hover:border-slate-700">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Net Profit</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t("kpi.netProfit")}</span>
             <div className="flex size-8 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
               <Wallet className="size-4" />
             </div>
@@ -184,7 +208,7 @@ export function KpiPeriodCards({
               {formatEtb(netProfit)} <span className="text-xs font-semibold text-slate-400">ETB</span>
             </div>
             <p className="mt-2 truncate text-[11px] text-slate-400">
-              Cost of goods {formatEtb(current.cogs)} · Expenses {formatEtb(current.expenses)}
+              {t("kpi.costBreakdown", { cogs: formatEtb(current.cogs), expenses: formatEtb(current.expenses) })}
             </p>
           </div>
         </div>
@@ -192,7 +216,7 @@ export function KpiPeriodCards({
         {/* Outstanding customer debt (always current) */}
         <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Outstanding Debt</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t("kpi.outstandingDebt")}</span>
             <div className="flex size-8 items-center justify-center rounded-md bg-amber-50 text-amber-700 ring-1 ring-amber-400/30">
               <CircleDollarSign className="size-4" />
             </div>
@@ -203,10 +227,10 @@ export function KpiPeriodCards({
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-amber-800">
-                {debtorsCount} accounts · now
+                {t("kpi.accountsNow", { count: debtorsCount })}
               </span>
               <Link href="/debts" className="inline-flex items-center gap-1 font-semibold text-zinc-900 hover:underline">
-                <span>Ledger</span>
+                <span>{t("kpi.ledger")}</span>
                 <ArrowUpRight className="size-3" />
               </Link>
             </div>
@@ -216,20 +240,21 @@ export function KpiPeriodCards({
         {/* Sales count and average sale */}
         <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs transition-all hover:border-zinc-300">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sales</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t("kpi.sales")}</span>
             <div className="flex size-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-800">
               <ShoppingCart className="size-4" />
             </div>
           </div>
           <div className="mt-3">
             <div className="font-mono text-2xl font-bold tracking-tight tabular-nums text-zinc-900">
-              {current.salesCount.toLocaleString("en-US")} <span className="text-xs font-semibold text-zinc-500">sales</span>
+              {current.salesCount.toLocaleString("en-US")}{" "}
+              <span className="text-xs font-semibold text-zinc-500">{t("kpi.salesUnit")}</span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-indigo-700">
-                Avg {formatEtb(avgSale)} ETB
+                {t("kpi.avgSale", { amount: formatEtb(avgSale) })}
               </span>
-              <span>per sale</span>
+              <span>{t("kpi.perSale")}</span>
             </div>
           </div>
         </div>

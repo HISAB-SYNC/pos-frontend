@@ -1041,9 +1041,12 @@ export default function SalesHistoryPage() {
   const [notificationToast, setNotificationToast] = useState("");
 
   const { isOnline, pendingCount } = useOfflineStatus(shopId);
+  // True when the server couldn't be reached and the list is this device's saved copy.
+  const [showingSavedCopy, setShowingSavedCopy] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
+    setShowingSavedCopy(false);
     try {
       const pendingOffline = await getPendingSales(shopId);
       const pendingMapped = pendingOffline.map(offlineSaleToSale);
@@ -1063,10 +1066,12 @@ export default function SalesHistoryPage() {
         console.warn("Could not load sales history from server, falling back to cache:", apiErr);
         const cached = await getCachedSalesHistory(shopId);
         setSales([...pendingMapped, ...cached]);
+        setShowingSavedCopy(true);
       }
     } catch (err) {
       console.warn("Could not load sales history:", err);
       setSales([]);
+      setShowingSavedCopy(true);
     } finally {
       setIsLoading(false);
     }
@@ -1465,6 +1470,16 @@ export default function SalesHistoryPage() {
                     <WifiOff className="size-2.5 text-amber-600" />
                     <span>Offline Mode</span>
                   </span>
+                )}
+                {isOnline && showingSavedCopy && (
+                  <button
+                    type="button"
+                    onClick={loadData}
+                    className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-800 hover:bg-rose-100"
+                  >
+                    <WifiOff className="size-2.5 text-rose-600" />
+                    <span>Couldn&apos;t reach server · showing saved copy · Retry</span>
+                  </button>
                 )}
                 {pendingCount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">

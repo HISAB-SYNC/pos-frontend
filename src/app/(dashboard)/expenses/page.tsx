@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
   createExpense,
@@ -552,6 +553,7 @@ export default function ExpensesPage() {
   const [summary, setSummary] = useState<ExpensesSummary | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [page, setPage] = useState(1);
 
   // Filters State
@@ -578,6 +580,10 @@ export default function ExpensesPage() {
       ]);
       setSummary(sum);
       setExpenses(exps);
+      setLoadError(false);
+    } catch (err) {
+      console.warn("Could not load expenses:", err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -647,6 +653,10 @@ export default function ExpensesPage() {
   }
 
   const activeFiltersCount = (statusFilter !== "ALL" ? 1 : 0) + (categoryFilter !== "ALL" ? 1 : 0);
+
+  if (loadError && expenses.length === 0) {
+    return <LoadError what="expenses" onRetry={loadData} />;
+  }
 
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN"]}>

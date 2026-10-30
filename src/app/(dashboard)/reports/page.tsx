@@ -42,6 +42,7 @@ import {
 } from "recharts";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getShopAnalytics } from "@/lib/api/app-data";
 import { getProducts } from "@/lib/api/shops";
@@ -73,6 +74,7 @@ export default function ReportsPage() {
   const [analytics, setAnalytics] = useState<ShopAnalyticsReport | null>(null);
   const [productsCatalog, setProductsCatalog] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
@@ -86,12 +88,14 @@ export default function ReportsPage() {
         getProducts(activeShopId).catch(() => []),
       ]);
       setAnalytics(analyticsData);
+      setLoadError(false);
       if (Array.isArray(prods)) {
         setProductsCatalog(prods);
       }
     } catch (err) {
       console.warn("Could not load analytics reports:", err);
       setAnalytics(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -172,6 +176,10 @@ export default function ReportsPage() {
 
   if (loading && !analytics) {
     return <LoadingState />;
+  }
+
+  if (loadError && !analytics) {
+    return <LoadError what="reports" onRetry={loadAnalytics} />;
   }
 
   const sales = analytics?.salesAnalytics;

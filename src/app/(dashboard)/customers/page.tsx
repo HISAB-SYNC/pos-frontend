@@ -24,6 +24,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import {
   createCustomer,
   getCustomerDetail,
@@ -614,6 +615,7 @@ function ReceivePaymentModal({
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Mobile Payment">("Cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   if (!customer) return null;
   const currentDebt = parseFloat(customer.debtBalance || "0");
@@ -633,9 +635,7 @@ function ReceivePaymentModal({
       onSuccess();
       onClose();
     } catch (err) {
-      console.error(err);
-      onSuccess();
-      onClose();
+      setActionError(errorMessage(err, "Couldn't record the payment. Nothing was changed, please try again."));
     } finally {
       setIsSubmitting(false);
     }
@@ -712,6 +712,7 @@ function ReceivePaymentModal({
               <option value="Card">Card</option>
             </select>
           </div>
+          {actionError && <ActionError message={actionError} />}
 
           <div className="flex justify-end gap-2.5 border-t border-zinc-100 pt-4">
             <button
@@ -746,6 +747,7 @@ export default function CustomersPage() {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Filters State
   const [search, setSearch] = useState("");
@@ -790,9 +792,10 @@ export default function CustomersPage() {
     try {
       const data = await getCustomers(shopId);
       setCustomers(data ?? []);
+      setLoadError(false);
     } catch (err) {
       console.warn("Could not load customers:", err);
-      setCustomers([]);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -896,6 +899,10 @@ export default function CustomersPage() {
       },
       { header: "Status", formatter: (c) => c.status || "Active" },
     ]);
+  }
+
+  if (loadError && customers.length === 0) {
+    return <LoadError what="customers" onRetry={load} />;
   }
 
   return (

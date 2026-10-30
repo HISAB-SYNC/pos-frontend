@@ -23,6 +23,7 @@ import { KpiPeriodCards } from "@/components/dashboard/kpi-period-cards";
 import { MoneyLeftCard } from "@/components/dashboard/money-left-card";
 import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart";
 import { LoadingState } from "@/components/shared/loading-state";
+import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getDashboardMetrics } from "@/lib/api/app-data";
 import type { DashboardMetrics } from "@/lib/mock/data";
@@ -87,6 +88,8 @@ export default function DashboardPage() {
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [trendPeriod, setTrendPeriod] = useState<"monthly" | "weekly">("monthly");
 
   useEffect(() => {
@@ -102,9 +105,13 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const data = await getDashboardMetrics(shopId);
-        if (mounted) setMetrics(data);
+        if (mounted) {
+          setMetrics(data);
+          setLoadError(false);
+        }
       } catch (err) {
         console.warn("Could not load dashboard metrics:", err);
+        if (mounted) setLoadError(true);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -114,9 +121,13 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [shopId]);
+  }, [shopId, reloadKey]);
 
   if (authUser?.role === "SALES") return <LoadingState />;
+
+  if (!isLoading && loadError && !metrics) {
+    return <LoadError what="the dashboard" onRetry={() => setReloadKey((k) => k + 1)} />;
+  }
 
   if (isLoading || !metrics) return <LoadingState />;
 

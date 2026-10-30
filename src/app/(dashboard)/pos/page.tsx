@@ -951,7 +951,11 @@ export default function PosPage() {
 
       const [prodList, custList] = await Promise.all([
         getProducts(activeShopId),
-        getCustomers(activeShopId),
+        // Selling works without the customer list; credit sales just can't pick a customer.
+        getCustomers(activeShopId).catch((err) => {
+          console.warn("Could not load customers for POS:", err);
+          return [];
+        }),
       ]);
       setProducts(prodList);
       setCustomers(custList);

@@ -363,6 +363,21 @@ export type Debt = {
   createdAt?: string;
 };
 
+/** Revenue, sales, cost of goods and expenses between two instants. */
+export type DashboardPeriodTotals = {
+  from: string;
+  to: string;
+  salesCount: number;
+  revenue: number;
+  cogs: number;
+  expenses: number;
+};
+
+export type DashboardPeriod = DashboardPeriodTotals & {
+  /** The period it is compared with (null when none was requested). */
+  previous: DashboardPeriodTotals | null;
+};
+
 /** Server-side dashboard totals (database sums; no full sales download). */
 export type BackendDashboardOverview = {
   timeZone: string;

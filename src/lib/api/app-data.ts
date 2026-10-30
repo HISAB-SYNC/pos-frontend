@@ -14,6 +14,7 @@ import type {
   AppNotification,
   BackendDashboardMetrics,
   BackendDashboardOverview,
+  DashboardPeriod,
   Category,
   Customer,
   Debt,
@@ -2958,7 +2959,7 @@ export async function getFundsSummary(shopId: string): Promise<FundsSummary> {
 /** The records behind one line of the Money Left card. */
 export async function getFundsEntries(
   shopId: string,
-  params: { line?: FundsLine; account?: FundAccount; limit?: number } = {},
+  params: { line?: FundsLine; account?: FundAccount; limit?: number; from?: string; to?: string } = {},
 ): Promise<FundsEntries> {
   if (isMockApiEnabled()) {
     return { line: params.line ?? null, account: params.account ?? null, total: 0, count: 0, items: [] };
@@ -2967,6 +2968,8 @@ export async function getFundsEntries(
   if (params.line) query.set("line", params.line);
   if (params.account) query.set("account", params.account);
   if (params.limit) query.set("limit", String(params.limit));
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
   const qs = query.toString();
   return apiRequest<FundsEntries>(`${API_ENDPOINTS.shops.fundsEntries(shopId)}${qs ? `?${qs}` : ""}`);
 }
@@ -3024,6 +3027,8 @@ export async function paySupplier(
     supplierName?: string | null;
     amount: number;
     account: FundAccount;
+    /** Settle only these restocks (oldest first). Omit to settle all, oldest first. */
+    purchaseIds?: string[];
     notes?: string;
     moneyAdded?: { amount: number; reason: MoneyAddedReason; notes?: string };
   },
@@ -3039,4 +3044,28 @@ export async function paySupplier(
       supplierName: input.supplierId ? undefined : input.supplierName || undefined,
     },
   });
+}
+
+/**
+ * KPI totals for one period plus the period it is compared with. Returns null
+ * for "all time" or when the backend doesn't support periods yet.
+ */
+export async function getDashboardPeriod(
+  shopId: string,
+  range: { from: Date; to: Date; prevFrom?: Date; prevTo?: Date },
+): Promise<DashboardPeriod | null> {
+  if (isMockApiEnabled()) return null;
+  const query = new URLSearchParams({
+    periodOnly: "true",
+    from: range.from.toISOString(),
+    to: range.to.toISOString(),
+  });
+  if (range.prevFrom && range.prevTo) {
+    query.set("prevFrom", range.prevFrom.toISOString());
+    query.set("prevTo", range.prevTo.toISOString());
+  }
+  const res = await apiRequest<{ period?: DashboardPeriod | null }>(
+    `${API_ENDPOINTS.shops.dashboard(shopId)}?${query.toString()}`,
+  );
+  return res?.period ?? null;
 }

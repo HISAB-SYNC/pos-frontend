@@ -49,6 +49,7 @@ import type {
 } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
+import { balanceAfter as moneyBalanceAfter, lineTotal, shortfall as moneyShortfall } from "@/lib/utils/money";
 import { formatQuantity, isFractionalUnit } from "@/lib/utils/units";
 import { useShopStore } from "@/stores/shop-store";
 
@@ -130,7 +131,7 @@ function StockAdjustModal({
   const currentQty = product.stockQuantity || 0;
   const adjustQtyNum = parseFloat(quantity) || 0;
   const unitCostNum = parseFloat(unitCost) || 0;
-  const totalCostNum = Math.round(adjustQtyNum * unitCostNum * 100) / 100;
+  const totalCostNum = lineTotal(adjustQtyNum, unitCostNum);
   const isRestock = adjustmentType === "ADD" && isPurchase;
   const reasonOptions = REASONS_FOR[adjustmentType];
   const reason: StockAdjustmentReason =
@@ -151,12 +152,8 @@ function StockAdjustModal({
   const accountBalance = paidAccount && funds
     ? funds.accounts.find((a) => a.account === paidAccount)?.balance ?? 0
     : null;
-  const shortfall = isRestock && accountBalance !== null && totalCostNum > accountBalance
-    ? Math.round((totalCostNum - accountBalance) * 100) / 100
-    : 0;
-  const balanceAfter = accountBalance !== null
-    ? Math.round((accountBalance + (extraMoneyReason ? shortfall : 0) - totalCostNum) * 100) / 100
-    : null;
+  const shortfall = isRestock ? moneyShortfall(accountBalance, totalCostNum) : 0;
+  const balanceAfter = moneyBalanceAfter(accountBalance, totalCostNum, extraMoneyReason ? shortfall : 0);
   const paidLabel = PAID_FROM_OPTIONS.find((o) => o.key === paidFrom)?.label ?? "";
 
   // Pay-later restocks must name who is owed, so the debt can be paid off later.

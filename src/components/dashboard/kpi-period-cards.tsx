@@ -8,6 +8,7 @@ import { getDashboardPeriod } from "@/lib/api/app-data";
 import type { DashboardPeriod } from "@/lib/api/types";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useT } from "@/lib/i18n/use-t";
+import { percentChange } from "@/lib/utils/money";
 
 type Preset = "TODAY" | "WEEK" | "MONTH" | "ALL";
 
@@ -74,10 +75,10 @@ function Delta({
   label: string;
   noSalesLabel: string;
 }) {
-  if (previous <= 0) {
+  const change = percentChange(current, previous);
+  if (change === null) {
     return <span className="text-[11px] text-zinc-500">{current > 0 ? noSalesLabel : label}</span>;
   }
-  const change = ((current - previous) / previous) * 100;
   const up = change >= 0;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (

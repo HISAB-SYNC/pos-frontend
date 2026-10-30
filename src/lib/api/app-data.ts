@@ -64,24 +64,20 @@ export async function getCustomers(shopId: string, params?: { search?: string })
   if (params?.search) query.set("search", params.search);
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
 
-  try {
-    const liveData = await apiRequest<Customer[]>(`${API_ENDPOINTS.shops.customers(shopId)}${suffix}`);
+  // Errors propagate so the page can show "couldn't load" instead of demo data.
+  const liveData = await apiRequest<Customer[]>(`${API_ENDPOINTS.shops.customers(shopId)}${suffix}`);
 
-    if (Array.isArray(liveData)) {
-      return liveData.map((c) => ({
-        ...c,
-        creditLimit: c.creditLimit || "5000",
-        debtBalance: c.debtBalance !== undefined ? String(c.debtBalance) : "0.00",
-        status: (c.status || (parseFloat(c.debtBalance || "0") > 0 ? "Active" : "Active")) as "Active" | "Overdue" | "Inactive",
-        date: c.date || (c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-GB") : "Recent"),
-        recentTransactions: c.recentTransactions || [],
-      }));
-    }
-    return [];
-  } catch {
-    const store = getMockStore();
-    return store.customers.filter((c) => !c.shopId || c.shopId === shopId);
+  if (Array.isArray(liveData)) {
+    return liveData.map((c) => ({
+      ...c,
+      creditLimit: c.creditLimit || "5000",
+      debtBalance: c.debtBalance !== undefined ? String(c.debtBalance) : "0.00",
+      status: (c.status || (parseFloat(c.debtBalance || "0") > 0 ? "Active" : "Active")) as "Active" | "Overdue" | "Inactive",
+      date: c.date || (c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-GB") : "Recent"),
+      recentTransactions: c.recentTransactions || [],
+    }));
   }
+  return [];
 }
 
 
@@ -365,10 +361,11 @@ export async function getDebts(shopId: string, params?: { status?: string; custo
       }
       return mapped;
     }
-    return store.debts.filter((d) => !d.shopId || d.shopId === shopId).map(normalizeDebt);
+    return [];
   } catch (err) {
-    console.warn("Could not fetch live debts, using fallback:", err);
-    return store.debts.filter((d) => !d.shopId || d.shopId === shopId).map(normalizeDebt);
+    // No demo-data fallback: the page shows the error and a retry.
+    console.warn("Could not fetch live debts:", err);
+    throw err;
   }
 }
 
@@ -469,8 +466,10 @@ export async function createDebt(
       }
       return backendCreated || newDebt;
     } catch (err) {
-      console.warn("Backend createDebt failed, using local copy:", err);
-      return newDebt;
+      // Don't pretend the debt was saved: the caller shows the error.
+      const idx = store.debts.indexOf(newDebt);
+      if (idx >= 0) store.debts.splice(idx, 1);
+      throw err;
     }
   }
 
@@ -673,7 +672,10 @@ export async function recordDebtPayment(
         };
       }
     } catch (batchErr) {
-      console.warn("Backend batch-payments endpoint unavailable or failed, falling back to individual endpoints:", batchErr);
+      // Don't retry one by one (a payment may already have gone through) and
+      // don't mark it paid locally: the caller shows the error.
+      console.warn("Backend batch-payments failed:", batchErr);
+      throw batchErr;
     }
   }
 
@@ -996,22 +998,16 @@ export async function getSales(
     return list;
   }
 
-  try {
-    const query = new URLSearchParams();
-    if (params?.startDate) query.set("startDate", params.startDate);
-    if (params?.endDate) query.set("endDate", params.endDate);
-    if (params?.customerId) query.set("customerId", params.customerId);
-    if (params?.paymentMethod) query.set("paymentMethod", params.paymentMethod);
-    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  // Errors propagate (no demo data); Sales History falls back to its offline cache.
+  const query = new URLSearchParams();
+  if (params?.startDate) query.set("startDate", params.startDate);
+  if (params?.endDate) query.set("endDate", params.endDate);
+  if (params?.customerId) query.set("customerId", params.customerId);
+  if (params?.paymentMethod) query.set("paymentMethod", params.paymentMethod);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
 
-    const liveData = await apiRequest<Sale[]>(`${API_ENDPOINTS.shops.sales(shopId)}${suffix}`);
-    if (Array.isArray(liveData)) {
-      return liveData;
-    }
-    return store.sales.filter((s) => !s.shopId || s.shopId === shopId);
-  } catch {
-    return store.sales.filter((s) => !s.shopId || s.shopId === shopId);
-  }
+  const liveData = await apiRequest<Sale[]>(`${API_ENDPOINTS.shops.sales(shopId)}${suffix}`);
+  return Array.isArray(liveData) ? liveData : [];
 }
 
 export async function getSaleDetail(shopId: string, saleId: string) {
@@ -1021,11 +1017,7 @@ export async function getSaleDetail(shopId: string, saleId: string) {
     return seedSales.find((s) => s.id === saleId) || null;
   }
 
-  try {
-    return await apiRequest<Sale>(API_ENDPOINTS.shops.saleDetail(shopId, saleId));
-  } catch {
-    return seedSales.find((s) => s.id === saleId) || null;
-  }
+  return apiRequest<Sale>(API_ENDPOINTS.shops.saleDetail(shopId, saleId));
 }
 
 export async function syncOfflineSalesBatch(
@@ -1265,26 +1257,30 @@ export async function getExpenses(shopId: string): Promise<Expense[]> {
     return store.expenses.filter((e) => !e.shopId || e.shopId === shopId);
   }
 
-  try {
-    const live = await apiRequest<any>(API_ENDPOINTS.shops.expenses(shopId));
-    const rawList = Array.isArray(live) ? live : Array.isArray(live?.expenses) ? live.expenses : [];
-
-    return rawList.map((e: any) => ({
-      id: e.id,
-      shopId: e.shopId || shopId,
-      description: e.title || e.description || "Store Expense",
-      category: e.category || "General",
-      amount: typeof e.amount === "number" ? e.amount : parseFloat(e.amount || "0"),
-      paymentMethod: fromBackendExpenseMethod(e.paymentMethod),
-      status: fromBackendExpenseStatus(e.status),
-      date: e.expenseDate
-        ? new Date(e.expenseDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-        : (e.createdAt ? new Date(e.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Today"),
-      notes: e.notes || "",
-    }));
-  } catch {
-    return store.expenses.filter((e) => !e.shopId || e.shopId === shopId);
+  // The backend pages expenses (max 100 per page): load every page so the list
+  // and totals are complete. Errors propagate (no demo data).
+  const rawList: any[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const live = await apiRequest<any>(`${API_ENDPOINTS.shops.expenses(shopId)}?limit=100&page=${page}`);
+    const items = Array.isArray(live) ? live : Array.isArray(live?.expenses) ? live.expenses : [];
+    rawList.push(...items);
+    const totalPages = live?.totalPages ?? live?.pagination?.totalPages ?? 1;
+    if (Array.isArray(live) || page >= totalPages || items.length === 0) break;
   }
+
+  return rawList.map((e: any) => ({
+    id: e.id,
+    shopId: e.shopId || shopId,
+    description: e.title || e.description || "Store Expense",
+    category: e.category || "General",
+    amount: typeof e.amount === "number" ? e.amount : parseFloat(e.amount || "0"),
+    paymentMethod: fromBackendExpenseMethod(e.paymentMethod),
+    status: fromBackendExpenseStatus(e.status),
+    date: e.expenseDate
+      ? new Date(e.expenseDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : (e.createdAt ? new Date(e.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Today"),
+    notes: e.notes || "",
+  }));
 }
 
 export async function createExpense(
@@ -1715,7 +1711,8 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       liveSales.status === "rejected";
 
     if (isAllCoreRejected) {
-      return computeMockDashboardMetrics(shopId);
+      // No demo-data fallback: the dashboard shows the error and a retry.
+      throw backendMetrics.reason;
     }
 
     const bMetrics = backendMetrics.status === "fulfilled" ? backendMetrics.value : null;
@@ -1970,8 +1967,9 @@ export async function getDashboardMetrics(shopId: string): Promise<DashboardMetr
       lowQuantityStock: liveLowStock,
       recentSales: recent,
     };
-  } catch {
-    return computeMockDashboardMetrics(shopId);
+  } catch (err) {
+    console.warn("Could not load dashboard metrics:", err);
+    throw err;
   }
 }
 
@@ -2115,113 +2113,106 @@ export async function getShopAnalytics(
     return computeAnalytics(shopSales, shopProducts, shopCustomers, shopDebts);
   }
 
-  try {
-    const query = new URLSearchParams();
-    if (params?.period) query.set("period", params.period);
-    if (params?.startDate) query.set("startDate", params.startDate);
-    if (params?.endDate) query.set("endDate", params.endDate);
-    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  const query = new URLSearchParams();
+  if (params?.period) query.set("period", params.period);
+  if (params?.startDate) query.set("startDate", params.startDate);
+  if (params?.endDate) query.set("endDate", params.endDate);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
 
-    const live = await apiRequest<any>(`${API_ENDPOINTS.shops.analytics(shopId)}${suffix}`);
-    if (live && (live.sales || live.salesAnalytics)) {
-      const s = live.sales || live.salesAnalytics || {};
-      const p = live.products || live.productAnalytics || {};
-      const c = live.customers || live.customerAnalytics || {};
-      const d = live.debts || live.debtAnalytics || {};
+  const live = await apiRequest<any>(`${API_ENDPOINTS.shops.analytics(shopId)}${suffix}`);
+  if (live && (live.sales || live.salesAnalytics)) {
+    const s = live.sales || live.salesAnalytics || {};
+    const p = live.products || live.productAnalytics || {};
+    const c = live.customers || live.customerAnalytics || {};
+    const d = live.debts || live.debtAnalytics || {};
 
-      const rawPmb = s.paymentMethodBreakdown || {};
-      const pmb = {
-        ...rawPmb,
-        CASH: rawPmb.CASH || { count: 0, totalAmount: 0 },
-        CARD: rawPmb.CARD || rawPmb.BANK || { count: 0, totalAmount: 0 },
-        MOBILE: rawPmb.MOBILE || rawPmb.TELEBIRR || { count: 0, totalAmount: 0 },
-        BANK: rawPmb.BANK || rawPmb.CARD || { count: 0, totalAmount: 0 },
-        TELEBIRR: rawPmb.TELEBIRR || rawPmb.MOBILE || { count: 0, totalAmount: 0 },
-      };
+    const rawPmb = s.paymentMethodBreakdown || {};
+    const pmb = {
+      ...rawPmb,
+      CASH: rawPmb.CASH || { count: 0, totalAmount: 0 },
+      CARD: rawPmb.CARD || rawPmb.BANK || { count: 0, totalAmount: 0 },
+      MOBILE: rawPmb.MOBILE || rawPmb.TELEBIRR || { count: 0, totalAmount: 0 },
+      BANK: rawPmb.BANK || rawPmb.CARD || { count: 0, totalAmount: 0 },
+      TELEBIRR: rawPmb.TELEBIRR || rawPmb.MOBILE || { count: 0, totalAmount: 0 },
+    };
 
-      const rawTop = Array.isArray(p?.topSellingProducts) ? p.topSellingProducts : [];
-      const enrichedTop = rawTop.map((tp: any) => {
-        const matched = shopProducts.find(
-          (sp) => sp.id === tp.productId || sp.sku === tp.sku || sp.name?.toLowerCase() === tp.name?.toLowerCase(),
-        );
-        const rawBuying =
-          tp.buyingPrice ??
-          tp.costPrice ??
-          matched?.buyingPrice ??
-          (matched?.attributes as any)?.buyingPrice ??
-          (matched?.attributes as any)?.costPrice;
-        const bPrice =
-          rawBuying !== undefined && rawBuying !== null && !isNaN(Number(rawBuying))
-            ? Number(rawBuying)
-            : undefined;
-        const rawSelling =
-          tp.sellingPrice ??
-          tp.price ??
-          (matched?.price ? parseFloat(matched.price) : undefined) ??
-          (tp.totalQuantitySold ? tp.totalRevenue / tp.totalQuantitySold : undefined);
-        const sPrice =
-          rawSelling !== undefined && rawSelling !== null && !isNaN(Number(rawSelling))
-            ? Number(rawSelling)
-            : undefined;
-        return {
-          ...tp,
-          buyingPrice: bPrice,
-          sellingPrice: sPrice,
-        };
-      });
-
-      return {
-        period: live.period || period,
-        dateRange: {
-          startDate: live.startDate || live.dateRange?.startDate || startDate,
-          endDate: live.endDate || live.dateRange?.endDate || endDate,
-        },
-        salesAnalytics: {
-          totalSalesCount: s.totalSalesCount ?? 0,
-          totalRevenue: typeof s.totalRevenue === "number" ? s.totalRevenue : parseFloat(s.totalRevenue || "0"),
-          totalTaxCollected: typeof s.totalTaxCollected === "number" ? s.totalTaxCollected : parseFloat(s.totalTaxCollected || "0"),
-          totalDiscountsGiven: typeof s.totalDiscountsGiven === "number" ? s.totalDiscountsGiven : parseFloat(s.totalDiscountsGiven || "0"),
-          averageOrderValue: typeof s.averageOrderValue === "number" ? s.averageOrderValue : parseFloat(s.averageOrderValue || "0"),
-          paymentMethodBreakdown: pmb,
-          salesTrend: Array.isArray(s.salesTrend) ? s.salesTrend : [],
-        },
-        productAnalytics: {
-          topSellingProducts: enrichedTop,
-          lowStockCount: p?.lowStockCount ?? 0,
-          totalProductsCount: p?.totalProductsCount ?? 0,
-        },
-        customerAnalytics: {
-          totalCustomers: c?.totalCustomers ?? 0,
-          newCustomersInPeriod: c?.newCustomersInPeriod ?? 0,
-          topCustomers: Array.isArray(c?.topCustomers) ? c.topCustomers : [],
-          outstandingDebt: {
-            count: d?.outstandingDebtsCount ?? d?.count ?? 0,
-            totalAmount: typeof d?.totalOutstandingDebtAmount === "number" ? d.totalOutstandingDebtAmount : (d?.totalAmount ?? 0),
-          },
-        },
-      };
-    }
-
-    // Live fallback: compute directly from this shop's data
-    try {
-      const [liveSales, liveProds, liveCusts, liveD] = await Promise.all([
-        getSales(shopId),
-        apiRequest<Product[]>(API_ENDPOINTS.shops.products(shopId)).catch(() => shopProducts),
-        getCustomers(shopId),
-        getDebts(shopId),
-      ]);
-      return computeAnalytics(
-        Array.isArray(liveSales) ? liveSales : shopSales,
-        Array.isArray(liveProds) ? liveProds : shopProducts,
-        Array.isArray(liveCusts) ? liveCusts : shopCustomers,
-        Array.isArray(liveD) ? liveD : shopDebts,
+    const rawTop = Array.isArray(p?.topSellingProducts) ? p.topSellingProducts : [];
+    const enrichedTop = rawTop.map((tp: any) => {
+      const matched = shopProducts.find(
+        (sp) => sp.id === tp.productId || sp.sku === tp.sku || sp.name?.toLowerCase() === tp.name?.toLowerCase(),
       );
-    } catch {
-      return computeAnalytics(shopSales, shopProducts, shopCustomers, shopDebts);
-    }
-  } catch {
-    return computeAnalytics(shopSales, shopProducts, shopCustomers, shopDebts);
+      const rawBuying =
+        tp.buyingPrice ??
+        tp.costPrice ??
+        matched?.buyingPrice ??
+        (matched?.attributes as any)?.buyingPrice ??
+        (matched?.attributes as any)?.costPrice;
+      const bPrice =
+        rawBuying !== undefined && rawBuying !== null && !isNaN(Number(rawBuying))
+          ? Number(rawBuying)
+          : undefined;
+      const rawSelling =
+        tp.sellingPrice ??
+        tp.price ??
+        (matched?.price ? parseFloat(matched.price) : undefined) ??
+        (tp.totalQuantitySold ? tp.totalRevenue / tp.totalQuantitySold : undefined);
+      const sPrice =
+        rawSelling !== undefined && rawSelling !== null && !isNaN(Number(rawSelling))
+          ? Number(rawSelling)
+          : undefined;
+      return {
+        ...tp,
+        buyingPrice: bPrice,
+        sellingPrice: sPrice,
+      };
+    });
+
+    return {
+      period: live.period || period,
+      dateRange: {
+        startDate: live.startDate || live.dateRange?.startDate || startDate,
+        endDate: live.endDate || live.dateRange?.endDate || endDate,
+      },
+      salesAnalytics: {
+        totalSalesCount: s.totalSalesCount ?? 0,
+        totalRevenue: typeof s.totalRevenue === "number" ? s.totalRevenue : parseFloat(s.totalRevenue || "0"),
+        totalTaxCollected: typeof s.totalTaxCollected === "number" ? s.totalTaxCollected : parseFloat(s.totalTaxCollected || "0"),
+        totalDiscountsGiven: typeof s.totalDiscountsGiven === "number" ? s.totalDiscountsGiven : parseFloat(s.totalDiscountsGiven || "0"),
+        averageOrderValue: typeof s.averageOrderValue === "number" ? s.averageOrderValue : parseFloat(s.averageOrderValue || "0"),
+        paymentMethodBreakdown: pmb,
+        salesTrend: Array.isArray(s.salesTrend) ? s.salesTrend : [],
+      },
+      productAnalytics: {
+        topSellingProducts: enrichedTop,
+        lowStockCount: p?.lowStockCount ?? 0,
+        totalProductsCount: p?.totalProductsCount ?? 0,
+      },
+      customerAnalytics: {
+        totalCustomers: c?.totalCustomers ?? 0,
+        newCustomersInPeriod: c?.newCustomersInPeriod ?? 0,
+        topCustomers: Array.isArray(c?.topCustomers) ? c.topCustomers : [],
+        outstandingDebt: {
+          count: d?.outstandingDebtsCount ?? d?.count ?? 0,
+          totalAmount: typeof d?.totalOutstandingDebtAmount === "number" ? d.totalOutstandingDebtAmount : (d?.totalAmount ?? 0),
+        },
+      },
+    };
   }
+
+  // Live fallback: compute directly from this shop's data. Errors propagate
+  // (no demo data); Reports shows the error and a retry.
+  const [liveSales, liveProds, liveCusts, liveD] = await Promise.all([
+    getSales(shopId),
+    apiRequest<Product[]>(API_ENDPOINTS.shops.products(shopId)),
+    getCustomers(shopId),
+    getDebts(shopId),
+  ]);
+  return computeAnalytics(
+    Array.isArray(liveSales) ? liveSales : [],
+    Array.isArray(liveProds) ? liveProds : [],
+    Array.isArray(liveCusts) ? liveCusts : [],
+    Array.isArray(liveD) ? liveD : [],
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -2261,19 +2252,8 @@ export async function getUserProfile(): Promise<UserProfile> {
     };
   }
 
-  try {
-    return await apiRequest<UserProfile>(API_ENDPOINTS.auth.profile);
-  } catch {
-    return {
-      id: "u-profile-1",
-      email: DEMO_CREDENTIALS.owner.email,
-      name: "Alex Owner",
-      role: "OWNER",
-      shopId: null,
-      isActive: true,
-      createdAt: "2026-08-12T08:50:41.994Z",
-    };
-  }
+  // Errors propagate: Settings must never show a demo profile as if it were yours.
+  return apiRequest<UserProfile>(API_ENDPOINTS.auth.profile);
 }
 
 export async function updateUserProfile(input: UpdateProfileInput): Promise<UserProfile> {
@@ -2324,30 +2304,26 @@ export async function getOrders(shopId: string): Promise<OrderRecord[]> {
     return store.orders.filter((o) => !o.shopId || o.shopId === shopId);
   }
 
-  try {
-    const sales = await getSales(shopId);
-    if (Array.isArray(sales) && sales.length > 0) {
-      return sales.map((s) => {
-        const firstItem = s.items?.[0];
-        const productName = firstItem?.product?.name || firstItem?.productId || "POS Sale Order";
-        const totalQty = s.items?.reduce((sum, it) => sum + (it.quantity || 1), 0) ?? 1;
+  const sales = await getSales(shopId);
+  if (Array.isArray(sales) && sales.length > 0) {
+    return sales.map((s) => {
+      const firstItem = s.items?.[0];
+      const productName = firstItem?.product?.name || firstItem?.productId || "POS Sale Order";
+      const totalQty = s.items?.reduce((sum, it) => sum + (it.quantity || 1), 0) ?? 1;
 
-        return {
-          id: s.id,
-          shopId: s.shopId || shopId,
-          orderId: s.id.slice(0, 8),
-          product: s.items && s.items.length > 1 ? `${productName} +${s.items.length - 1} items` : productName,
-          price: parseFloat(s.totalAmount || "0"),
-          quantity: `${totalQty} Packet`,
-          expectedDelivery: new Date(s.createdAt).toLocaleDateString("en-GB"),
-          status: s.status === "COMPLETED" ? "Confirmed" : s.status === "CANCELLED" ? "Returned" : "Out for delivery",
-        };
-      });
-    }
-    return store.orders.filter((o) => !o.shopId || o.shopId === shopId);
-  } catch {
-    return store.orders.filter((o) => !o.shopId || o.shopId === shopId);
+      return {
+        id: s.id,
+        shopId: s.shopId || shopId,
+        orderId: s.id.slice(0, 8),
+        product: s.items && s.items.length > 1 ? `${productName} +${s.items.length - 1} items` : productName,
+        price: parseFloat(s.totalAmount || "0"),
+        quantity: `${totalQty} Packet`,
+        expectedDelivery: new Date(s.createdAt).toLocaleDateString("en-GB"),
+        status: s.status === "COMPLETED" ? "Confirmed" : s.status === "CANCELLED" ? "Returned" : "Out for delivery",
+      };
+    });
   }
+  return [];
 }
 
 export async function createOrder(
@@ -2420,26 +2396,22 @@ export async function getTeamMembers(shopId: string): Promise<TeamMember[]> {
   if (isMockApiEnabled()) {
     members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
   } else {
-    try {
-      const live = await apiRequest<any[]>(API_ENDPOINTS.shops.staff(shopId));
-      if (Array.isArray(live)) {
-        members = live.map((s) => ({
-          id: s.id,
-          shopId: s.shopId || shopId,
-          name: s.name,
-          email: s.email,
-          role: s.role === "ADMIN" ? "Shop Admin" : "Shop Sale",
-          status: s.isActive ? "Active" : "Suspended",
-          joinedDate: s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB") : "Recent",
-          lastLogin: s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-GB") : "Recent",
-          phone: s.phone || "+251911223344",
-          permissions: s.role === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS", "View Products"],
-        }));
-      } else {
-        members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
-      }
-    } catch {
-      members = store.teamMembers.filter((m) => !m.shopId || m.shopId === shopId);
+    const live = await apiRequest<any[]>(API_ENDPOINTS.shops.staff(shopId));
+    if (Array.isArray(live)) {
+      members = live.map((s) => ({
+        id: s.id,
+        shopId: s.shopId || shopId,
+        name: s.name,
+        email: s.email,
+        role: s.role === "ADMIN" ? "Shop Admin" : "Shop Sale",
+        status: s.isActive ? "Active" : "Suspended",
+        joinedDate: s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB") : "Recent",
+        lastLogin: s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-GB") : "Recent",
+        phone: s.phone || "+251911223344",
+        permissions: s.role === "ADMIN" ? ["All Admin Permissions"] : ["Sales & POS", "View Products"],
+      }));
+    } else {
+      members = [];
     }
   }
 
@@ -2502,8 +2474,13 @@ export async function createTeamMember(
       if (res && res.id) {
         newMember.id = res.id;
       }
-    } catch {
-      // Graceful fallback to optimistic local update
+    } catch (err) {
+      // Don't pretend the staff account exists: undo the local copy and report it.
+      const i = store.teamMembers.indexOf(newMember);
+      if (i >= 0) store.teamMembers.splice(i, 1);
+      const j = seedTeamMembers.indexOf(newMember);
+      if (j >= 0) seedTeamMembers.splice(j, 1);
+      throw err;
     }
   }
 
@@ -2579,7 +2556,8 @@ export async function updateTeamMember(
         return updated;
       }
     } catch (err) {
-      console.warn("Backend updateTeamMember failed, using optimistic state:", err);
+      console.warn("Backend updateTeamMember failed:", err);
+      throw err;
     }
   }
 
@@ -2594,13 +2572,9 @@ export async function deleteTeamMember(shopId: string, memberId: string) {
   }
 
   if (!isMockApiEnabled()) {
-    try {
-      await apiRequest(API_ENDPOINTS.shops.staffMember(shopId, memberId), {
-        method: "DELETE",
-      });
-    } catch {
-      // Graceful fallback
-    }
+    await apiRequest(API_ENDPOINTS.shops.staffMember(shopId, memberId), {
+      method: "DELETE",
+    });
   }
 
   return { success: true, message: "Team member deleted" };

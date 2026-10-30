@@ -178,6 +178,43 @@ export type SupplierPayment = {
   paidAt: string;
 };
 
+/** Why stock changed outside a sale or a paid restock. */
+export type StockAdjustmentReason =
+  | "DAMAGED"
+  | "EXPIRED"
+  | "LOST"
+  | "OWN_USE"
+  | "COUNT_CORRECTION"
+  | "CUSTOMER_RETURN"
+  | "FOUND"
+  | "TRANSFER_IN"
+  | "TRANSFER_OUT"
+  | "OTHER";
+
+export type StockAdjustmentRecord = {
+  id: string;
+  productId: string | null;
+  productName: string;
+  type: "ADD" | "REMOVE" | "SET";
+  quantityBefore: number;
+  quantityAfter: number;
+  change: number;
+  reason: StockAdjustmentReason;
+  notes: string | null;
+  location: string | null;
+  unitCost: number;
+  /** change × buying price; negative means stock value lost */
+  valueChange: number;
+  createdAt: string;
+};
+
+export type StockAdjustmentList = {
+  count: number;
+  valueLost: number;
+  valueAdded: number;
+  items: StockAdjustmentRecord[];
+};
+
 export type ProductAdjustment = {
   id: string;
   productId: string;

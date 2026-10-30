@@ -40,6 +40,7 @@ export const API_ENDPOINTS = {
     purchases: (shopId: string) => `/shops/${shopId}/purchases`,
     supplierPayments: (shopId: string) => `/shops/${shopId}/supplier-payments`,
     supplierPayables: (shopId: string) => `/shops/${shopId}/supplier-payments/payables`,
+    stockAdjustments: (shopId: string) => `/shops/${shopId}/stock-adjustments`,
     analytics: (shopId: string) => `/shops/${shopId}/analytics`,
     notifications: (shopId: string) => `/shops/${shopId}/notifications`,
     notificationsUnreadCount: (shopId: string) => `/shops/${shopId}/notifications/unread-count`,

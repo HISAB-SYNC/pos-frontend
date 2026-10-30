@@ -59,6 +59,8 @@ export function PaySupplierModal({
   const [notes, setNotes] = useState("");
   const [history, setHistory] = useState<SupplierPayment[]>([]);
   const [extraMoneyAnswer, setExtraMoneyAnswer] = useState<{ key: string; reason: MoneyAddedReason } | null>(null);
+  // Restocks picked for this supplier; null means all of them.
+  const [picked, setPicked] = useState<{ supplier: string; ids: Set<string> } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,8 +102,32 @@ export function PaySupplierModal({
   }, [shopId, selected]);
 
   const owed = selected?.owed ?? 0;
+  const restocks = selected?.purchases ?? [];
+  const pickedIds = picked?.supplier === activeKey ? picked.ids : null;
+  const isPicked = (id: string) => !pickedIds || pickedIds.has(id);
+  const pickedRestocks = restocks.filter((p) => isPicked(p.id));
+  const allPicked = pickedRestocks.length === restocks.length;
+  // What the picked restocks still need; payments can't go above it.
+  const payable = Math.round(pickedRestocks.reduce((sum, p) => sum + p.remaining, 0) * 100) / 100;
   const amountNum = Math.round((parseFloat(amount) || 0) * 100) / 100;
-  const tooMuch = amountNum > owed + 0.001;
+  const tooMuch = amountNum > payable + 0.001;
+
+  function setPickedIds(ids: Set<string>) {
+    setPicked({ supplier: activeKey, ids });
+    const sum = restocks.filter((p) => ids.has(p.id)).reduce((total, p) => total + p.remaining, 0);
+    setAmount(sum > 0 ? String(Math.round(sum * 100) / 100) : "");
+  }
+
+  function toggleRestock(id: string) {
+    const ids = new Set(pickedRestocks.map((p) => p.id));
+    if (ids.has(id)) ids.delete(id);
+    else ids.add(id);
+    setPickedIds(ids);
+  }
+
+  function toggleAll() {
+    setPickedIds(allPicked ? new Set() : new Set(restocks.map((p) => p.id)));
+  }
 
   const balance = funds?.accounts.find((a) => a.account === account)?.balance ?? null;
   const shortfall = balance !== null && amountNum > balance ? Math.round((amountNum - balance) * 100) / 100 : 0;
@@ -112,7 +138,12 @@ export function PaySupplierModal({
   const accountLabel = ACCOUNT_OPTIONS.find((o) => o.key === account)?.label ?? "";
 
   const canSubmit =
-    !!selected && amountNum > 0 && !tooMuch && (shortfall === 0 || extraMoneyReason !== null) && !isSubmitting;
+    !!selected &&
+    pickedRestocks.length > 0 &&
+    amountNum > 0 &&
+    !tooMuch &&
+    (shortfall === 0 || extraMoneyReason !== null) &&
+    !isSubmitting;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,6 +156,7 @@ export function PaySupplierModal({
         supplierName: selected.supplierName,
         amount: amountNum,
         account,
+        purchaseIds: allPicked ? undefined : pickedRestocks.map((p) => p.id),
         notes: notes.trim() || undefined,
         moneyAdded: shortfall > 0 && extraMoneyReason ? { amount: shortfall, reason: extraMoneyReason } : undefined,
       });
@@ -175,37 +207,60 @@ export function PaySupplierModal({
                   </option>
                 ))}
               </select>
-              {selected && (
-                <ul className="mt-2 divide-y divide-zinc-100 rounded-md border border-zinc-200/80">
-                  {selected.purchases.slice(0, 4).map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-1.5">
-                      <span className="truncate text-zinc-600">
-                        {p.productName} × {p.quantity}
-                        <span className="ml-1.5 font-mono text-[10px] text-zinc-400">{formatDate(p.purchasedAt)}</span>
-                      </span>
-                      <span className="shrink-0 font-mono font-semibold tabular-nums text-zinc-900">
-                        {formatEtb(p.remaining)}
-                      </span>
+            </div>
+
+            {restocks.length > 0 && (
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="font-semibold text-zinc-700">Restocks to settle</label>
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    className="text-[11px] font-semibold text-[#5B4FE9] hover:underline"
+                  >
+                    {allPicked ? "Clear all" : "Select all"}
+                  </button>
+                </div>
+                <ul className="max-h-44 divide-y divide-zinc-100 overflow-y-auto rounded-md border border-zinc-200/80">
+                  {restocks.map((p) => (
+                    <li key={p.id}>
+                      <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 hover:bg-zinc-50">
+                        <input
+                          type="checkbox"
+                          checked={isPicked(p.id)}
+                          onChange={() => toggleRestock(p.id)}
+                          className="size-3.5 accent-[#5B4FE9]"
+                        />
+                        <span className="min-w-0 flex-1 truncate text-zinc-700">
+                          {p.productName} × {p.quantity}
+                          <span className="ml-1.5 font-mono text-[10px] text-zinc-400">{formatDate(p.purchasedAt)}</span>
+                          {p.amountPaid > 0 && (
+                            <span className="ml-1.5 text-[10px] text-zinc-400">({formatEtb(p.amountPaid)} paid)</span>
+                          )}
+                        </span>
+                        <span className="shrink-0 font-mono font-semibold tabular-nums text-zinc-900">
+                          {formatEtb(p.remaining)}
+                        </span>
+                      </label>
                     </li>
                   ))}
-                  {selected.purchases.length > 4 && (
-                    <li className="px-3 py-1.5 text-[10px] text-zinc-500">
-                      +{selected.purchases.length - 4} more restocks
-                    </li>
-                  )}
                 </ul>
-              )}
-            </div>
+                <p className="mt-1 text-[10px] text-zinc-500">
+                  {pickedRestocks.length} of {restocks.length} selected · {formatEtb(payable)} ETB. A smaller amount
+                  pays the oldest selected first.
+                </p>
+              </div>
+            )}
 
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <label className="font-semibold text-zinc-700">Amount (ETB) *</label>
                 <button
                   type="button"
-                  onClick={() => setAmount(String(owed))}
+                  onClick={() => setAmount(String(payable))}
                   className="text-[11px] font-semibold text-[#5B4FE9] hover:underline"
                 >
-                  Pay all {formatEtb(owed)}
+                  {allPicked ? "Pay all" : "Pay selected"} {formatEtb(payable)}
                 </button>
               </div>
               <input
@@ -215,11 +270,13 @@ export function PaySupplierModal({
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={`Up to ${formatEtb(owed)}`}
+                placeholder={`Up to ${formatEtb(payable)}`}
                 className={`${inputClass} font-mono font-semibold`}
               />
               {tooMuch && (
-                <p className="mt-1 text-[10px] text-rose-700">That&apos;s more than the {formatEtb(owed)} ETB owed.</p>
+                <p className="mt-1 text-[10px] text-rose-700">
+                  That&apos;s more than the {formatEtb(payable)} ETB {allPicked ? "owed" : "for the selected restocks"}.
+                </p>
               )}
             </div>
 

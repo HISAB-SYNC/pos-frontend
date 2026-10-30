@@ -2117,6 +2117,8 @@ export async function getShopAnalytics(
   if (params?.period) query.set("period", params.period);
   if (params?.startDate) query.set("startDate", params.startDate);
   if (params?.endDate) query.set("endDate", params.endDate);
+  // Day boundaries in the shop's local time (Addis Ababa), not the server's UTC.
+  query.set("tz", Intl.DateTimeFormat().resolvedOptions().timeZone);
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
 
   const live = await apiRequest<any>(`${API_ENDPOINTS.shops.analytics(shopId)}${suffix}`);

@@ -94,6 +94,8 @@ function StockAdjustModal({
   // Restock purchase details
   const [isPurchase, setIsPurchase] = useState(true);
   const [unitCost, setUnitCost] = useState(product?.buyingPrice ? String(product.buyingPrice) : "");
+  // Optional: update the selling price while restocking (blank = keep it).
+  const [sellingPrice, setSellingPrice] = useState("");
   const [paidFrom, setPaidFrom] = useState<PurchaseFunding>("CASH_DRAWER");
   const [supplierId, setSupplierId] = useState(product?.supplierId || "");
   const [supplierName, setSupplierName] = useState("");
@@ -126,6 +128,8 @@ function StockAdjustModal({
   const unitCostNum = parseFloat(unitCost) || 0;
   const totalCostNum = lineTotal(adjustQtyNum, unitCostNum);
   const isRestock = adjustmentType === "ADD" && isPurchase;
+  const sellingPriceNum = parseFloat(sellingPrice) || 0;
+  const currentSellingPrice = Number(product.price || 0);
   const reasonOptions = REASONS_FOR[adjustmentType];
   const reason: StockAdjustmentReason =
     reasonChoice && reasonOptions.includes(reasonChoice) ? reasonChoice : reasonOptions[0];
@@ -170,6 +174,7 @@ function StockAdjustModal({
           productId: product.id,
           quantity: adjustQtyNum,
           unitCost: unitCostNum,
+          sellingPrice: sellingPriceNum > 0 ? sellingPriceNum : undefined,
           fundingSource: paidFrom,
           supplierId: selectedSupplier?.id,
           supplier: selectedSupplier ? undefined : supplierName.trim() || undefined,
@@ -334,6 +339,31 @@ function StockAdjustModal({
 
           {isRestock && (
             <>
+              <div>
+                <label className="mb-1 block font-semibold text-zinc-700">New selling price (optional)</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  value={sellingPrice}
+                  onChange={(e) => setSellingPrice(e.target.value)}
+                  placeholder={`Now ${formatEtb(currentSellingPrice)} ETB — leave blank to keep`}
+                  className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:font-sans placeholder:font-normal placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
+                />
+                {(() => {
+                  const price = sellingPriceNum > 0 ? sellingPriceNum : currentSellingPrice;
+                  if (unitCostNum <= 0 || price <= 0) return null;
+                  const margin = ((price - unitCostNum) / price) * 100;
+                  return (
+                    <p className={`mt-1 text-[10px] ${price < unitCostNum ? "text-rose-700" : "text-zinc-500"}`}>
+                      {price < unitCostNum
+                        ? `Selling below buying price: you lose ${formatEtb(unitCostNum - price)} ETB per unit.`
+                        : `Profit ${formatEtb(price - unitCostNum)} ETB per unit (${margin.toFixed(1)}% margin)${sellingPriceNum > 0 ? "" : " at the current price"}.`}
+                    </p>
+                  );
+                })()}
+              </div>
+
               <div>
                 <label className="mb-1 block font-semibold text-zinc-700">
                   {paidFrom === "SUPPLIER_CREDIT" ? "Supplier you owe *" : "Supplier (optional)"}

@@ -294,6 +294,8 @@ export async function createPurchase(
     reference?: string;
     notes?: string;
     moneyAdded?: { amount: number; reason: MoneyAddedReason; notes?: string };
+    /** Optional new selling price, saved in the same step. */
+    sellingPrice?: number;
   },
 ): Promise<{ purchase: { id: string; totalCost: string | number }; product: Product }> {
   if (isMockApiEnabled()) {
@@ -312,6 +314,7 @@ export async function createPurchase(
     const product = await mockShops.mockUpdateProduct(shopId, input.productId, {
       stockQuantity: Math.round(((current?.stockQuantity ?? 0) + input.quantity) * 1000) / 1000,
       buyingPrice: input.unitCost,
+      ...(input.sellingPrice ? { price: input.sellingPrice } : {}),
     });
     return { purchase: { id: purchase.id, totalCost }, product: product as Product };
   }

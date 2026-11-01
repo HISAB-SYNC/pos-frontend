@@ -2,7 +2,7 @@ import { isMockApiEnabled } from "@/config/env";
 import { getMockStore } from "@/lib/mock/store";
 import { apiRequest } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import type { AnalyticsPeriod, Customer, Debt, Product, Sale, ShopAnalyticsReport } from "./types";
+import type { AnalyticsPeriod, Customer, Debt, Product, ProductReport, Sale, ShopAnalyticsReport } from "./types";
 
 import { getCustomers } from "./customers";
 import { getDebts } from "./debts";
@@ -247,4 +247,25 @@ export async function getShopAnalytics(
     Array.isArray(liveCusts) ? liveCusts : [],
     Array.isArray(liveD) ? liveD : [],
   );
+}
+
+/**
+ * Per-product report: sold, cost of goods, restocks and stock now. `from`/`to`
+ * are plain dates (shop-local days) or ISO instants; omit `from` for all time.
+ */
+export async function getProductReport(
+  shopId: string,
+  range: { from?: string; to?: string } = {},
+): Promise<ProductReport> {
+  if (isMockApiEnabled()) {
+    return {
+      period: { from: range.from ?? null, to: new Date().toISOString(), timeZone: "Africa/Addis_Ababa" },
+      totals: { products: 0, soldUnits: 0, revenue: 0, cogs: 0, profit: 0, restockedUnits: 0, restockCost: 0, restockPaidNow: 0, restockOnCredit: 0 },
+      items: [],
+    };
+  }
+  const query = new URLSearchParams({ tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  if (range.from) query.set("from", range.from);
+  if (range.to) query.set("to", range.to);
+  return apiRequest<ProductReport>(`${API_ENDPOINTS.shops.productReport(shopId)}?${query.toString()}`);
 }

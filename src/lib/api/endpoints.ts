@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
     supplierPayables: (shopId: string) => `/shops/${shopId}/supplier-payments/payables`,
     stockAdjustments: (shopId: string) => `/shops/${shopId}/stock-adjustments`,
     analytics: (shopId: string) => `/shops/${shopId}/analytics`,
+    productReport: (shopId: string) => `/shops/${shopId}/analytics/products`,
     notifications: (shopId: string) => `/shops/${shopId}/notifications`,
     notificationsUnreadCount: (shopId: string) => `/shops/${shopId}/notifications/unread-count`,
     markNotificationRead: (shopId: string, id: string) => `/shops/${shopId}/notifications/${id}/read`,

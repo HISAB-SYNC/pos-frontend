@@ -119,6 +119,22 @@ export function ProductReport({ shopId }: { shopId: string }) {
   }
 
   const t = report?.totals;
+  // Footer totals follow the rows shown (search and filter applied).
+  const shown = useMemo(() => {
+    const add = (f: (i: ProductReportItem) => number, digits = 100) =>
+      Math.round(rows.reduce((sum, i) => sum + f(i), 0) * digits) / digits;
+    return {
+      products: rows.length,
+      soldUnits: add((i) => i.sold.units, 1000),
+      revenue: add((i) => i.sold.revenue),
+      cogs: add((i) => i.sold.cogs),
+      profit: add((i) => i.sold.profit),
+      restockedUnits: add((i) => i.restocked.units, 1000),
+      restockCost: add((i) => i.restocked.cost),
+      restockOnCredit: add((i) => i.restocked.onCredit),
+    };
+  }, [rows]);
+  const isFiltered = !!search.trim() || view !== "ALL";
 
   return (
     <div id="product-report" className="space-y-5">
@@ -195,6 +211,9 @@ export function ProductReport({ shopId }: { shopId: string }) {
       ) : (
         <>
           {/* Summary */}
+          <p className="-mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+            {label} · all products
+          </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
               { label: "Sales value", value: t?.revenue, hint: t ? `${formatQuantity(t.soldUnits)} units sold` : "" },
@@ -292,24 +311,24 @@ export function ProductReport({ shopId }: { shopId: string }) {
                       </tr>
                     ))}
                   </tbody>
-                  {t && (
+                  {rows.length > 0 && (
                     <tfoot>
                       <tr className="border-t-2 border-zinc-900 font-semibold text-zinc-900">
-                        <td className="px-4 py-2.5">Total ({t.products} products)</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatQuantity(t.soldUnits)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(t.revenue)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(t.cogs)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(t.profit)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatQuantity(t.restockedUnits)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(t.restockCost)}</td>
+                        <td className="px-4 py-2.5">Total ({shown.products} {shown.products === 1 ? "product" : "products"}{isFiltered ? " shown" : ""})</td>
+                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatQuantity(shown.soldUnits)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(shown.revenue)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(shown.cogs)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(shown.profit)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatQuantity(shown.restockedUnits)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(shown.restockCost)}</td>
                         <td className="px-4 py-2.5" />
                       </tr>
                     </tfoot>
                   )}
                 </table>
-                {(search || view !== "ALL") && (
+                {isFiltered && (
                   <p className="border-t border-zinc-100 px-4 py-2 text-[11px] text-zinc-500 print:hidden">
-                    Totals above cover every product in the period. Excel exports the rows shown, with their own totals.
+                    The total row covers the products shown. The cards at the top cover every product in the period.
                   </p>
                 )}
               </div>

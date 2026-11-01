@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  BarChart3,
   Banknote,
   Download,
   Landmark,
@@ -746,6 +747,13 @@ export default function InventoryPage() {
               <ReceiptText className="size-3.5 text-zinc-500" />
               Stock log
             </button>
+            <Link
+              href="/reports?tab=products"
+              className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
+            >
+              <BarChart3 className="size-3.5 text-zinc-500" />
+              Product report
+            </Link>
             <Link
               href="/products"
               className="flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-4 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"

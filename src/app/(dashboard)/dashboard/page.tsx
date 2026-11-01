@@ -1,35 +1,32 @@
 "use client";
 
 import {
-  AlertTriangle,
   ArrowUpRight,
   Banknote,
   CheckCircle2,
   HandCoins,
   Landmark,
-  Package,
   Plus,
-  RotateCcw,
   Smartphone,
   Store,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DashboardCard, SeeAllLink } from "@/components/dashboard/dashboard-widgets";
 import { KpiPeriodCards } from "@/components/dashboard/kpi-period-cards";
 import { MoneyLeftCard } from "@/components/dashboard/money-left-card";
 import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart";
 import { LoadingState } from "@/components/shared/loading-state";
+import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getDashboardMetrics } from "@/lib/api/app-data";
+import { useT } from "@/lib/i18n/use-t";
 import type { DashboardMetrics } from "@/lib/mock/data";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
-import { useUiStore } from "@/stores/ui-store";
 
 /* ------------------------------------------------------------------ */
 /* Low Quantity Stock item with Restock action                        */
@@ -85,8 +82,11 @@ export default function DashboardPage() {
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
+  const t = useT();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [trendPeriod, setTrendPeriod] = useState<"monthly" | "weekly">("monthly");
 
   useEffect(() => {
@@ -102,9 +102,13 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const data = await getDashboardMetrics(shopId);
-        if (mounted) setMetrics(data);
+        if (mounted) {
+          setMetrics(data);
+          setLoadError(false);
+        }
       } catch (err) {
         console.warn("Could not load dashboard metrics:", err);
+        if (mounted) setLoadError(true);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -114,9 +118,13 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, [shopId]);
+  }, [shopId, reloadKey]);
 
   if (authUser?.role === "SALES") return <LoadingState />;
+
+  if (!isLoading && loadError && !metrics) {
+    return <LoadError what="the dashboard" onRetry={() => setReloadKey((k) => k + 1)} />;
+  }
 
   if (isLoading || !metrics) return <LoadingState />;
 
@@ -138,8 +146,8 @@ export default function DashboardPage() {
         {/* ================================================================= */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/80 pb-4">
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-zinc-950">Store Overview</h1>
-            <p className="text-xs text-zinc-500">Live commercial performance, cash flow, and inventory status</p>
+            <h1 className="text-lg font-bold tracking-tight text-zinc-950">{t("dashboard.title")}</h1>
+            <p className="text-xs text-zinc-500">{t("dashboard.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -147,21 +155,21 @@ export default function DashboardPage() {
               className="inline-flex items-center gap-1.5 rounded-md bg-[#5B4FE9] px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-[#4D40D9] transition-all"
             >
               <Store className="size-3.5" />
-              <span>New Sale (POS)</span>
+              <span>{t("dashboard.newSale")}</span>
             </Link>
             <Link
               href="/products"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-950 transition-all"
             >
               <Plus className="size-3.5 text-zinc-500" />
-              <span>Add Product</span>
+              <span>{t("dashboard.addProduct")}</span>
             </Link>
             <Link
               href="/debts"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-950 transition-all"
             >
               <HandCoins className="size-3.5 text-zinc-500" />
-              <span>Debt Ledger</span>
+              <span>{t("dashboard.debtLedger")}</span>
             </Link>
           </div>
         </div>

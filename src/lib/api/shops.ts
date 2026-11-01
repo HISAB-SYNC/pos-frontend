@@ -8,6 +8,9 @@ import type {
   MoneyAddedReason,
   Product,
   PurchaseFunding,
+  StockAdjustmentList,
+  StockAdjustmentReason,
+  StockAdjustmentRecord,
   Shop,
   Supplier,
 } from "./types";
@@ -320,3 +323,68 @@ export async function createPurchase(
 }
 
 
+
+/**
+ * Changes a product's stock and records why (damage, expiry, count
+ * correction...) in one backend transaction.
+ */
+export async function createStockAdjustment(
+  shopId: string,
+  input: {
+    productId: string;
+    type: "ADD" | "REMOVE" | "SET";
+    quantity: number;
+    reason: StockAdjustmentReason;
+    notes?: string;
+    location?: string;
+  },
+): Promise<{ adjustment: StockAdjustmentRecord; product: Product }> {
+  if (isMockApiEnabled()) {
+    const products = await mockShops.mockGetProducts(shopId);
+    const current = products.find((p) => p.id === input.productId);
+    const before = current?.stockQuantity ?? 0;
+    const after =
+      input.type === "ADD" ? before + input.quantity : input.type === "REMOVE" ? before - input.quantity : input.quantity;
+    const product = await mockShops.mockUpdateProduct(shopId, input.productId, { stockQuantity: after });
+    const unitCost = Number(current?.buyingPrice || 0);
+    return {
+      product,
+      adjustment: {
+        id: `adj-${Date.now()}`,
+        productId: input.productId,
+        productName: current?.name || "Product",
+        type: input.type,
+        quantityBefore: before,
+        quantityAfter: after,
+        change: after - before,
+        reason: input.reason,
+        notes: input.notes || null,
+        location: input.location || null,
+        unitCost,
+        valueChange: (after - before) * unitCost,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  return apiRequest(API_ENDPOINTS.shops.stockAdjustments(shopId), {
+    method: "POST",
+    body: input,
+  });
+}
+
+/** Stock changes, newest first, with the value of stock lost and added. */
+export async function getStockAdjustments(
+  shopId: string,
+  params: { productId?: string; reason?: StockAdjustmentReason; limit?: number } = {},
+): Promise<StockAdjustmentList> {
+  if (isMockApiEnabled()) {
+    return { count: 0, valueLost: 0, valueAdded: 0, items: [] };
+  }
+  const query = new URLSearchParams();
+  if (params.productId) query.set("productId", params.productId);
+  if (params.reason) query.set("reason", params.reason);
+  if (params.limit) query.set("limit", String(params.limit));
+  const qs = query.toString();
+  return apiRequest<StockAdjustmentList>(`${API_ENDPOINTS.shops.stockAdjustments(shopId)}${qs ? `?${qs}` : ""}`);
+}

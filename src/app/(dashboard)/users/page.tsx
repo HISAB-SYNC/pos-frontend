@@ -3,25 +3,16 @@
 import {
   Activity,
   AlertTriangle,
-  Check,
   CheckCircle2,
-  ChevronDown,
-  Clock,
   Download,
   Edit2,
   History,
   KeyRound,
-  Lock,
-  Plus,
-  RefreshCw,
   Search,
   Shield,
-  ShieldAlert,
   ShieldCheck,
-  SlidersHorizontal,
   Trash2,
   UserCheck,
-  UserCog,
   UserPlus,
   Users,
   X,
@@ -30,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { LoadingState } from "@/components/shared/loading-state";
+import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
   createTeamMember,
@@ -42,11 +34,8 @@ import type { AuditLogRecord, TeamMember, TeamSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import {
-  type AppPermission,
   DEFAULT_ROLE_PERMISSIONS,
-  getAllowedPermissionsToAssign,
   getAllowedRolesToCreate,
-  canManageRole,
 } from "@/lib/permissions/rbac";
 import type { Role } from "@/lib/permissions/roles";
 import { useAuthStore } from "@/stores/auth-store";
@@ -197,8 +186,8 @@ function AddTeamMemberModal({
       setEmail("");
       setPhone("");
       setPassword("");
-    } catch {
-      setErrorMsg("Failed to provision account. Please check inputs.");
+    } catch (err) {
+      setErrorMsg(errorMessage(err, "Failed to provision account. Please check inputs."));
     } finally {
       setIsSubmitting(false);
     }
@@ -474,6 +463,7 @@ function EditMemberDetailsModal({
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<Role>("SALES");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const allowedRoles = useMemo(
     () => getAllowedRolesToCreate(currentUserRole),
@@ -523,8 +513,8 @@ function EditMemberDetailsModal({
 
       onUpdated(auditLog, updated);
       onClose();
-    } catch {
-      onClose();
+    } catch (err) {
+      setActionError(errorMessage(err, "Couldn't save the changes. Nothing was changed."));
     } finally {
       setIsSubmitting(false);
     }
@@ -608,6 +598,7 @@ function EditMemberDetailsModal({
               )}
             </select>
           </div>
+          {actionError && <ActionError message={actionError} />}
 
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100">
             <button
@@ -646,6 +637,7 @@ function DeleteStaffDialog({
   shopId: string;
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   async function handleConfirm() {
     if (!member) return;
@@ -666,8 +658,8 @@ function DeleteStaffDialog({
       };
       onDeleted(auditLog);
       onClose();
-    } catch {
-      onClose();
+    } catch (err) {
+      setActionError(errorMessage(err, "Couldn't remove this team member. Nothing was changed."));
     } finally {
       setIsDeleting(false);
     }
@@ -686,6 +678,7 @@ function DeleteStaffDialog({
           Are you sure you want to remove <span className="font-semibold text-zinc-900">{member.name}</span> ({member.role})? Their POS and dashboard permissions will be permanently revoked.
         </p>
 
+        {actionError && <div className="mt-4"><ActionError message={actionError} /></div>}
         <div className="mt-5 flex items-center justify-end gap-2.5 text-xs">
           <button
             type="button"
@@ -753,6 +746,7 @@ export default function UsersPage() {
   const [summary, setSummary] = useState<TeamSummary | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>(INITIAL_AUDIT_LOGS);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -794,10 +788,10 @@ export default function UsersPage() {
       ]);
       setMembers(membersData);
       setSummary(summaryData);
+      setLoadError(false);
     } catch (err) {
       console.warn("Could not load user data:", err);
-      setMembers([]);
-      setSummary(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -807,16 +801,6 @@ export default function UsersPage() {
     loadData();
   }, [loadData]);
 
-  // Hierarchical Access Check: If user is SALES, block access with 403 screen!
-  if (authUser?.role === "SALES") {
-    return (
-      <AccessDenied
-        requiredRole="OWNER or ADMIN"
-        requiredPermission="user.view, seller.manage"
-        description="Cashiers / Sales personnel are not authorized to access employee accounts or role configuration."
-      />
-    );
-  }
 
   // Filtered members list
   const filteredMembers = useMemo(() => {
@@ -869,8 +853,23 @@ export default function UsersPage() {
     setTimeout(() => setActionSuccessMsg(""), 3500);
   }
 
+  // Hierarchical Access Check (after all hooks, so hook order never changes): If user is SALES, block access with 403 screen!
+  if (authUser?.role === "SALES") {
+    return (
+      <AccessDenied
+        requiredRole="OWNER or ADMIN"
+        requiredPermission="user.view, seller.manage"
+        description="Cashiers / Sales personnel are not authorized to access employee accounts or role configuration."
+      />
+    );
+  }
+
   if (loading && members.length === 0) {
     return <LoadingState />;
+  }
+
+  if (loadError && members.length === 0) {
+    return <LoadError what="your team" onRetry={loadData} />;
   }
 
   const activeStaffCount = members.filter(

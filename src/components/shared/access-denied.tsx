@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertOctagon, ArrowLeft, Lock, LogIn, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Lock, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

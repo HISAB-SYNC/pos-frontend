@@ -233,11 +233,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     };
   }
 
-  try {
-    return await apiRequest<AdminStats>(API_ENDPOINTS.admin.stats);
-  } catch {
-    return seedAdminStats;
-  }
+  return await apiRequest<AdminStats>(API_ENDPOINTS.admin.stats);
 }
 
 /**
@@ -248,17 +244,13 @@ export async function getAdminAnalytics(): Promise<PlatformTractionStats> {
     return seedPlatformTraction;
   }
 
-  try {
-    const res = await apiRequest<{ success: boolean; data: PlatformTractionStats } | PlatformTractionStats>(
-      API_ENDPOINTS.admin.analytics,
-    );
-    if (res && "data" in res && res.data) {
-      return res.data;
-    }
-    return (res as PlatformTractionStats) || seedPlatformTraction;
-  } catch {
-    return seedPlatformTraction;
+  const res = await apiRequest<{ success: boolean; data: PlatformTractionStats } | PlatformTractionStats>(
+    API_ENDPOINTS.admin.analytics,
+  );
+  if (res && "data" in res && res.data) {
+    return res.data;
   }
+  return (res as PlatformTractionStats) || seedPlatformTraction;
 }
 
 /**
@@ -269,15 +261,11 @@ export async function getAdminShops(): Promise<AdminShop[]> {
     return seedAdminShops;
   }
 
-  try {
-    const live = await apiRequest<AdminShop[]>(API_ENDPOINTS.admin.shops);
-    if (Array.isArray(live)) {
-      return live;
-    }
-    return seedAdminShops;
-  } catch {
-    return seedAdminShops;
+  const live = await apiRequest<AdminShop[]>(API_ENDPOINTS.admin.shops);
+  if (Array.isArray(live)) {
+    return live;
   }
+  return seedAdminShops;
 }
 
 /**
@@ -294,15 +282,10 @@ export async function suspendShop(shopId: string): Promise<{ success: boolean; d
     return { success: true, data: shop };
   }
 
-  try {
-    const res = await apiRequest<AdminShop>(API_ENDPOINTS.admin.suspendShop(shopId), {
-      method: "PATCH",
-    });
-    return { success: true, data: res };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Failed to suspend shop";
-    return { success: true, data: shop, error: errorMsg };
-  }
+  const res = await apiRequest<AdminShop>(API_ENDPOINTS.admin.suspendShop(shopId), {
+    method: "PATCH",
+  });
+  return { success: true, data: res };
 }
 
 /**
@@ -319,15 +302,10 @@ export async function activateShop(shopId: string): Promise<{ success: boolean; 
     return { success: true, data: shop };
   }
 
-  try {
-    const res = await apiRequest<AdminShop>(API_ENDPOINTS.admin.activateShop(shopId), {
-      method: "PATCH",
-    });
-    return { success: true, data: res };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Failed to reactivate shop";
-    return { success: true, data: shop, error: errorMsg };
-  }
+  const res = await apiRequest<AdminShop>(API_ENDPOINTS.admin.activateShop(shopId), {
+    method: "PATCH",
+  });
+  return { success: true, data: res };
 }
 
 /**
@@ -373,33 +351,17 @@ export async function getAdminUsers(params?: {
     };
   }
 
-  try {
-    const query = new URLSearchParams();
-    if (params?.page) query.set("page", String(params.page));
-    if (params?.limit) query.set("limit", String(params.limit));
-    if (params?.role && params.role !== "ALL") query.set("role", params.role);
-    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.role && params.role !== "ALL") query.set("role", params.role);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
 
-    const live = await apiRequest<AdminUsersResponse>(`${API_ENDPOINTS.admin.users}${suffix}`);
-    if (live && Array.isArray(live.users)) {
-      return live;
-    }
-    return {
-      total: filtered.length,
-      page,
-      limit,
-      totalPages: Math.ceil(filtered.length / limit) || 1,
-      users: filtered.slice((page - 1) * limit, page * limit),
-    };
-  } catch {
-    return {
-      total: filtered.length,
-      page,
-      limit,
-      totalPages: Math.ceil(filtered.length / limit) || 1,
-      users: filtered.slice((page - 1) * limit, page * limit),
-    };
+  const live = await apiRequest<AdminUsersResponse>(`${API_ENDPOINTS.admin.users}${suffix}`);
+  if (live && Array.isArray(live.users)) {
+    return live;
   }
+  return { total: 0, page, limit, totalPages: 1, users: [] };
 }
 
 /**
@@ -427,19 +389,14 @@ export async function suspendUser(
     return { success: true, user, warning };
   }
 
-  try {
-    const res = await apiRequest<{ user: AdminUser; warning?: string }>(API_ENDPOINTS.admin.suspendUser(userId), {
-      method: "PATCH",
-    });
-    return {
-      success: true,
-      user: res.user || user,
-      warning: res.warning || warning,
-    };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Failed to suspend user";
-    return { success: true, user, warning, error: errorMsg };
-  }
+  const res = await apiRequest<{ user: AdminUser; warning?: string }>(API_ENDPOINTS.admin.suspendUser(userId), {
+    method: "PATCH",
+  });
+  return {
+    success: true,
+    user: res.user || user,
+    warning: res.warning || warning,
+  };
 }
 
 /**
@@ -458,15 +415,10 @@ export async function activateUser(
     return { success: true, user };
   }
 
-  try {
-    const res = await apiRequest<AdminUser>(API_ENDPOINTS.admin.activateUser(userId), {
-      method: "PATCH",
-    });
-    return { success: true, user: res };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Failed to reactivate user";
-    return { success: true, user, error: errorMsg };
-  }
+  const res = await apiRequest<AdminUser>(API_ENDPOINTS.admin.activateUser(userId), {
+    method: "PATCH",
+  });
+  return { success: true, user: res };
 }
 
 /**
@@ -524,8 +476,11 @@ export async function registerOwnerByAdmin(
         newOwner.name = res.data.name;
         newOwner.email = res.data.email;
       }
-    } catch {
-      // Optimistic persistence in memory
+    } catch (err) {
+      // Don't pretend the owner was created: undo the local copies and report it.
+      seedAdminUsers.splice(seedAdminUsers.indexOf(newOwner), 1);
+      seedAdminShops.splice(seedAdminShops.indexOf(newShop), 1);
+      throw err;
     }
   }
 

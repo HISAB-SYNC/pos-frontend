@@ -1,4 +1,3 @@
-import type { Product } from "@/lib/api/types";
 
 export type OfflineSaleItem = {
   productId: string;

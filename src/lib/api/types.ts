@@ -178,6 +178,72 @@ export type SupplierPayment = {
   paidAt: string;
 };
 
+/** One product's line in the product report for a period. */
+export type ProductReportItem = {
+  productId: string | null;
+  name: string;
+  sku: string | null;
+  category: string | null;
+  unit: string;
+  sold: { units: number; salesCount: number; revenue: number; cogs: number; profit: number; marginPct: number | null };
+  restocked: { units: number; count: number; cost: number; paidNow: number; onCredit: number };
+  /** null for deleted products */
+  stock: { onHand: number; valueAtCost: number } | null;
+};
+
+export type ProductReport = {
+  period: { from: string | null; to: string; timeZone: string };
+  totals: {
+    products: number;
+    soldUnits: number;
+    revenue: number;
+    cogs: number;
+    profit: number;
+    restockedUnits: number;
+    restockCost: number;
+    restockPaidNow: number;
+    restockOnCredit: number;
+  };
+  items: ProductReportItem[];
+};
+
+/** Why stock changed outside a sale or a paid restock. */
+export type StockAdjustmentReason =
+  | "DAMAGED"
+  | "EXPIRED"
+  | "LOST"
+  | "OWN_USE"
+  | "COUNT_CORRECTION"
+  | "CUSTOMER_RETURN"
+  | "FOUND"
+  | "TRANSFER_IN"
+  | "TRANSFER_OUT"
+  | "OTHER";
+
+export type StockAdjustmentRecord = {
+  id: string;
+  productId: string | null;
+  productName: string;
+  type: "ADD" | "REMOVE" | "SET";
+  quantityBefore: number;
+  quantityAfter: number;
+  change: number;
+  reason: StockAdjustmentReason;
+  notes: string | null;
+  location: string | null;
+  unitCost: number;
+  /** change × buying price; negative means stock value lost */
+  valueChange: number;
+  createdAt: string;
+};
+
+export type StockAdjustmentList = {
+  count: number;
+  valueLost: number;
+  valueAdded: number;
+  items: StockAdjustmentRecord[];
+};
+
 export type ProductAdjustment = {
   id: string;
   productId: string;

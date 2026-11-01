@@ -2,11 +2,8 @@
 
 import {
   AlertCircle,
-  ArrowDownRight,
   ArrowUpDown,
-  ArrowUpRight,
   Banknote,
-  Calendar,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -16,10 +13,7 @@ import {
   Coins,
   Copy,
   CreditCard,
-  DollarSign,
   Download,
-  Eye,
-  Filter,
   HandCoins,
   Landmark,
   Package,
@@ -28,16 +22,15 @@ import {
   Search,
   Smartphone,
   Trash2,
-  User,
   Users,
-  Wallet,
   X,
 } from "lucide-react";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { LoadError } from "@/components/shared/load-error";
 import { createDebt, getCustomers, getDebts, getDebtSummary, recordDebtPayment, recordBatchDebtPayments } from "@/lib/api/app-data";
-import type { Customer, Debt, DebtPayment, DebtSummary, DebtTransaction } from "@/lib/api/types";
+import type { Customer, Debt, DebtSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { useAuthStore } from "@/stores/auth-store";
@@ -273,22 +266,30 @@ function DebtDetailModal({
 /* ------------------------------------------------------------------ */
 /* Modal: Customer Chronological Debt History Drawer / Modal           */
 /* ------------------------------------------------------------------ */
-function CustomerDebtHistoryModal({
-  customer,
-  customerDebts,
-  onClose,
-  onOpenPayment,
-  onOpenAddDebt,
-  isCashier = false,
-}: {
+type CustomerDebtHistoryProps = {
   customer: Customer | null;
   customerDebts: Debt[];
   onClose: () => void;
   onOpenPayment: (customer: Customer, debt?: Debt, multipleDebts?: Debt[]) => void;
   onOpenAddDebt: (customer: Customer) => void;
   isCashier?: boolean;
-}) {
-  if (!customer) return null;
+};
+
+// Renders nothing without a customer; the content component always has one,
+// so its hooks run in the same order on every render.
+function CustomerDebtHistoryModal(props: CustomerDebtHistoryProps) {
+  if (!props.customer) return null;
+  return <CustomerDebtHistoryContent {...props} customer={props.customer} />;
+}
+
+function CustomerDebtHistoryContent({
+  customer,
+  customerDebts,
+  onClose,
+  onOpenPayment,
+  onOpenAddDebt,
+  isCashier = false,
+}: CustomerDebtHistoryProps & { customer: Customer }) {
 
   // Aggregate stats
   const totalOutstanding = customerDebts.reduce((sum, d) => {
@@ -318,7 +319,6 @@ function CustomerDebtHistoryModal({
   const [copiedStatement, setCopiedStatement] = useState(false);
 
   function handleCopyStatement() {
-    if (!customer) return;
     const stmt =
       `*Debt Statement - ${customer.name}*\n` +
       `Customer ID: ${customer.customerId || "CUST-001"}\n` +
@@ -1116,7 +1116,7 @@ function ReceivePaymentModal({
   const [amount, setAmount] = useState(initialAmount > 0 ? String(initialAmount) : "");
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Mobile Payment">("Cash");
   const [bankName, setBankName] = useState(POPULAR_BANKS[0]);
-  const [reference, setReference] = useState(`PAY-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [reference, setReference] = useState(() => `PAY-${Math.floor(1000 + Math.random() * 9000)}`);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -1775,7 +1775,7 @@ function BatchSettleModal({
 
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Mobile Payment">("Cash");
   const [bankName, setBankName] = useState(POPULAR_BANKS[0]);
-  const [reference, setReference] = useState(`BATCH-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [reference, setReference] = useState(() => `BATCH-${Math.floor(1000 + Math.random() * 9000)}`);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -1974,6 +1974,7 @@ export default function DebtsPage() {
     overdueCount: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // Default to Customer-First Ledger as required by Phase 2
   const [mainTab, setMainTab] = useState<"customers" | "debts">("customers");
@@ -2035,8 +2036,10 @@ export default function DebtsPage() {
       setCustomers(custList);
       setDebts(debtList);
       setSummary(sum);
+      setLoadError(false);
     } catch (err) {
       console.warn("Error loading debts data:", err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -2208,6 +2211,18 @@ export default function DebtsPage() {
 
   if (loading) {
     return <LoadingState />;
+  }
+
+  if (loadError && debts.length === 0 && customers.length === 0) {
+    return (
+      <LoadError
+        what="debts"
+        onRetry={() => {
+          setLoading(true);
+          loadData();
+        }}
+      />
+    );
   }
 
   return (

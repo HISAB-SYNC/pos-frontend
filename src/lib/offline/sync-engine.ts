@@ -1,6 +1,5 @@
 import { syncOfflineSalesBatch } from "@/lib/api/app-data";
 import { createProduct, getProducts } from "@/lib/api/shops";
-import type { Product } from "@/lib/api/types";
 import {
   cacheProducts,
   getPendingProducts,

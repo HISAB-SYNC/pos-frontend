@@ -4,6 +4,12 @@ import { Banknote, Landmark, Smartphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { getFundsSummary, getSupplierPayables, getSupplierPayments, paySupplier } from "@/lib/api/app-data";
+import {
+  balanceAfter as moneyBalanceAfter,
+  roundMoney,
+  shortfall as moneyShortfall,
+  sumMoney,
+} from "@/lib/utils/money";
 import type {
   FundAccount,
   FundsSummary,
@@ -108,14 +114,14 @@ export function PaySupplierModal({
   const pickedRestocks = restocks.filter((p) => isPicked(p.id));
   const allPicked = pickedRestocks.length === restocks.length;
   // What the picked restocks still need; payments can't go above it.
-  const payable = Math.round(pickedRestocks.reduce((sum, p) => sum + p.remaining, 0) * 100) / 100;
-  const amountNum = Math.round((parseFloat(amount) || 0) * 100) / 100;
+  const payable = sumMoney(pickedRestocks.map((p) => p.remaining));
+  const amountNum = roundMoney(parseFloat(amount) || 0);
   const tooMuch = amountNum > payable + 0.001;
 
   function setPickedIds(ids: Set<string>) {
     setPicked({ supplier: activeKey, ids });
-    const sum = restocks.filter((p) => ids.has(p.id)).reduce((total, p) => total + p.remaining, 0);
-    setAmount(sum > 0 ? String(Math.round(sum * 100) / 100) : "");
+    const sum = sumMoney(restocks.filter((p) => ids.has(p.id)).map((p) => p.remaining));
+    setAmount(sum > 0 ? String(sum) : "");
   }
 
   function toggleRestock(id: string) {
@@ -130,11 +136,10 @@ export function PaySupplierModal({
   }
 
   const balance = funds?.accounts.find((a) => a.account === account)?.balance ?? null;
-  const shortfall = balance !== null && amountNum > balance ? Math.round((amountNum - balance) * 100) / 100 : 0;
+  const shortfall = moneyShortfall(balance, amountNum);
   const answerKey = `${activeKey}|${account}|${amountNum}`;
   const extraMoneyReason = extraMoneyAnswer?.key === answerKey ? extraMoneyAnswer.reason : null;
-  const balanceAfter =
-    balance !== null ? Math.round((balance + (extraMoneyReason ? shortfall : 0) - amountNum) * 100) / 100 : null;
+  const balanceAfter = moneyBalanceAfter(balance, amountNum, extraMoneyReason ? shortfall : 0);
   const accountLabel = ACCOUNT_OPTIONS.find((o) => o.key === account)?.label ?? "";
 
   const canSubmit =
@@ -363,7 +368,7 @@ export function PaySupplierModal({
                   <span className="flex items-center gap-2 font-mono tabular-nums">
                     <span className="font-semibold text-zinc-500">{formatEtb(owed)}</span>
                     <span className="text-zinc-400">→</span>
-                    <span className="font-bold text-zinc-900">{formatEtb(Math.round((owed - amountNum) * 100) / 100)} ETB</span>
+                    <span className="font-bold text-zinc-900">{formatEtb(roundMoney(owed - amountNum))} ETB</span>
                   </span>
                 </div>
                 {balance !== null && balanceAfter !== null && (

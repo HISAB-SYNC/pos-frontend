@@ -1,32 +1,17 @@
 "use client";
 
 import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
   BarChart3,
-  Calendar,
-  ChevronDown,
-  Coins,
-  CreditCard,
-  Crown,
   DollarSign,
   Download,
   HandCoins,
-  Package,
-  PieChart as PieChartIcon,
   Printer,
-  RefreshCw,
-  ShoppingBag,
   ShoppingCart,
-  TrendingUp,
-  UserCheck,
-  UserPlus,
   Users,
-  Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -42,6 +27,8 @@ import {
 } from "recharts";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { LoadError } from "@/components/shared/load-error";
+import { ProductReport } from "@/components/reports/product-report";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getShopAnalytics } from "@/lib/api/app-data";
 import { getProducts } from "@/lib/api/shops";
@@ -64,7 +51,7 @@ const PAYMENT_METHOD_COLORS: Record<string, string> = {
   TELEBIRR: "#8b5cf6",
 };
 
-export default function ReportsPage() {
+function SalesReport() {
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const [period, setPeriod] = useState<AnalyticsPeriod>("weekly");
@@ -73,6 +60,7 @@ export default function ReportsPage() {
   const [analytics, setAnalytics] = useState<ShopAnalyticsReport | null>(null);
   const [productsCatalog, setProductsCatalog] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
@@ -86,12 +74,14 @@ export default function ReportsPage() {
         getProducts(activeShopId).catch(() => []),
       ]);
       setAnalytics(analyticsData);
+      setLoadError(false);
       if (Array.isArray(prods)) {
         setProductsCatalog(prods);
       }
     } catch (err) {
       console.warn("Could not load analytics reports:", err);
       setAnalytics(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -172,6 +162,10 @@ export default function ReportsPage() {
 
   if (loading && !analytics) {
     return <LoadingState />;
+  }
+
+  if (loadError && !analytics) {
+    return <LoadError what="reports" onRetry={loadAnalytics} />;
   }
 
   const sales = analytics?.salesAnalytics;
@@ -674,3 +668,58 @@ export default function ReportsPage() {
   );
 }
 
+
+type ReportTab = "sales" | "products";
+
+function ReportsContent() {
+  const searchParams = useSearchParams();
+  const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
+  const [tab, setTab] = useState<ReportTab>(searchParams.get("tab") === "products" ? "products" : "sales");
+
+  return (
+    <div className="space-y-5">
+      <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 print:hidden">
+        {(
+          [
+            { id: "sales", label: "Sales" },
+            { id: "products", label: "Products" },
+          ] as Array<{ id: ReportTab; label: string }>
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+              tab === t.id
+                ? "border border-zinc-200/80 bg-white font-semibold text-zinc-900 shadow-2xs"
+                : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "sales" ? (
+        <SalesReport />
+      ) : (
+        <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
+          <div className="space-y-1 print:hidden">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Product report</h1>
+            <p className="text-xs text-zinc-500">
+              What customers bought and what you restocked, per product. Print it, save it as PDF or export it to Excel.
+            </p>
+          </div>
+          <ProductReport shopId={activeShopId} />
+        </RouteGuard>
+      )}
+    </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ReportsContent />
+    </Suspense>
+  );
+}

@@ -3,6 +3,9 @@ import type { Role } from "@/lib/permissions/roles";
 export type ApiError = {
   message: string;
   status: number;
+  /** Machine-readable reason from the backend, e.g. PRICE_BELOW_COST. */
+  code?: string;
+  details?: Record<string, unknown>;
 };
 
 export type ApiSuccessResponse<T> = {
@@ -824,7 +827,8 @@ export type NotificationType =
   | "PRODUCT_EXPIRING_SOON"
   | "OVERDUE_DEBT"
   | "SYSTEM"
-  | "PENDING_OWNER_APPROVAL";
+  | "PENDING_OWNER_APPROVAL"
+  | "PRICE_BELOW_COST";
 
 export type NotificationSeverity = "INFO" | "WARNING" | "CRITICAL";
 

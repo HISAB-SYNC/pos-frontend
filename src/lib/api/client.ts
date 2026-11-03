@@ -71,12 +71,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 
   if (!response.ok || !payload || payload.success === false) {
+    const extra = (payload ?? {}) as { code?: string; details?: Record<string, unknown> };
     throw {
       message:
         payload && "error" in payload
           ? payload.error
           : `Request failed with status ${response.status}`,
       status: response.status,
+      ...(extra.code ? { code: extra.code } : {}),
+      ...(extra.details ? { details: extra.details } : {}),
     } satisfies ApiError;
   }
 

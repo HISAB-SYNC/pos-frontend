@@ -62,6 +62,8 @@ export async function runOfflineSync(shopId: string): Promise<SyncEngineResult> 
           unit: offProd.unit || "pcs",
           lowStockThreshold: offProd.lowStockThreshold || 5,
           categoryId: offProd.categoryId,
+          confirmBelowCost: offProd.confirmBelowCost,
+          confirmUnusualPrice: offProd.confirmUnusualPrice,
         });
 
         await removeSyncedProduct(offProd.id, created);

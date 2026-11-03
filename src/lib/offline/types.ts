@@ -41,6 +41,9 @@ export type OfflineProduct = {
   createdAt: string;
   status: "PENDING" | "SYNCING" | "SYNCED" | "FAILED";
   realProductId?: string;
+  /** Price checks the user confirmed when adding the product offline. */
+  confirmBelowCost?: boolean;
+  confirmUnusualPrice?: boolean;
 };
 
 export type OfflineSyncResult = {

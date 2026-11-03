@@ -11,6 +11,7 @@ import {
   PackageX,
   UserCheck,
   X,
+  TrendingDown,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,6 +54,8 @@ function getNotificationIcon(type: NotificationType) {
       return <CreditCard className="size-4 text-amber-600" />;
     case "PENDING_OWNER_APPROVAL":
       return <UserCheck className="size-4 text-blue-600" />;
+    case "PRICE_BELOW_COST":
+      return <TrendingDown className="size-4 text-red-600" />;
     case "SYSTEM":
     default:
       return <Bell className="size-4 text-zinc-600" />;
@@ -156,7 +159,12 @@ export function NotificationsPanel({
     }
     onClose();
 
-    if (n.type === "LOW_STOCK" || n.type === "PRODUCT_EXPIRED" || n.type === "PRODUCT_EXPIRING_SOON") {
+    if (
+      n.type === "LOW_STOCK" ||
+      n.type === "PRODUCT_EXPIRED" ||
+      n.type === "PRODUCT_EXPIRING_SOON" ||
+      n.type === "PRICE_BELOW_COST"
+    ) {
       router.push("/products");
     } else if (n.type === "OVERDUE_DEBT") {
       router.push("/debts");

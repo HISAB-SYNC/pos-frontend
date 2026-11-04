@@ -98,6 +98,7 @@ function NavLink({
   label,
   icon: Icon,
   badge,
+  count,
   active,
   collapsed,
   onNavigate,
@@ -106,6 +107,8 @@ function NavLink({
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  /** Number shown on the item (e.g. unread notifications); hidden at 0. */
+  count?: number;
   active: boolean;
   collapsed: boolean;
   onNavigate?: () => void;
@@ -131,6 +134,17 @@ function NavLink({
       />
       {!collapsed && (
         <span className="flex-1 truncate tracking-tight">{label}</span>
+      )}
+      {count !== undefined && count > 0 && (
+        <span
+          aria-label={`${count} unread`}
+          className={cn(
+            "flex min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 font-mono text-[10px] font-bold leading-[18px] text-white tabular-nums",
+            collapsed && "absolute -right-0.5 -top-0.5 min-w-[16px] px-0.5 text-[9px] leading-4 ring-2 ring-white",
+          )}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
       )}
       {!collapsed && badge && (
         <span
@@ -159,6 +173,7 @@ export function DashboardSidebar() {
   const activeShopName = useShopStore((state) => state.activeShopName);
   const user = useAuthStore((state) => state.user);
   const t = useT();
+  const unreadNotifications = useUiStore((state) => state.unreadNotifications);
   const navLabel = (label: string) => (NAV_LABEL_KEYS[label] ? t(NAV_LABEL_KEYS[label]) : label);
 
   const isSuperAdmin =
@@ -264,6 +279,7 @@ export function DashboardSidebar() {
               label={navLabel(item.label)}
               icon={item.icon}
               badge={item.badge ? navLabel(item.badge) : undefined}
+              count={item.href === "/notifications" ? unreadNotifications : undefined}
               collapsed={collapsed}
               onNavigate={closeMobileSidebar}
               active={

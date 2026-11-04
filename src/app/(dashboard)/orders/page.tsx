@@ -16,6 +16,7 @@ import {
   Search,
   ShoppingCart,
   Smartphone,
+  TrendingDown,
   TrendingUp,
   WifiOff,
   X,
@@ -689,14 +690,24 @@ function SaleReceiptModal({
 
           {/* Manager/Admin Profit Insight */}
           {!isCashier && financials.netProfit !== undefined && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-2 text-[11px] space-y-0.5">
-              <div className="flex justify-between text-emerald-900 font-semibold">
+            <div
+              className={`rounded-md border p-2 text-[11px] space-y-0.5 ${
+                financials.netProfit < 0
+                  ? "border-rose-200 bg-rose-50/80 text-rose-900"
+                  : "border-emerald-200 bg-emerald-50/80 text-emerald-900"
+              }`}
+            >
+              <div className="flex justify-between font-semibold">
                 <span>Net Gross Margin:</span>
                 <span className="font-mono tabular-nums">
-                  +{financials.netProfit.toFixed(2)} ETB ({financials.marginPct?.toFixed(1)}%)
+                  {financials.netProfit >= 0 ? "+" : ""}{financials.netProfit.toFixed(2)} ETB ({financials.marginPct?.toFixed(1)}%)
                 </span>
               </div>
-              <div className="flex justify-between text-emerald-700 text-[10px]">
+              <div
+                className={`flex justify-between text-[10px] ${
+                  financials.netProfit < 0 ? "text-rose-700" : "text-emerald-700"
+                }`}
+              >
                 <span>Cost of Goods (COGS):</span>
                 <span className="font-mono tabular-nums">{financials.cogs.toFixed(2)} ETB</span>
               </div>
@@ -852,15 +863,40 @@ function FinancialAuditReportModal({
                   <p className="mt-0.5 text-[11px] text-zinc-500">Wholesale cost base</p>
                 </div>
 
-                <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 p-3.5">
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                <div
+                  className={`rounded-xl border p-3.5 ${
+                    netGrossProfit < 0
+                      ? "border-rose-200/80 bg-rose-50/70"
+                      : "border-emerald-200/80 bg-emerald-50/70"
+                  }`}
+                >
+                  <p
+                    className={`font-mono text-[10px] font-bold uppercase tracking-wider ${
+                      netGrossProfit < 0 ? "text-rose-800" : "text-emerald-800"
+                    }`}
+                  >
                     Net Gross Profit
                   </p>
-                  <p className="mt-1 font-mono text-xl font-bold text-emerald-700 tabular-nums">
-                    +{Math.round(netGrossProfit).toLocaleString()}{" "}
-                    <span className="text-xs font-normal text-emerald-600">ETB</span>
+                  <p
+                    className={`mt-1 font-mono text-xl font-bold tabular-nums ${
+                      netGrossProfit < 0 ? "text-rose-700" : "text-emerald-700"
+                    }`}
+                  >
+                    {netGrossProfit >= 0 ? "+" : ""}
+                    {Math.round(netGrossProfit).toLocaleString()}{" "}
+                    <span
+                      className={`text-xs font-normal ${
+                        netGrossProfit < 0 ? "text-rose-600" : "text-emerald-600"
+                      }`}
+                    >
+                      ETB
+                    </span>
                   </p>
-                  <p className="mt-0.5 text-[11px] font-medium text-emerald-800 font-mono">
+                  <p
+                    className={`mt-0.5 text-[11px] font-medium font-mono ${
+                      netGrossProfit < 0 ? "text-rose-800" : "text-emerald-800"
+                    }`}
+                  >
                     {overallMargin.toFixed(1)}% Margin
                   </p>
                 </div>
@@ -972,8 +1008,12 @@ function FinancialAuditReportModal({
                         {parseFloat(String(s.totalAmount || "0")).toFixed(2)} ETB
                       </p>
                       {!isCashier && f.netProfit !== undefined && (
-                        <p className="font-mono text-[10px] font-medium text-emerald-600 tabular-nums">
-                          Profit: +{f.netProfit.toFixed(2)} ETB
+                        <p
+                          className={`font-mono text-[10px] font-medium tabular-nums ${
+                            f.netProfit < 0 ? "text-rose-600" : "text-emerald-600"
+                          }`}
+                        >
+                          Profit: {f.netProfit >= 0 ? "+" : ""}{f.netProfit.toFixed(2)} ETB
                         </p>
                       )}
                     </div>
@@ -1406,19 +1446,48 @@ export default function SalesHistoryPage() {
 
           {/* If Owner/Admin show Net Profit, else show Completed Transactions */}
           {!isCashier ? (
-            <div className="rounded-xl border border-emerald-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
+            <div
+              className={`rounded-xl border bg-white p-4.5 sm:p-5 shadow-2xs ${
+                totalNetProfit < 0 ? "border-rose-200/80" : "border-emerald-200/80"
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                <p
+                  className={`font-mono text-[10px] font-bold uppercase tracking-wider ${
+                    totalNetProfit < 0 ? "text-rose-800" : "text-emerald-800"
+                  }`}
+                >
                   Net Gross Profit
                 </p>
-                <span className="flex items-center gap-1 rounded-md border border-emerald-200/60 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-800">
-                  <TrendingUp className="size-3" />
+                <span
+                  className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+                    totalNetProfit < 0
+                      ? "border-rose-200/60 bg-rose-50 text-rose-800"
+                      : "border-emerald-200/60 bg-emerald-50 text-emerald-800"
+                  }`}
+                >
+                  {totalNetProfit < 0 ? (
+                    <TrendingDown className="size-3" />
+                  ) : (
+                    <TrendingUp className="size-3" />
+                  )}
                   {overallMargin.toFixed(1)}%
                 </span>
               </div>
-              <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
-                +{Math.round(totalNetProfit).toLocaleString()}{" "}
-                <span className="text-xs font-semibold text-emerald-600">ETB</span>
+              <p
+                className={`mt-2 font-mono text-2xl font-bold tracking-tight tabular-nums ${
+                  totalNetProfit < 0 ? "text-rose-700" : "text-emerald-700"
+                }`}
+              >
+                {totalNetProfit >= 0 ? "+" : ""}
+                {Math.round(totalNetProfit).toLocaleString()}{" "}
+                <span
+                  className={`text-xs font-semibold ${
+                    totalNetProfit < 0 ? "text-rose-600" : "text-emerald-600"
+                  }`}
+                >
+                  ETB
+                </span>
               </p>
               <p className="mt-1 text-xs text-zinc-500">
                 COGS: {Math.round(totalCOGS).toLocaleString()} ETB
@@ -1810,10 +1879,19 @@ export default function SalesHistoryPage() {
                               <span className="text-zinc-400 text-[11px]">—</span>
                             ) : f.netProfit !== undefined ? (
                               <div>
-                                <span className="font-bold text-emerald-700">
-                                  +{f.netProfit.toFixed(2)} ETB
+                                <span
+                                  className={`font-bold ${
+                                    f.netProfit < 0 ? "text-rose-600" : "text-emerald-700"
+                                  }`}
+                                >
+                                  {f.netProfit >= 0 ? "+" : ""}
+                                  {f.netProfit.toFixed(2)} ETB
                                 </span>
-                                <span className="block font-mono text-[10px] text-emerald-800">
+                                <span
+                                  className={`block font-mono text-[10px] ${
+                                    f.netProfit < 0 ? "text-rose-700" : "text-emerald-800"
+                                  }`}
+                                >
                                   {f.marginPct?.toFixed(1)}% margin
                                 </span>
                               </div>

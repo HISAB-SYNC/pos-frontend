@@ -35,6 +35,7 @@ import {
   updateCategory,
   updateProduct,
 } from "@/lib/api";
+import { MarginHint, PriceIssuesBox, usePriceGuard } from "@/components/products/price-guard";
 import type { Category, Product } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { formatQuantity, STANDARD_UNITS } from "@/lib/utils/units";
@@ -135,6 +136,9 @@ function AddProductModal({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const addSellNum = parseFloat(form.salingPrice) || 0;
+  const addBuyNum = parseFloat(form.buyingPrice) || 0;
+  const priceGuard = usePriceGuard({ price: addSellNum, buyingPrice: addBuyNum });
   const [newCatName, setNewCatName] = useState("");
   const [showAddCat, setShowAddCat] = useState(false);
   const [isCreatingCat, setIsCreatingCat] = useState(false);
@@ -202,6 +206,7 @@ function AddProductModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.salingPrice) return;
+    if (priceGuard.blocked) return;
     setErrorMsg("");
 
     if (!isOnline) {
@@ -221,6 +226,7 @@ function AddProductModal({
           categoryId: form.categoryId || undefined,
           createdAt: new Date().toISOString(),
           status: "PENDING",
+          ...priceGuard.flags,
         };
 
         await queueOfflineProduct(offProduct);
@@ -261,6 +267,7 @@ function AddProductModal({
         attributes: {
           location: form.location || undefined,
         },
+        ...priceGuard.flags,
       } as any);
 
       onCreated();
@@ -298,6 +305,7 @@ function AddProductModal({
             categoryId: form.categoryId || undefined,
             createdAt: new Date().toISOString(),
             status: "PENDING",
+            ...priceGuard.flags,
           };
           await queueOfflineProduct(offProduct);
           onCreated();
@@ -308,6 +316,7 @@ function AddProductModal({
         }
       }
 
+      if (priceGuard.handleServerError(err)) return;
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as any).message)
@@ -492,6 +501,9 @@ function AddProductModal({
                 placeholder="0.00"
                 className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 font-mono text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
+              <div className="mt-1">
+                <MarginHint price={addSellNum} buyingPrice={addBuyNum} />
+              </div>
             </div>
 
             <div>
@@ -552,6 +564,12 @@ function AddProductModal({
             </div>
           </div>
 
+          <PriceIssuesBox
+            issues={priceGuard.issues}
+            confirmed={priceGuard.confirmed}
+            onConfirmChange={priceGuard.setConfirmed}
+          />
+
           {/* Actions */}
           <div className="flex justify-end gap-2.5 border-t border-zinc-100 pt-4">
             <button
@@ -563,7 +581,7 @@ function AddProductModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !form.name.trim() || !form.salingPrice}
+              disabled={isSubmitting || !form.name.trim() || !form.salingPrice || priceGuard.blocked}
               className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Adding..." : "Save Product"}
@@ -602,6 +620,13 @@ function EditProductModal({
     expiryDate: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+  const editPriceGuard = usePriceGuard({
+    price: parseFloat(form.price) || 0,
+    buyingPrice: parseFloat(form.buyingPrice) || 0,
+    previousPrice: product ? Number(product.price) || 0 : null,
+    previousBuyingPrice: product ? Number(product.buyingPrice) || 0 : null,
+  });
 
   useEffect(() => {
     if (product) {
@@ -630,10 +655,12 @@ function EditProductModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!product) return;
+    if (!product || editPriceGuard.blocked) return;
+    setEditError("");
     try {
       setIsSubmitting(true);
       await updateProduct(shopId, product.id, {
+        ...editPriceGuard.flags,
         name: form.name.trim(),
         sku: form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`,
         categoryId: form.categoryId || undefined,
@@ -646,7 +673,9 @@ function EditProductModal({
       onUpdated();
       onClose();
     } catch (err) {
-      console.error(err);
+      if (!editPriceGuard.handleServerError(err)) {
+        setEditError((err as { message?: string })?.message || "Couldn't save the changes. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -782,6 +811,15 @@ function EditProductModal({
             />
           </div>
 
+          <PriceIssuesBox
+            issues={editPriceGuard.issues}
+            confirmed={editPriceGuard.confirmed}
+            onConfirmChange={editPriceGuard.setConfirmed}
+          />
+          {editError && (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">{editError}</div>
+          )}
+
           <div className="flex justify-end gap-2.5 border-t border-zinc-100 pt-4">
             <button
               type="button"
@@ -792,7 +830,7 @@ function EditProductModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || editPriceGuard.blocked}
               className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}

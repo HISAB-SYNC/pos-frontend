@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductAvatar, ExpiryBadge } from "@/app/(dashboard)/products/page";
 import { LoadingState } from "@/components/shared/loading-state";
 import { REASON_LABELS, REASONS_FOR, RecentProductChanges, StockLogModal } from "@/components/inventory/stock-log";
+import { PriceIssuesBox, usePriceGuard } from "@/components/products/price-guard";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
   createPurchase,
@@ -96,6 +97,13 @@ function StockAdjustModal({
   const [unitCost, setUnitCost] = useState(product?.buyingPrice ? String(product.buyingPrice) : "");
   // Optional: update the selling price while restocking (blank = keep it).
   const [sellingPrice, setSellingPrice] = useState("");
+  // Typo / below-cost checks on the new buying price (and optional selling price).
+  const restockPriceGuard = usePriceGuard({
+    price: (parseFloat(sellingPrice) || 0) > 0 ? parseFloat(sellingPrice) : Number(product?.price || 0),
+    buyingPrice: parseFloat(unitCost) || 0,
+    previousPrice: product ? Number(product.price) || 0 : null,
+    previousBuyingPrice: product ? Number(product.buyingPrice) || 0 : null,
+  });
   const [paidFrom, setPaidFrom] = useState<PurchaseFunding>("CASH_DRAWER");
   const [supplierId, setSupplierId] = useState(product?.supplierId || "");
   const [supplierName, setSupplierName] = useState("");
@@ -159,6 +167,7 @@ function StockAdjustModal({
   const canSubmit =
     adjustQtyNum > 0 &&
     !needsSupplier &&
+    !(isRestock && restockPriceGuard.blocked) &&
     (!isRestock || (unitCostNum > 0 && (shortfall === 0 || extraMoneyReason !== null)));
 
   async function handleSubmit(e: React.FormEvent) {
@@ -175,6 +184,7 @@ function StockAdjustModal({
           quantity: adjustQtyNum,
           unitCost: unitCostNum,
           sellingPrice: sellingPriceNum > 0 ? sellingPriceNum : undefined,
+          ...restockPriceGuard.flags,
           fundingSource: paidFrom,
           supplierId: selectedSupplier?.id,
           supplier: selectedSupplier ? undefined : supplierName.trim() || undefined,
@@ -196,6 +206,7 @@ function StockAdjustModal({
       onAdjusted();
       onClose();
     } catch (err) {
+      if (isRestock && restockPriceGuard.handleServerError(err)) return;
       const message = (err as { message?: string })?.message;
       setError(message || "Could not save. Nothing was changed, please try again.");
     } finally {
@@ -553,6 +564,14 @@ function StockAdjustModal({
               </div>
             )}
           </div>
+
+          {isRestock && (
+            <PriceIssuesBox
+              issues={restockPriceGuard.issues}
+              confirmed={restockPriceGuard.confirmed}
+              onConfirmChange={restockPriceGuard.setConfirmed}
+            />
+          )}
 
           {error && (
             <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">{error}</div>

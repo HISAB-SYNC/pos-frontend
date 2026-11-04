@@ -230,9 +230,12 @@ export async function getExpiringProducts(
   return apiRequest<Product[]>(`${API_ENDPOINTS.shops.expiringProducts(shopId)}${suffix}`);
 }
 
+/** Confirms a price the backend would otherwise question (see utils/pricing). */
+type PriceConfirmFlags = { confirmBelowCost?: boolean; confirmUnusualPrice?: boolean };
+
 export async function createProduct(
   shopId: string,
-  input: Omit<Product, "id" | "shopId" | "price"> & { price: number },
+  input: Omit<Product, "id" | "shopId" | "price"> & { price: number } & PriceConfirmFlags,
 ) {
   if (isMockApiEnabled()) {
     return mockShops.mockCreateProduct(shopId, input);
@@ -247,7 +250,7 @@ export async function createProduct(
 export async function updateProduct(
   shopId: string,
   productId: string,
-  input: Partial<Omit<Product, "id" | "shopId" | "price"> & { price: number }>,
+  input: Partial<Omit<Product, "id" | "shopId" | "price"> & { price: number }> & PriceConfirmFlags,
 ) {
   if (isMockApiEnabled()) {
     return mockShops.mockUpdateProduct(shopId, productId, input);
@@ -296,6 +299,8 @@ export async function createPurchase(
     moneyAdded?: { amount: number; reason: MoneyAddedReason; notes?: string };
     /** Optional new selling price, saved in the same step. */
     sellingPrice?: number;
+    confirmBelowCost?: boolean;
+    confirmUnusualPrice?: boolean;
   },
 ): Promise<{ purchase: { id: string; totalCost: string | number }; product: Product }> {
   if (isMockApiEnabled()) {

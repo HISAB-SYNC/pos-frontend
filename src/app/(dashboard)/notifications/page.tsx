@@ -16,6 +16,7 @@ import {
   Search,
   Sparkles,
   UserCheck,
+  TrendingDown,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -82,6 +83,14 @@ function getNotificationTypeMeta(type: NotificationType) {
         color: "bg-amber-50 text-amber-800 border-amber-200",
         actionLabel: "Open Debts",
         routePrefix: "/debts",
+      };
+    case "PRICE_BELOW_COST":
+      return {
+        label: "Priced Below Cost",
+        icon: <TrendingDown className="size-4 text-red-600" />,
+        color: "bg-red-50 text-red-800 border-red-200",
+        actionLabel: "Fix Prices",
+        routePrefix: "/products",
       };
     case "PENDING_OWNER_APPROVAL":
       return {
@@ -372,6 +381,7 @@ export default function NotificationsPage() {
                 <option value="PRODUCT_EXPIRED">Product Expired</option>
                 <option value="PRODUCT_EXPIRING_SOON">Expiring Soon</option>
                 <option value="OVERDUE_DEBT">Overdue Debt</option>
+                <option value="PRICE_BELOW_COST">Priced Below Cost</option>
                 <option value="SYSTEM">System</option>
               </select>
             )}

@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
     funds: (shopId: string) => `/shops/${shopId}/funds`,
     fundsEntries: (shopId: string) => `/shops/${shopId}/funds/entries`,
     fundsAdjustments: (shopId: string) => `/shops/${shopId}/funds/adjustments`,
+    fundsTransfers: (shopId: string) => `/shops/${shopId}/funds/transfers`,
     purchases: (shopId: string) => `/shops/${shopId}/purchases`,
     supplierPayments: (shopId: string) => `/shops/${shopId}/supplier-payments`,
     supplierPayables: (shopId: string) => `/shops/${shopId}/supplier-payments/payables`,

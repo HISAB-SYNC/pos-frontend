@@ -12,6 +12,8 @@ export const LINE_LABELS: Record<FundsLine, string> = {
   supplierPayments: "Supplier payments",
   expenses: "Expenses",
   refunds: "Refunds",
+  transferIn: "Moved in",
+  transferOut: "Moved out",
 };
 
 export const LINE_HINTS: Partial<Record<FundsLine, string>> = {
@@ -22,11 +24,15 @@ export const LINE_HINTS: Partial<Record<FundsLine, string>> = {
   supplierPayments: "Paying suppliers for pay-later restocks.",
   expenses: "Only expenses marked Paid.",
   refunds: "Money handed back to customers on returns.",
+  transferIn: "Money moved in from another of your accounts.",
+  transferOut: "Money moved to another of your accounts.",
 };
 
 export const IN_LINES: FundsLine[] = ["sales", "repayments", "added"];
 export const OUT_LINES: FundsLine[] = ["restocks", "supplierPayments", "expenses", "refunds"];
-export const ALL_LINES: FundsLine[] = [...IN_LINES, ...OUT_LINES];
+/** Moves between the shop's own accounts (not money in or out of the shop). */
+export const TRANSFER_LINES: FundsLine[] = ["transferIn", "transferOut"];
+export const ALL_LINES: FundsLine[] = [...IN_LINES, ...OUT_LINES, ...TRANSFER_LINES];
 
 export const ACCOUNT_LABELS: Record<FundAccount, string> = {
   CASH_DRAWER: "Cash Till",

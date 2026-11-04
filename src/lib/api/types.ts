@@ -106,7 +106,17 @@ export type PurchaseFunding = FundAccount | "SUPPLIER_CREDIT";
 export type MoneyAddedReason = "OWNER_MONEY" | "ALREADY_IN_ACCOUNT";
 
 /** Lines of the Money Left card. sales/repayments/added are money in; the rest money out. */
-export type FundsLine = "sales" | "repayments" | "added" | "restocks" | "expenses" | "refunds" | "supplierPayments";
+export type FundsLine =
+  | "sales"
+  | "repayments"
+  | "added"
+  | "restocks"
+  | "expenses"
+  | "refunds"
+  | "supplierPayments"
+  /** Moves between the shop's own accounts; they cancel out in shop-wide totals. */
+  | "transferIn"
+  | "transferOut";
 
 export type FundsLines = Record<FundsLine, number>;
 

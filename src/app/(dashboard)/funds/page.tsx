@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Info, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, Download, Info, RotateCcw, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -16,6 +16,7 @@ import {
   formatShortDate,
 } from "@/components/funds/funds-shared";
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
+import { TransferModal } from "@/components/funds/transfer-modal";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getFundsEntries, getFundsSummary, getSupplierPayables, getSupplierPayments } from "@/lib/api/app-data";
@@ -255,7 +256,7 @@ function LedgerTab({
             {entries.count} {entries.count === 1 ? "record" : "records"}
           </span>
           <span className="text-zinc-500">
-            {filter.line && OUT_LINES.includes(filter.line) ? "Total out" : "Net"}{" "}
+            {filter.line && (OUT_LINES.includes(filter.line) || filter.line === "transferOut") ? "Total out" : "Net"}{" "}
             <span className="font-mono font-bold tabular-nums text-zinc-900">{formatEtb(entries.total)} ETB</span>
           </span>
         </div>
@@ -435,6 +436,7 @@ function FundsPageContent() {
   const [payments, setPayments] = useState<SupplierPayment[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [payKey, setPayKey] = useState<string | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
   const load = useCallback(
@@ -504,6 +506,15 @@ function FundsPageContent() {
             Real money in your till, bank and Telebirr — money in minus money out.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsMoving(true)}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
+        >
+          <ArrowLeftRight className="size-3.5 text-zinc-500" />
+          Move money
+        </button>
         {owed > 0 && (
           <button
             type="button"
@@ -514,6 +525,7 @@ function FundsPageContent() {
             <span className="font-mono font-semibold text-slate-300">· {formatEtb(owed)} owed</span>
           </button>
         )}
+        </div>
       </div>
 
       {/* Money left and where it is */}
@@ -598,6 +610,10 @@ function FundsPageContent() {
         <LedgerTab key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       )}
       {tab === "suppliers" && <SuppliersTab payables={payables} payments={payments} onPay={setPayKey} />}
+
+      {isMoving && funds && (
+        <TransferModal shopId={shopId} funds={funds} onClose={() => setIsMoving(false)} onMoved={reload} />
+      )}
 
       {payKey !== null && (
         <PaySupplierModal

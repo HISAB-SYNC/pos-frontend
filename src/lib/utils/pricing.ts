@@ -31,7 +31,10 @@ export function checkPrices(input: {
   if (sell > 0 && buy > 0 && buy >= sell) {
     issues.push({
       code: "PRICE_BELOW_COST",
-      message: `Buying price (${fmt(buy)} ETB) is not lower than the selling price (${fmt(sell)} ETB). Each sale would lose ${fmt(Math.round((buy - sell) * 100) / 100)} ETB.`,
+      message:
+        buy === sell
+          ? `Buying and selling price are both ${fmt(sell)} ETB, so this product makes no profit.`
+          : `Buying price (${fmt(buy)} ETB) is not lower than the selling price (${fmt(sell)} ETB). Each sale would lose ${fmt(Math.round((buy - sell) * 100) / 100)} ETB.`,
     });
   }
 

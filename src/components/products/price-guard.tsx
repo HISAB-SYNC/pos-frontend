@@ -63,7 +63,9 @@ export function MarginHint({ price, buyingPrice }: { price: number; buyingPrice:
   const tone = m.profit <= 0 ? "text-rose-700" : m.marginPct < 10 ? "text-amber-700" : "text-emerald-700";
   return (
     <p className={`text-[11px] font-medium ${tone}`}>
-      {m.profit <= 0
+      {m.profit === 0
+        ? "Sells at cost: no profit per unit"
+        : m.profit < 0
         ? `Loss of ${formatEtb(-m.profit)} ETB on every unit sold`
         : `Profit ${formatEtb(m.profit)} ETB per unit (${m.marginPct}% margin)`}
     </p>
@@ -104,7 +106,7 @@ export function PriceIssuesBox({
           onChange={(e) => onConfirmChange(e.target.checked)}
           className={`size-3.5 ${belowCost ? "accent-rose-600" : "accent-amber-600"}`}
         />
-        {belowCost ? "Yes, sell below cost on purpose" : "Yes, these prices are correct"}
+        {belowCost ? "Yes, sell at or below cost on purpose" : "Yes, these prices are correct"}
       </label>
     </div>
   );

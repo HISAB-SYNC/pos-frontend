@@ -14,6 +14,7 @@ test("normal prices pass", () => {
 test("swapped prices are caught (Mini Chocolate)", () => {
   assert.deepEqual(codes(checkPrices({ price: 15, buyingPrice: 20 })), ["PRICE_BELOW_COST"]);
   assert.deepEqual(codes(checkPrices({ price: 20, buyingPrice: 20 })), ["PRICE_BELOW_COST"], "no profit at all");
+  assert.match(checkPrices({ price: 20, buyingPrice: 20 })[0].message, /no profit/);
 });
 
 test("typo jumps are caught (Enjira 54 -> 3,940)", () => {

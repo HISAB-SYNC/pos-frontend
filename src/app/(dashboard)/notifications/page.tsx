@@ -37,6 +37,7 @@ import type {
 } from "@/lib/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
+import { useUiStore } from "@/stores/ui-store";
 
 function formatFullTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -119,7 +120,9 @@ export default function NotificationsPage() {
   const isSuperAdmin = user?.role === "SUPER_ADMIN" || user?.role === "SYSTEM_ADMIN";
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Shared with the header bell and the sidebar badge.
+  const unreadCount = useUiStore((state) => state.unreadNotifications);
+  const setUnreadCount = useUiStore((state) => state.setUnreadNotifications);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 

@@ -6,6 +6,8 @@ type UiState = {
   mobileSidebarOpen: boolean;
   notificationPanelOpen: boolean;
   commandPaletteOpen: boolean;
+  /** Unread notifications for the active shop (shared by header and sidebar). */
+  unreadNotifications: number;
   setSidebarCollapsed: (value: boolean) => void;
   setMobileSidebarOpen: (value: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -13,6 +15,7 @@ type UiState = {
   toggleNotificationPanel: () => void;
   setCommandPaletteOpen: (value: boolean) => void;
   toggleCommandPalette: () => void;
+  setUnreadNotifications: (count: number | ((current: number) => number)) => void;
 };
 
 export const useUiStore = create<UiState>()(
@@ -22,6 +25,7 @@ export const useUiStore = create<UiState>()(
       mobileSidebarOpen: false,
       notificationPanelOpen: false,
       commandPaletteOpen: false,
+      unreadNotifications: 0,
       setSidebarCollapsed: (value) => set({ sidebarCollapsed: value }),
       setMobileSidebarOpen: (value) => set({ mobileSidebarOpen: value }),
       toggleSidebarCollapsed: () =>
@@ -32,6 +36,10 @@ export const useUiStore = create<UiState>()(
       setCommandPaletteOpen: (value) => set({ commandPaletteOpen: value }),
       toggleCommandPalette: () =>
         set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
+      setUnreadNotifications: (count) =>
+        set((state) => ({
+          unreadNotifications: Math.max(0, typeof count === "function" ? count(state.unreadNotifications) : count),
+        })),
     }),
     {
       name: "andalus-ui",

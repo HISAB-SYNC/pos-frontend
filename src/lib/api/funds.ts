@@ -14,7 +14,17 @@ const FUND_ACCOUNT_LABELS: Record<FundAccount, string> = {
 };
 
 function emptyFundsSummary(): FundsSummary {
-  const lines = { sales: 0, repayments: 0, added: 0, restocks: 0, expenses: 0, refunds: 0, supplierPayments: 0 };
+  const lines = {
+    sales: 0,
+    repayments: 0,
+    added: 0,
+    restocks: 0,
+    expenses: 0,
+    refunds: 0,
+    supplierPayments: 0,
+    transferIn: 0,
+    transferOut: 0,
+  };
   return {
     lines,
     moneyIn: 0,
@@ -129,5 +139,22 @@ export async function paySupplier(
       supplierId: input.supplierId || undefined,
       supplierName: input.supplierId ? undefined : input.supplierName || undefined,
     },
+  });
+}
+
+/**
+ * Moves money between the shop's own accounts (e.g. cash deposited at the
+ * bank). Only the two balances change; Money Left and profit stay the same.
+ */
+export async function transferFunds(
+  shopId: string,
+  input: { fromAccount: FundAccount; toAccount: FundAccount; amount: number; notes?: string },
+) {
+  if (isMockApiEnabled()) {
+    return { id: `trf-${Date.now()}`, ...input };
+  }
+  return apiRequest(API_ENDPOINTS.shops.fundsTransfers(shopId), {
+    method: "POST",
+    body: input,
   });
 }

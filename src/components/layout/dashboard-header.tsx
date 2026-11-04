@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronDown, LogOut, Search, Settings, Store } from "lucide-react";
 
@@ -29,7 +29,8 @@ import { ShopSwitcher } from "./shop-switcher";
 export function DashboardHeader() {
   const router = useRouter();
   const t = useT();
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const unreadCount = useUiStore((state) => state.unreadNotifications);
+  const setUnreadCount = useUiStore((state) => state.setUnreadNotifications);
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
   const shopId = useShopStore((state) => state.activeShopId) || user?.shopId || "";
@@ -67,7 +68,7 @@ export function DashboardHeader() {
     } catch {
       // Graceful fallback
     }
-  }, [isSuperAdmin, shopId]);
+  }, [isSuperAdmin, shopId, setUnreadCount]);
 
   useEffect(() => {
     loadUnreadCount();

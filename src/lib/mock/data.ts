@@ -42,8 +42,9 @@ export type DashboardMetrics = {
     bank: number;
     telebirr: number;
   };
-  salesAndPurchase: Array<{ month: string; sales: number; purchase: number }>;
-  trendWeekly?: Array<{ month: string; sales: number; purchase: number }>;
+  /** expenses / netProfit are present when the backend sends them (net = sales − cost − expenses). */
+  salesAndPurchase: Array<{ month: string; sales: number; purchase: number; expenses?: number; netProfit?: number }>;
+  trendWeekly?: Array<{ month: string; sales: number; purchase: number; expenses?: number; netProfit?: number }>;
   topSellingStock: Array<{
     name: string;
     soldQuantity: number;

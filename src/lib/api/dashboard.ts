@@ -74,6 +74,18 @@ function paymentLabel(method: string) {
   return "Cash";
 }
 
+/** One chart point; net profit only when the backend sent expenses per period. */
+function trendPoint(
+  row: { sales: number; purchase: number; expenses?: number; netProfit?: number } | undefined,
+  hasNetProfit: boolean,
+) {
+  const sales = Math.round(row?.sales ?? 0);
+  const purchase = Math.round(row?.purchase ?? 0);
+  if (!hasNetProfit) return { sales, purchase };
+  const expenses = Math.round(row?.expenses ?? 0);
+  return { sales, purchase, expenses, netProfit: Math.round(row?.netProfit ?? 0) };
+}
+
 /** Builds dashboard metrics from the backend's server-side totals. */
 function metricsFromOverview(
   metrics: BackendDashboardMetrics,
@@ -86,16 +98,19 @@ function metricsFromOverview(
   const daily = new Map(overview.daily.map((d) => [d.period, d]));
   const now = new Date();
 
+  // Older backends don't send net profit per period; then the chart shows bars only.
+  const hasNetProfit = [...overview.monthly, ...overview.daily].some((r) => r.netProfit !== undefined);
+
   const salesAndPurchase = Array.from({ length: 6 }, (_, idx) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
     const row = monthly.get(localDateKey(d, false));
-    return { month: monthNames[d.getMonth()], sales: Math.round(row?.sales ?? 0), purchase: Math.round(row?.purchase ?? 0) };
+    return { month: monthNames[d.getMonth()], ...trendPoint(row, hasNetProfit) };
   });
 
   const trendWeekly = Array.from({ length: 7 }, (_, idx) => {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - idx));
     const row = daily.get(localDateKey(d, true));
-    return { month: `${dayNames[d.getDay()]} ${d.getDate()}`, sales: Math.round(row?.sales ?? 0), purchase: Math.round(row?.purchase ?? 0) };
+    return { month: `${dayNames[d.getDay()]} ${d.getDate()}`, ...trendPoint(row, hasNetProfit) };
   });
 
   const cogs = Math.round(overview.cogs);

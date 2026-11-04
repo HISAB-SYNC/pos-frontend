@@ -458,9 +458,9 @@ export type BackendDashboardOverview = {
   /** Money taken at the till per backend method: CASH, CARD (bank), MOBILE (Telebirr). */
   paymentBreakdown: Partial<Record<"CASH" | "CARD" | "MOBILE", number>>;
   /** period = "YYYY-MM" in the requested time zone */
-  monthly: Array<{ period: string; sales: number; purchase: number }>;
+  monthly: Array<{ period: string; sales: number; purchase: number; expenses?: number; netProfit?: number }>;
   /** period = "YYYY-MM-DD" in the requested time zone */
-  daily: Array<{ period: string; sales: number; purchase: number }>;
+  daily: Array<{ period: string; sales: number; purchase: number; expenses?: number; netProfit?: number }>;
   topSelling: Array<{
     productId: string;
     name: string;

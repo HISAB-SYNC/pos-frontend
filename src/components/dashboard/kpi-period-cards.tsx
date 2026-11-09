@@ -109,7 +109,7 @@ export function KpiPeriodCards({
   debtorsCount: number;
 }) {
   const t = useT();
-  const [preset, setPreset] = useState<Preset>("MONTH");
+  const [preset, setPreset] = useState<Preset>("TODAY");
   const [period, setPeriod] = useState<DashboardPeriod | null>(null);
   const [loadedPreset, setLoadedPreset] = useState<Preset | null>(null);
 

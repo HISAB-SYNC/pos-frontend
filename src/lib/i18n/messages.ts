@@ -27,12 +27,10 @@ export const en = {
   "nav.team": "Manage Team",
   "nav.sellers": "Manage Sellers",
   "nav.settings": "Settings",
-  "nav.quickSearch": "Quick Search",
   "nav.signOut": "Sign Out",
   "nav.live": "Live",
 
   // Header
-  "header.search": "Quick search pages, products, actions...",
   "header.accountSettings": "Account & Settings",
   "header.posRegister": "POS Register",
 
@@ -132,11 +130,9 @@ export const am: Partial<Record<MessageKey, string>> = {
   "nav.team": "ሠራተኞች",
   "nav.sellers": "ሻጮች",
   "nav.settings": "ቅንብሮች",
-  "nav.quickSearch": "ፈጣን ፍለጋ",
   "nav.signOut": "ውጣ",
   "nav.live": "ቀጥታ",
 
-  "header.search": "ገጾችን፣ ምርቶችን፣ ተግባራትን ይፈልጉ...",
   "header.accountSettings": "መለያ እና ቅንብሮች",
   "header.posRegister": "የሽያጭ መመዝገቢያ",
 

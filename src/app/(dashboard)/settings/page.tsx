@@ -2,8 +2,6 @@
 
 import {
   AlertTriangle,
-  ArrowUpRight,
-  Bell,
   Check,
   CheckCircle2,
   Copy,
@@ -16,7 +14,6 @@ import {
   User as UserIcon,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { getUserProfile, updateUserProfile } from "@/lib/api/app-data";
@@ -345,7 +342,7 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Settings Overview KPI Strip                                        */}
       {/* ------------------------------------------------------------------ */}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-2">
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
@@ -368,19 +365,6 @@ export default function SettingsPage() {
           <p className="mt-0.5 font-mono text-[11px] text-zinc-400 truncate">
             {currency} • {ownedShops.length} stores linked
           </p>
-        </div>
-
-        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Alert Rules
-            </span>
-            <Bell className="size-3.5 text-indigo-500" />
-          </div>
-          <p className="mt-2.5 font-mono text-xl font-bold tracking-tight text-emerald-700 tabular-nums">
-            3 Active <span className="text-xs font-normal text-zinc-400">rules</span>
-          </p>
-          <p className="mt-0.5 font-mono text-[11px] text-zinc-400">Stock, debts &amp; expiry</p>
         </div>
       </div>
 
@@ -696,95 +680,6 @@ export default function SettingsPage() {
           </form>
         </div>
       )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* 4. Automated Alert Rules Ledger                                    */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
-        <div className="flex items-center justify-between border-b border-zinc-200/80 bg-zinc-50/60 px-5 py-3.5">
-          <div className="flex items-center gap-2">
-            <Bell className="size-4 text-zinc-500" />
-            <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider font-mono text-zinc-800">
-                Automated Business Alert Rules
-              </h2>
-              <p className="text-[11px] text-zinc-500">Live operational rules evaluated continuously across the shop</p>
-            </div>
-          </div>
-          <Link
-            href="/notifications"
-            className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-indigo-600 transition-colors hover:text-indigo-700"
-          >
-            <span>Notifications Inbox</span>
-            <ArrowUpRight className="size-3" />
-          </Link>
-        </div>
-
-        <div className="divide-y divide-zinc-100 text-xs">
-          <div className="flex flex-col justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50/70 sm:flex-row sm:items-center">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-zinc-900">Low Stock Alert</span>
-                <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
-                  stockQuantity ≤ threshold
-                </span>
-              </div>
-              <p className="mt-0.5 text-[11px] text-zinc-500">
-                Triggered automatically when an item&apos;s inventory drops to or below its product-specific minimum quantity.
-              </p>
-            </div>
-            <Link
-              href="/products"
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-mono text-[11px] font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-            >
-              <span>Set on products</span>
-              <ArrowUpRight className="size-3 text-zinc-400" />
-            </Link>
-          </div>
-
-          <div className="flex flex-col justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50/70 sm:flex-row sm:items-center">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-zinc-900">Overdue Debt Settlement</span>
-                <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
-                  today &gt; dueDate
-                </span>
-              </div>
-              <p className="mt-0.5 text-[11px] text-zinc-500">
-                Flagged daily whenever an active customer credit balance remains outstanding past its maturity due date.
-              </p>
-            </div>
-            <Link
-              href="/debts"
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-mono text-[11px] font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-            >
-              <span>Inspect debts</span>
-              <ArrowUpRight className="size-3 text-zinc-400" />
-            </Link>
-          </div>
-
-          <div className="flex flex-col justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50/70 sm:flex-row sm:items-center">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-zinc-900">Perishable Goods Expiry</span>
-                <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
-                  expiryDate ≤ 7 days
-                </span>
-              </div>
-              <p className="mt-0.5 text-[11px] text-zinc-500">
-                Monitors product expiration schedules and issues advance warnings 7 days before goods expire.
-              </p>
-            </div>
-            <Link
-              href="/products"
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-mono text-[11px] font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-            >
-              <span>Inspect catalog</span>
-              <ArrowUpRight className="size-3 text-zinc-400" />
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

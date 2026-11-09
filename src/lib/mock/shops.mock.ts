@@ -19,7 +19,6 @@ export async function mockCreateShop(input: {
   name: string;
   businessType: string;
   address: string;
-  taxRate: number;
   currency: string;
   language: string;
 }): Promise<Shop> {
@@ -31,7 +30,7 @@ export async function mockCreateShop(input: {
     name: input.name,
     address: input.address,
     businessType: input.businessType,
-    taxRate: String(input.taxRate),
+    taxRate: "0",
     currency: input.currency,
     language: input.language,
     ownerId: store.users.find((user) => user.role === "OWNER")?.id,
@@ -48,7 +47,6 @@ export async function mockUpdateShop(
     name: string;
     businessType: string;
     address: string;
-    taxRate: number;
     currency: string;
     language: string;
   }>,
@@ -62,10 +60,7 @@ export async function mockUpdateShop(
     mockError("Shop not found", 404);
   }
 
-  Object.assign(shop, {
-    ...input,
-    taxRate: input.taxRate !== undefined ? String(input.taxRate) : shop.taxRate,
-  });
+  Object.assign(shop, input);
 
   return shop;
 }

@@ -11,7 +11,6 @@ import {
   EyeOff,
   KeyRound,
   Lock,
-  Percent,
   Shield,
   Store,
   User as UserIcon,
@@ -66,7 +65,6 @@ export default function SettingsPage() {
   const [shopName, setShopName] = useState("");
   const [shopBusinessType, setShopBusinessType] = useState("retail");
   const [shopAddress, setShopAddress] = useState("");
-  const [taxRate, setTaxRate] = useState("15.0");
   const [currency, setCurrency] = useState("ETB");
   const [language, setLanguage] = useState("en");
   const [isSavingShop, setIsSavingShop] = useState(false);
@@ -81,14 +79,12 @@ export default function SettingsPage() {
       name?: string;
       businessType?: string;
       address?: string;
-      taxRate?: string;
       currency?: string;
       language?: string;
     }) => {
       setShopName(shop.name || "");
       setShopBusinessType(shop.businessType || "retail");
       setShopAddress(shop.address || "");
-      setTaxRate(shop.taxRate !== undefined ? String(shop.taxRate) : "15.0");
       setCurrency(shop.currency || "ETB");
       setLanguage(shop.language || "en");
     },
@@ -107,7 +103,8 @@ export default function SettingsPage() {
       const initialShop =
         shops.find((s) => s.id === activeShopId) ||
         shops[0] ||
-        (data.shop ? { ...data.shop, taxRate: "15.0" } : null);
+        data.shop ||
+        null;
 
       if (initialShop) {
         setSelectedShopId(initialShop.id);
@@ -230,12 +227,10 @@ export default function SettingsPage() {
     setSuccessMsg("");
 
     try {
-      const parsedTax = parseFloat(taxRate);
       const updated = await updateShop(targetShopId, {
         name: shopName.trim(),
         businessType: shopBusinessType,
         address: shopAddress.trim(),
-        taxRate: isNaN(parsedTax) ? 0 : parsedTax,
         currency: currency.trim().toUpperCase() || "ETB",
         language,
       });
@@ -254,7 +249,6 @@ export default function SettingsPage() {
                   name: updated.name || shopName.trim(),
                   businessType: shopBusinessType,
                   address: shopAddress.trim(),
-                  taxRate: String(isNaN(parsedTax) ? 0 : parsedTax),
                   currency: currency.trim().toUpperCase() || "ETB",
                 }
               : s,
@@ -351,7 +345,7 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Settings Overview KPI Strip                                        */}
       {/* ------------------------------------------------------------------ */}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
@@ -374,19 +368,6 @@ export default function SettingsPage() {
           <p className="mt-0.5 font-mono text-[11px] text-zinc-400 truncate">
             {currency} • {ownedShops.length} stores linked
           </p>
-        </div>
-
-        <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              VAT / Tax Policy
-            </span>
-            <Percent className="size-3.5 text-zinc-400" />
-          </div>
-          <p className="mt-2.5 font-mono text-xl font-bold tracking-tight text-zinc-900 tabular-nums">
-            {taxRate}% <span className="text-xs font-normal text-zinc-400">standard</span>
-          </p>
-          <p className="mt-0.5 font-mono text-[11px] text-zinc-400">Applied at POS checkout</p>
         </div>
 
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
@@ -589,7 +570,7 @@ export default function SettingsPage() {
                 <h2 className="text-xs font-bold uppercase tracking-wider font-mono text-zinc-800">
                   Store &amp; Fiscal Configuration
                 </h2>
-                <p className="text-[11px] text-zinc-500">Tax policies, trading name, and receipt parameters</p>
+                <p className="text-[11px] text-zinc-500">Trading name, business type, and currency</p>
               </div>
             </div>
 
@@ -651,28 +632,6 @@ export default function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="shop-tax-rate" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                    Default Tax Rate (%)
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="shop-tax-rate"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={taxRate}
-                      onChange={(e) => setTaxRate(e.target.value)}
-                      placeholder="15.0"
-                      className="h-9 w-full rounded-md border border-zinc-200/80 bg-white pl-3 pr-8 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-zinc-400">
-                      %
-                    </span>
-                  </div>
                 </div>
 
                 <div className="space-y-1.5">

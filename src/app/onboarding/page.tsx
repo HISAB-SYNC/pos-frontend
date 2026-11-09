@@ -9,7 +9,6 @@ import {
   Languages,
   Loader2,
   MapPin,
-  Percent,
   Sparkles,
   Store,
 } from "lucide-react";
@@ -51,7 +50,6 @@ export default function OnboardingPage() {
   const [name, setName] = useState("");
   const [businessType, setBusinessType] = useState(BUSINESS_TYPES[0]);
   const [address, setAddress] = useState("");
-  const [taxRate, setTaxRate] = useState("15");
   const [currency, setCurrency] = useState("ETB");
   const [language, setLanguage] = useState("en");
 
@@ -84,12 +82,10 @@ export default function OnboardingPage() {
     setStatus("loading");
 
     try {
-      const parsedTaxRate = parseFloat(taxRate) || 0;
       const createdShop = await createShop({
         name: name.trim(),
         businessType,
         address: address.trim(),
-        taxRate: parsedTaxRate,
         currency,
         language,
       });
@@ -189,8 +185,8 @@ export default function OnboardingPage() {
               />
             </div>
 
-            {/* Tax Rate & Currency Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Currency */}
+            <div className="grid grid-cols-1 gap-4">
               {/* Currency */}
               <div>
                 <label htmlFor="currency" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
@@ -212,25 +208,6 @@ export default function OnboardingPage() {
                 </select>
               </div>
 
-              {/* Tax Rate */}
-              <div>
-                <label htmlFor="taxRate" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
-                  <Percent className="size-4 text-[#64748b]" />
-                  Standard Tax / VAT Rate (%)
-                </label>
-                <input
-                  id="taxRate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  placeholder="15"
-                  value={taxRate}
-                  onChange={(e) => setTaxRate(e.target.value)}
-                  disabled={status === "loading"}
-                  className="w-full rounded-xl border border-[#cbd5e1] px-4 py-2.5 text-sm font-medium text-[#0f172a] placeholder-[#94a3b8] transition-all focus:border-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0f172a]/10 disabled:bg-[#f8fafc]"
-                />
-              </div>
             </div>
 
             {/* Language */}

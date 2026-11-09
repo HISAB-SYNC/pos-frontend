@@ -27,7 +27,6 @@ export async function createShop(input: {
   name: string;
   businessType: string;
   address: string;
-  taxRate: number;
   currency: string;
   language: string;
 }) {
@@ -47,7 +46,6 @@ export async function updateShop(
     name: string;
     businessType: string;
     address: string;
-    taxRate: number;
     currency: string;
     language: string;
   }>,

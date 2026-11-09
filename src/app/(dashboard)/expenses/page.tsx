@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDismiss } from "@/hooks/use-dismiss";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { LoadError } from "@/components/shared/load-error";
@@ -560,6 +561,7 @@ export default function ExpensesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useDismiss<HTMLDivElement>(showFilterDropdown, () => setShowFilterDropdown(false));
 
   // Sorting
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -838,7 +840,7 @@ export default function ExpensesPage() {
               </div>
 
               {/* Filters dropdown button */}
-              <div className="relative">
+              <div className="relative" ref={filterRef}>
                 <button
                   type="button"
                   onClick={() => setShowFilterDropdown(!showFilterDropdown)}

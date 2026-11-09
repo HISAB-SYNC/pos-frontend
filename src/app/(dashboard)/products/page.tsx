@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDismiss } from "@/hooks/use-dismiss";
 
 import {
   useOfflineStatus,
@@ -1254,6 +1255,7 @@ export default function ProductsPage() {
     "ALL" | "AVAILABLE" | "LOW_STOCK" | "EXPIRING_SOON" | "EXPIRED"
   >("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useDismiss<HTMLDivElement>(showFilterDropdown, () => setShowFilterDropdown(false));
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1554,7 +1556,7 @@ export default function ProductsPage() {
                 </div>
 
                 {/* Filters Button & Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={filterRef}>
                   <button
                     type="button"
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}

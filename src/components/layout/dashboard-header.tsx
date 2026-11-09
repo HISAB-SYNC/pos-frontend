@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, Search, Settings, Store } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Settings, Store } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -93,32 +93,7 @@ export function DashboardHeader() {
       <header className="sticky top-0 z-20 flex h-16 items-center gap-2 sm:gap-4 border-b border-zinc-200/80 bg-white px-3 sm:px-6">
         <SidebarTrigger className="text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-md" />
 
-        {/* Global Search Bar (Desktop Trigger for Command Palette) */}
-        <button
-          type="button"
-          onClick={() => setCommandPaletteOpen(true)}
-          className="group relative mx-auto hidden w-full max-w-md flex-1 items-center justify-between rounded-md border border-zinc-200/90 bg-zinc-50/70 px-3 py-1.5 text-xs text-zinc-400 transition-all hover:border-zinc-300 hover:bg-white md:flex"
-        >
-          <div className="flex items-center gap-2.5">
-            <Search className="size-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors" />
-            <span className="font-normal text-zinc-500">{t("header.search")}</span>
-          </div>
-          <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 shadow-2xs">
-            ⌘K
-          </kbd>
-        </button>
-
         <div className="ml-auto flex items-center gap-2 sm:gap-3 relative">
-          {/* Mobile Search Icon Trigger */}
-          <button
-            type="button"
-            onClick={() => setCommandPaletteOpen(true)}
-            className="flex size-9 items-center justify-center rounded-md border border-zinc-200/90 bg-white text-zinc-600 hover:bg-zinc-50 md:hidden"
-            aria-label="Open search"
-          >
-            <Search className="size-4" />
-          </button>
-
           <LanguageSwitch />
 
           {/* Multi-shop dropdown switcher */}

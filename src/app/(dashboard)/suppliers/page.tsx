@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDismiss } from "@/hooks/use-dismiss";
 
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -467,6 +468,7 @@ export default function SuppliersPage() {
   // Filter State
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useDismiss<HTMLDivElement>(showFilterDropdown, () => setShowFilterDropdown(false));
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -722,7 +724,7 @@ export default function SuppliersPage() {
               </div>
 
               {/* Filter button & dropdown */}
-              <div className="relative">
+              <div className="relative" ref={filterRef}>
                 <button
                   type="button"
                   onClick={() => setShowFilterDropdown(!showFilterDropdown)}

@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
-  Search,
   Settings,
   ShoppingCart,
   Store,
@@ -167,7 +166,6 @@ export function DashboardSidebar() {
   const router = useRouter();
   const { collapsed } = useSidebar();
   const setMobileSidebarOpen = useUiStore((state) => state.setMobileSidebarOpen);
-  const toggleCommandPalette = useUiStore((state) => state.toggleCommandPalette);
   const clearSession = useAuthStore((state) => state.clearSession);
   const setActiveShop = useShopStore((state) => state.setActiveShop);
   const activeShopName = useShopStore((state) => state.activeShopName);
@@ -299,30 +297,6 @@ export function DashboardSidebar() {
           collapsed ? "px-2" : "px-3",
         )}
       >
-        {/* Quick Search Trigger */}
-        <button
-          type="button"
-          onClick={() => {
-            closeMobileSidebar();
-            toggleCommandPalette();
-          }}
-          className={cn(
-            "group flex w-full items-center rounded-md py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900",
-            collapsed ? "justify-center px-2" : "justify-between px-3",
-          )}
-          title="Search & Quick Actions (⌘K)"
-        >
-          <div className="flex items-center gap-2.5">
-            <Search className="size-3.5 shrink-0 text-zinc-400 group-hover:text-zinc-700" />
-            {!collapsed && <span>{t("nav.quickSearch")}</span>}
-          </div>
-          {!collapsed && (
-            <kbd className="rounded border border-zinc-200 bg-white px-1.5 py-0.2 font-mono text-[9px] text-zinc-400 shadow-2xs">
-              ⌘K
-            </kbd>
-          )}
-        </button>
-
         {footerNav.map((item) => (
           <NavLink
             key={item.href}

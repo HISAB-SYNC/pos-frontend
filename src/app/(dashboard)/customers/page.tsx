@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDismiss } from "@/hooks/use-dismiss";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
@@ -750,6 +751,7 @@ export default function CustomersPage() {
   const [activeTab, setActiveTab] = useState<"ALL" | "WITH_DEBT" | "NO_DEBT">("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useDismiss<HTMLDivElement>(showFilterDropdown, () => setShowFilterDropdown(false));
 
   // Sorting State
   const [sortField, setSortField] = useState<"name" | "debt" | "limit" | null>(null);
@@ -1080,7 +1082,7 @@ export default function CustomersPage() {
                   />
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={filterRef}>
                   <button
                     type="button"
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}

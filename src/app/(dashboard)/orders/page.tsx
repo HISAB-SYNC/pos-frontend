@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDismiss } from "@/hooks/use-dismiss";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { getSales, processSaleReturn } from "@/lib/api/app-data";
@@ -1070,6 +1071,7 @@ export default function SalesHistoryPage() {
   const [selectedMethod, setSelectedMethod] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useDismiss<HTMLDivElement>(showFilterDropdown, () => setShowFilterDropdown(false));
 
   // Modal State
   const [activeReceipt, setActiveReceipt] = useState<Sale | null>(null);
@@ -1631,7 +1633,7 @@ export default function SalesHistoryPage() {
                   />
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={filterRef}>
                   <button
                     type="button"
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}

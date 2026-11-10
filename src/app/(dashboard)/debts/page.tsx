@@ -1960,6 +1960,61 @@ function BatchSettleModal({
 /* ------------------------------------------------------------------ */
 /* Main Page: Customer-First Master-Detail Debt Ledger                */
 /* ------------------------------------------------------------------ */
+type SortOrder = "asc" | "desc";
+type DebtSortField =
+  | "dueDate"
+  | "remainingAmount"
+  | "amount"
+  | "paidAmount"
+  | "status"
+  | "createdAt"
+  | "customerName";
+type LedgerSortField = "name" | "openDebts" | "balance" | "creditLimit" | "repaid" | "status";
+type VoucherSortField = "createdAt" | "dueDate" | "amount" | "remaining";
+
+/** Clickable table header cell with an asc/desc arrow, shared by every sortable debt table. */
+function SortableTh<F extends string>({
+  label,
+  field,
+  activeField,
+  order,
+  onSort,
+  align = "left",
+  className = "px-5 py-3.5",
+}: {
+  label: string;
+  field: F;
+  activeField: F;
+  order: SortOrder;
+  onSort: (field: F) => void;
+  align?: "left" | "right" | "center";
+  className?: string;
+}) {
+  const justify = align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+  return (
+    <th className={`${className} ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}>
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className={`flex w-full items-center gap-1.5 ${justify} font-semibold hover:text-zinc-950`}
+      >
+        <span>{label}</span>
+        {activeField === field ? (
+          order === "asc" ? <ChevronUp className="size-3 text-zinc-900" /> : <ChevronDown className="size-3 text-zinc-900" />
+        ) : (
+          <ArrowUpDown className="size-3 text-zinc-400" />
+        )}
+      </button>
+    </th>
+  );
+}
+
+function compareValues(a: string | number, b: string | number, order: SortOrder) {
+  if (a < b) return order === "asc" ? -1 : 1;
+  if (a > b) return order === "asc" ? 1 : -1;
+  return 0;
+}
+
 export default function DebtsPage() {
   const authUser = useAuthStore((state) => state.user);
   const isCashier = authUser?.role === "SALES";
@@ -2012,18 +2067,58 @@ export default function DebtsPage() {
   }
 
   // Debt Records Sorting
-  const [debtSortField, setDebtSortField] = useState<
-    "dueDate" | "remainingAmount" | "amount" | "createdAt" | "customerName"
-  >("createdAt");
-  const [debtSortOrder, setDebtSortOrder] = useState<"asc" | "desc">("desc");
+  const [debtSortField, setDebtSortField] = useState<DebtSortField>("createdAt");
+  const [debtSortOrder, setDebtSortOrder] = useState<SortOrder>("desc");
 
-  function handleDebtSort(field: "dueDate" | "remainingAmount" | "amount" | "createdAt" | "customerName") {
+  function handleDebtSort(field: DebtSortField) {
     if (debtSortField === field) {
       setDebtSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setDebtSortField(field);
       setDebtSortOrder("desc");
     }
+  }
+
+  // Customer ledger (Tab 1) sorting: biggest outstanding balance first by default
+  const [ledgerSortField, setLedgerSortField] = useState<LedgerSortField>("balance");
+  const [ledgerSortOrder, setLedgerSortOrder] = useState<SortOrder>("desc");
+
+  function handleLedgerSort(field: LedgerSortField) {
+    if (ledgerSortField === field) {
+      setLedgerSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setLedgerSortField(field);
+      setLedgerSortOrder(field === "name" ? "asc" : "desc");
+    }
+  }
+
+  // Open-voucher peek (nested under each expanded customer) sorting
+  const [voucherSortField, setVoucherSortField] = useState<VoucherSortField>("createdAt");
+  const [voucherSortOrder, setVoucherSortOrder] = useState<SortOrder>("desc");
+
+  function handleVoucherSort(field: VoucherSortField) {
+    if (voucherSortField === field) {
+      setVoucherSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setVoucherSortField(field);
+      setVoucherSortOrder("desc");
+    }
+  }
+
+  function sortVouchers(list: Debt[]) {
+    const remainingOf = (d: Debt) => parseFloat(d.remainingAmount || d.amount || "0");
+    return [...list].sort((a, b) => {
+      if (voucherSortField === "dueDate") {
+        return compareValues(a.dueDate ? new Date(a.dueDate).getTime() : 0, b.dueDate ? new Date(b.dueDate).getTime() : 0, voucherSortOrder);
+      }
+      if (voucherSortField === "createdAt") {
+        return compareValues(a.createdAt ? new Date(a.createdAt).getTime() : 0, b.createdAt ? new Date(b.createdAt).getTime() : 0, voucherSortOrder);
+      }
+      if (voucherSortField === "amount") {
+        return compareValues(parseFloat(a.amount || "0"), parseFloat(b.amount || "0"), voucherSortOrder);
+      }
+      return compareValues(remainingOf(a), remainingOf(b), voucherSortOrder);
+    });
   }
 
   const loadData = useCallback(async () => {
@@ -2091,6 +2186,36 @@ export default function DebtsPage() {
     });
   }, [customers, debtsByCustomerId, customerFilter, customerSearch]);
 
+  // Sorted Customers (Customer-First Ledger)
+  const sortedCustomers = useMemo(() => {
+    const metrics = new Map<
+      string,
+      { name: string; openDebts: number; balance: number; creditLimit: number; repaid: number; status: number }
+    >();
+    for (const cust of filteredCustomers) {
+      const custDebts = debtsByCustomerId[cust.id] || [];
+      const calculatedDebt = custDebts.reduce((sum, d) => sum + parseFloat(d.remainingAmount || d.amount || "0"), 0);
+      const balance = calculatedDebt > 0 ? calculatedDebt : parseFloat(cust.debtBalance || "0");
+      const repaid = custDebts.reduce((sum, d) => sum + parseFloat(d.paidAmount || "0"), 0);
+      const hasOverdueDebt = custDebts.some(
+        (d) => d.status === "OVERDUE" || (d.status !== "PAID" && d.dueDate && new Date(d.dueDate) < new Date()),
+      );
+      const isOverdue = hasOverdueDebt || cust.status === "Overdue" || (cust.daysOverdue && cust.daysOverdue !== "-");
+      metrics.set(cust.id, {
+        name: cust.name.toLowerCase(),
+        openDebts: custDebts.filter((d) => parseFloat(d.remainingAmount || d.amount || "0") > 0).length,
+        balance,
+        creditLimit: parseFloat(String(cust.creditLimit || "5000")),
+        repaid: repaid > 0 ? repaid : parseFloat(String(cust.totalPaid || "0")),
+        // Overdue ranks highest, then active debt, then settled
+        status: balance > 0 ? (isOverdue ? 2 : 1) : 0,
+      });
+    }
+    return [...filteredCustomers].sort((a, b) =>
+      compareValues(metrics.get(a.id)![ledgerSortField], metrics.get(b.id)![ledgerSortField], ledgerSortOrder),
+    );
+  }, [filteredCustomers, debtsByCustomerId, ledgerSortField, ledgerSortOrder]);
+
   // Filtered Debts List
   const filteredDebts = useMemo(() => {
     return debts.filter((d) => {
@@ -2140,6 +2265,12 @@ export default function DebtsPage() {
       } else if (debtSortField === "amount") {
         valA = parseFloat(a.amount || "0");
         valB = parseFloat(b.amount || "0");
+      } else if (debtSortField === "paidAmount") {
+        valA = parseFloat(a.paidAmount || "0");
+        valB = parseFloat(b.paidAmount || "0");
+      } else if (debtSortField === "status") {
+        valA = (a.status || "").toLowerCase();
+        valB = (b.status || "").toLowerCase();
       } else if (debtSortField === "customerName") {
         valA = (a.customerName || "").toLowerCase();
         valB = (b.customerName || "").toLowerCase();
@@ -2458,19 +2589,19 @@ export default function DebtsPage() {
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="w-9 px-3 py-3.5"></th>
-                  <th className="px-5 py-3.5">Customer Profile</th>
+                  <SortableTh label="Customer Profile" field="name" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} />
                   <th className="px-5 py-3.5">Phone Number</th>
-                  <th className="px-5 py-3.5 text-center">Open Debts</th>
-                  <th className="px-5 py-3.5 text-right">Outstanding Balance</th>
-                  <th className="px-5 py-3.5 text-right">Credit Limit</th>
-                  <th className="px-5 py-3.5 text-right">Total Repaid</th>
-                  <th className="px-5 py-3.5">Status</th>
+                  <SortableTh label="Open Debts" field="openDebts" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="center" />
+                  <SortableTh label="Outstanding Balance" field="balance" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
+                  <SortableTh label="Credit Limit" field="creditLimit" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
+                  <SortableTh label="Total Repaid" field="repaid" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
+                  <SortableTh label="Status" field="status" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} />
                   <th className="px-5 py-3.5 text-right">Ledger Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {filteredCustomers.length > 0 ? (
-                  filteredCustomers.map((cust) => {
+                {sortedCustomers.length > 0 ? (
+                  sortedCustomers.map((cust) => {
                     const custDebts = debtsByCustomerId[cust.id] || [];
                     const calculatedDebt = custDebts.reduce(
                       (sum, d) => sum + parseFloat(d.remainingAmount || d.amount || "0"),
@@ -2725,16 +2856,16 @@ export default function DebtsPage() {
                                         <thead className="border-b border-zinc-200 bg-zinc-50 font-semibold text-zinc-600">
                                           <tr>
                                             <th className="px-4 py-2">Voucher ID</th>
-                                            <th className="px-4 py-2">Created</th>
-                                            <th className="px-4 py-2">Due Date</th>
+                                            <SortableTh label="Created" field="createdAt" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} className="px-4 py-2" />
+                                            <SortableTh label="Due Date" field="dueDate" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} className="px-4 py-2" />
                                             <th className="px-4 py-2">Items / Notes</th>
-                                            <th className="px-4 py-2 text-right">Original</th>
-                                            <th className="px-4 py-2 text-right">Remaining Due</th>
+                                            <SortableTh label="Original" field="amount" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} align="right" className="px-4 py-2" />
+                                            <SortableTh label="Remaining Due" field="remaining" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} align="right" className="px-4 py-2" />
                                             <th className="px-4 py-2 text-right">Action</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
-                                          {openCustDebts.map((d) => {
+                                          {sortVouchers(openCustDebts).map((d) => {
                                             const total = parseFloat(d.amount || "0");
                                             const paid = parseFloat(d.paidAmount || "0");
                                             const remaining = parseFloat(d.remainingAmount || String(Math.max(0, total - paid)));
@@ -2927,7 +3058,7 @@ export default function DebtsPage() {
                       )}
                     </button>
                   </th>
-                  <th className="px-5 py-3.5 text-right font-semibold text-zinc-600">Amount Paid</th>
+                  <SortableTh label="Amount Paid" field="paidAmount" activeField={debtSortField} order={debtSortOrder} onSort={handleDebtSort} align="right" className="px-5 py-3.5 text-zinc-600" />
                   <th className="px-5 py-3.5 text-right">
                     <button
                       type="button"
@@ -2956,7 +3087,7 @@ export default function DebtsPage() {
                       )}
                     </button>
                   </th>
-                  <th className="px-5 py-3.5 font-semibold text-zinc-600">Status</th>
+                  <SortableTh label="Status" field="status" activeField={debtSortField} order={debtSortOrder} onSort={handleDebtSort} className="px-5 py-3.5 text-zinc-600" />
                   <th className="px-5 py-3.5 text-right font-semibold text-zinc-600">Actions</th>
                 </tr>
               </thead>

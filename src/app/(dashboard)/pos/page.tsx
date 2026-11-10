@@ -1840,14 +1840,14 @@ export default function PosPage() {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_400px]">
+    <div className="space-y-4 lg:h-[calc(100dvh-7rem)] lg:space-y-0 lg:overflow-hidden">
+      <div className="grid grid-cols-1 gap-5 lg:h-full lg:min-h-0 lg:grid-cols-[1fr_340px] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_400px]">
         {/* ================================================================= */}
         {/* Left Column: Product Catalog & Category Filters                   */}
         {/* ================================================================= */}
-        <div className="min-w-0 space-y-3.5">
+        <div className="min-w-0 space-y-3.5 lg:flex lg:min-h-0 lg:flex-col lg:gap-3.5 lg:space-y-0">
           {/* Header & Quick Search Bar */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:shrink-0">
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-lg font-bold tracking-tight text-zinc-950">{t("pos.title")}</h1>
@@ -1934,14 +1934,14 @@ export default function PosPage() {
 
           {/* Sync Success Notification */}
           {syncToastMessage && (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 animate-in fade-in duration-200 lg:shrink-0">
               <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
               <span>{syncToastMessage}</span>
             </div>
           )}
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none lg:shrink-0">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -1959,7 +1959,7 @@ export default function PosPage() {
           </div>
 
           {/* Products grid: 2 columns on phones and next to the cart on tablets, 3 on laptops, 4 on wide screens */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:content-start lg:overflow-y-auto lg:pr-1 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredProducts.map((product) => {
               const inCart = cart.find((it) => it.product.id === product.id);
               const isOutOfStock = product.stockQuantity <= 0;
@@ -2047,7 +2047,7 @@ export default function PosPage() {
         {/* ================================================================= */}
         {/* Right Column: checkout panel beside the products from lg (1024px)  */}
         {/* ================================================================= */}
-        <div className="hidden lg:flex lg:sticky lg:top-4 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto flex-col justify-between rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs min-w-0">
+        <div className="hidden lg:flex lg:min-h-0 lg:overflow-y-auto flex-col justify-between rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs min-w-0">
           {renderOrderPanel(false)}
         </div>
       </div>

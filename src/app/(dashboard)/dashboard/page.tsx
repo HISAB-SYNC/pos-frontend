@@ -31,6 +31,9 @@ import { useShopStore } from "@/stores/shop-store";
 /* ------------------------------------------------------------------ */
 /* Low Quantity Stock item with Restock action                        */
 /* ------------------------------------------------------------------ */
+/** Rows shown in the dashboard list cards; the full lists live on their own pages. */
+const DASHBOARD_LIST_LIMIT = 5;
+
 function LowStockItem({
   name,
   remainingQuantity,
@@ -324,7 +327,7 @@ export default function DashboardPage() {
         {/* ================================================================= */}
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           {/* Top Selling Stock */}
-          <DashboardCard title="Top Selling Products" action={<SeeAllLink href="/products" />}>
+          <DashboardCard title="Top Selling Products" action={<SeeAllLink href="/dashboard/top-selling" />}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[380px] text-left text-xs">
                 <thead>
@@ -336,7 +339,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {metrics.topSellingStock.map((item) => (
+                  {metrics.topSellingStock.slice(0, DASHBOARD_LIST_LIMIT).map((item) => (
                     <tr
                       key={item.name}
                       className="transition-colors hover:bg-zinc-50/80"
@@ -371,7 +374,7 @@ export default function DashboardPage() {
           >
             {metrics.lowQuantityStock.length > 0 ? (
               <div className="space-y-1.5">
-                {metrics.lowQuantityStock.map((item) => (
+                {metrics.lowQuantityStock.slice(0, DASHBOARD_LIST_LIMIT).map((item) => (
                   <LowStockItem
                     key={item.id}
                     name={item.name}
@@ -379,6 +382,15 @@ export default function DashboardPage() {
                     unit={item.unit}
                   />
                 ))}
+                {metrics.lowQuantityStock.length > DASHBOARD_LIST_LIMIT && (
+                  <Link
+                    href="/dashboard/low-inventory"
+                    className="group flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+                  >
+                    <span>See {metrics.lowQuantityStock.length - DASHBOARD_LIST_LIMIT} more</span>
+                    <ArrowUpRight className="size-3.5 text-zinc-400 group-hover:text-zinc-900" />
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-7 text-center">

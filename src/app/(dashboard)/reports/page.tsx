@@ -28,6 +28,7 @@ import {
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { LoadError } from "@/components/shared/load-error";
+import { DebtReport } from "@/components/reports/debt-report";
 import { ProductReport } from "@/components/reports/product-report";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getShopAnalytics } from "@/lib/api/app-data";
@@ -681,12 +682,14 @@ function SalesReport() {
 }
 
 
-type ReportTab = "sales" | "products";
+type ReportTab = "sales" | "products" | "debts";
 
 function ReportsContent() {
   const searchParams = useSearchParams();
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
-  const [tab, setTab] = useState<ReportTab>(searchParams.get("tab") === "products" ? "products" : "sales");
+  const [tab, setTab] = useState<ReportTab>(
+    searchParams.get("tab") === "products" ? "products" : searchParams.get("tab") === "debts" ? "debts" : "sales",
+  );
 
   return (
     <div className="space-y-5">
@@ -695,6 +698,7 @@ function ReportsContent() {
           [
             { id: "sales", label: "Sales" },
             { id: "products", label: "Products" },
+            { id: "debts", label: "Debts" },
           ] as Array<{ id: ReportTab; label: string }>
         ).map((t) => (
           <button
@@ -713,6 +717,16 @@ function ReportsContent() {
       </div>
       {tab === "sales" ? (
         <SalesReport />
+      ) : tab === "debts" ? (
+        <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
+          <div className="space-y-1 print:hidden">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Debt report</h1>
+            <p className="text-xs text-zinc-500">
+              How much credit was given, how much has been repaid and who still owes. Filter by status and period, then print it, save it as PDF or export it to Excel.
+            </p>
+          </div>
+          <DebtReport shopId={activeShopId} />
+        </RouteGuard>
       ) : (
         <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
           <div className="space-y-1 print:hidden">

@@ -577,7 +577,7 @@ function SalesReport() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {products?.topSellingProducts && products.topSellingProducts.length > 0 ? (
-                    products.topSellingProducts.map((p, idx) => {
+                    products.topSellingProducts.slice(0, 5).map((p, idx) => {
                       const bp = getProductBuyingPrice(p);
                       const sp = getProductSellingPrice(p);
                       return (
@@ -610,6 +610,12 @@ function SalesReport() {
                 </tbody>
               </table>
             </div>
+            <Link
+              href="/reports/top-selling"
+              className="flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+            >
+              See more &rarr;
+            </Link>
           </div>
 
           {/* Top Spending Customers */}
@@ -639,7 +645,7 @@ function SalesReport() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {customers?.topCustomers && customers.topCustomers.length > 0 ? (
-                    customers.topCustomers.map((c) => (
+                    customers.topCustomers.slice(0, 5).map((c) => (
                       <tr key={c.customerId} className="hover:bg-zinc-50/60 transition-colors">
                         <td className="py-2.5 font-semibold text-zinc-900">{c.name}</td>
                         <td className="py-2.5 font-mono text-zinc-500">{c.phone || c.email || "—"}</td>
@@ -661,6 +667,12 @@ function SalesReport() {
                 </tbody>
               </table>
             </div>
+            <Link
+              href="/reports/top-customers"
+              className="flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+            >
+              See more &rarr;
+            </Link>
           </div>
         </div>
       </div>

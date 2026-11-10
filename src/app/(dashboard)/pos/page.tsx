@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useHorizontalWheel } from "@/hooks/use-horizontal-wheel";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { createCustomer, createSale, getCustomers, saveCreditSaleItems } from "@/lib/api/app-data";
@@ -900,6 +901,7 @@ export default function PosPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const categoryPillsRef = useHorizontalWheel<HTMLDivElement>();
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -1941,7 +1943,7 @@ export default function PosPage() {
           )}
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none lg:shrink-0">
+          <div ref={categoryPillsRef} className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none lg:shrink-0">
             {categories.map((cat) => (
               <button
                 key={cat}

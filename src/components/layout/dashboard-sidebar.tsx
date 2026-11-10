@@ -282,9 +282,7 @@ export function DashboardSidebar() {
               onNavigate={closeMobileSidebar}
               active={
                 pathname === item.href ||
-                (item.href !== "/admin/dashboard" &&
-                  item.href !== "/dashboard" &&
-                  pathname.startsWith(`${item.href}/`))
+                (item.href !== "/admin/dashboard" && pathname.startsWith(`${item.href}/`))
               }
             />
           ))}

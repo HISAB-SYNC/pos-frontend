@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { isMockApiEnabled } from "@/config/env";
 import { LoadingState } from "@/components/shared/loading-state";
 
+import { AnnouncementBanner } from "./announcement-banner";
 import { DashboardContent } from "./dashboard-content";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardSidebar } from "./dashboard-sidebar";
@@ -54,6 +55,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <DashboardSidebar />
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <DashboardHeader />
+          <AnnouncementBanner />
           <DashboardContent>{children}</DashboardContent>
         </div>
       </div>

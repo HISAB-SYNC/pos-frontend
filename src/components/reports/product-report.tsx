@@ -174,7 +174,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
       ) : (
         <>
           {/* Summary */}
-          <p className="-mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
             {label} · all products
           </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

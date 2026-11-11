@@ -206,7 +206,7 @@ export function DebtReport({ shopId }: { shopId: string }) {
         <LoadError what="the debt report" onRetry={() => setReloadKey((k) => k + 1)} />
       ) : (
         <>
-          <p className="-mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
             {label} · debts issued in this period
           </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

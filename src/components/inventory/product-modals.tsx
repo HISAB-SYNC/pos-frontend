@@ -6,7 +6,7 @@ import { queueOfflineProduct, type OfflineProduct } from "@/lib/offline";
 import { createCategory, createProduct, deleteCategory, deleteProduct, updateProduct } from "@/lib/api";
 import { MarginHint, PriceIssuesBox, usePriceGuard } from "@/components/products/price-guard";
 import type { Category, Product } from "@/lib/api/types";
-import { STANDARD_UNITS } from "@/lib/utils/units";
+import { formatQuantity, STANDARD_UNITS } from "@/lib/utils/units";
 
 /* ------------------------------------------------------------------ */
 /* Add Product Modal                                                  */
@@ -506,12 +506,15 @@ export function EditProductModal({
   onUpdated,
   shopId,
   categories,
+  onAdjustStock,
 }: {
   product: Product | null;
   onClose: () => void;
   onUpdated: () => void;
   shopId: string;
   categories: Category[];
+  /** Stock is changed through Adjust Stock so every change is logged with a reason. */
+  onAdjustStock?: (product: Product) => void;
 }) {
   const [form, setForm] = useState({
     name: "",
@@ -570,7 +573,6 @@ export function EditProductModal({
         categoryId: form.categoryId || undefined,
         price: sellingNum,
         buyingPrice: buyingNum > 0 ? buyingNum : undefined,
-        stockQuantity: parseFloat(form.stockQuantity) || 0,
         lowStockThreshold: parseInt(form.lowStockThreshold, 10) || 5,
         expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : null,
       });
@@ -676,15 +678,24 @@ export function EditProductModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-medium text-zinc-600">Stock Quantity</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={form.stockQuantity}
-                onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
-                className="h-9 w-full rounded-lg border border-zinc-200 px-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
-                required
-              />
+              <div className="flex h-9 items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3">
+                <span className="font-mono font-semibold text-zinc-900 tabular-nums">
+                  {formatQuantity(product.stockQuantity, product.unit || "pcs")}
+                </span>
+                {onAdjustStock && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onAdjustStock(product);
+                    }}
+                    className="text-[11px] font-semibold text-[#5B4FE9] hover:underline"
+                  >
+                    Adjust stock
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-[10px] text-zinc-400">Stock changes go through Adjust stock so they are logged.</p>
             </div>
             <div>
               <label className="mb-1 block font-medium text-zinc-600">Category</label>

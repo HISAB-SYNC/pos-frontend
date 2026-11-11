@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import {
   activateUser,
   getAdminShops,
@@ -413,6 +414,8 @@ export default function AdminRequestsPage() {
     }
   }
 
+  const pager = usePagination(filteredOwners, 20);
+
   if (loading) {
     return <LoadingState />;
   }
@@ -588,7 +591,7 @@ export default function AdminRequestsPage() {
             </thead>
             <tbody className="divide-y divide-[#f3f4f6]">
               {filteredOwners.length > 0 ? (
-                filteredOwners.map((owner) => (
+                pager.pageItems.map((owner) => (
                   <tr key={owner.id} className="hover:bg-[#f9fafb]">
                     <td className="py-3 font-bold text-[#111827]">
                       <div className="flex items-center gap-2">
@@ -671,6 +674,7 @@ export default function AdminRequestsPage() {
             </tbody>
           </table>
         </div>
+        <TablePagination pagination={pager} noun="owners" />
       </div>
 
       {/* Modals Container */}

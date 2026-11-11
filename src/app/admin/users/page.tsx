@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { activateUser, getAdminUsers, suspendUser } from "@/lib/api/admin";
 import type { AdminUser } from "@/lib/api/types";
 
@@ -79,6 +80,8 @@ export default function AdminUsersPage() {
       setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
     }
   }
+
+  const pager = usePagination(filteredUsers, 20);
 
   if (loading && users.length === 0) {
     return <LoadingState />;
@@ -293,7 +296,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {filteredUsers.length > 0 ? (
-                filteredUsers.map((u) => {
+                pager.pageItems.map((u) => {
                   const isSuper = u.role === "SUPER_ADMIN";
                   const isOwner = u.role === "OWNER";
                   const isAdmin = u.role === "ADMIN";
@@ -383,6 +386,7 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        <TablePagination pagination={pager} noun="users" />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getStockAdjustments } from "@/lib/api";
 import type { StockAdjustmentList, StockAdjustmentReason } from "@/lib/api/types";
 import { formatQuantity } from "@/lib/utils/units";
@@ -101,6 +102,7 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
 
   const isLoading = result?.key !== reason;
   const data = !isLoading ? result?.data : null;
+  const pager = usePagination(data?.items ?? [], 20);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]" onClick={onClose}>
@@ -162,7 +164,7 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {data.items.map((a) => (
+                {pager.pageItems.map((a) => (
                   <tr key={a.id}>
                     <td className="whitespace-nowrap px-5 py-2 font-mono text-zinc-500">{formatDate(a.createdAt)}</td>
                     <td className="px-3 py-2 text-zinc-800">
@@ -192,6 +194,7 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
             </table>
           )}
         </div>
+        <TablePagination pagination={pager} noun="changes" />
         {data && data.count > data.items.length && (
           <p className="border-t border-zinc-100 px-5 py-2.5 text-[11px] text-zinc-500">
             Showing the latest {data.items.length} of {data.count}.

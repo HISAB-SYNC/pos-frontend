@@ -19,6 +19,7 @@ import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-m
 import { TransferModal } from "@/components/funds/transfer-modal";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getFundsEntries, getFundsSummary, getSupplierPayables, getSupplierPayments } from "@/lib/api/app-data";
 import type {
   FundAccount,
@@ -170,6 +171,7 @@ function LedgerTab({
   const isLoading = data?.key !== filterKey;
   const entries = !isLoading ? data?.entries : null;
   const hasFilter = filterKey !== JSON.stringify(EMPTY_FILTER);
+  const ledgerPager = usePagination(entries?.items ?? [], 20);
 
   function handleExport() {
     if (!entries) return;
@@ -281,7 +283,7 @@ function LedgerTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {entries.items.map((e) => (
+              {ledgerPager.pageItems.map((e) => (
                 <tr key={e.id} className="hover:bg-zinc-50/60">
                   <td className="whitespace-nowrap px-4 py-2.5 font-mono text-zinc-500">{formatShortDate(e.date)}</td>
                   <td className="px-4 py-2.5 text-zinc-800">
@@ -302,6 +304,7 @@ function LedgerTab({
               ))}
             </tbody>
           </table>
+          <TablePagination pagination={ledgerPager} noun="records" />
           {entries.count > entries.items.length && (
             <p className="border-t border-zinc-100 px-4 py-2.5 text-[11px] text-zinc-500">
               Showing the latest {entries.items.length} of {entries.count}. The total covers all of them; narrow the

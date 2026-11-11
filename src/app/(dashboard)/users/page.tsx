@@ -23,6 +23,7 @@ import { AccessDenied } from "@/components/shared/access-denied";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import {
   createTeamMember,
   deleteTeamMember,
@@ -827,6 +828,9 @@ export default function UsersPage() {
     });
   }, [members, roleFilter, searchQuery]);
 
+  const membersPager = usePagination(filteredMembers, 15);
+  const auditPager = usePagination(auditLogs, 15);
+
   function handleToggleStatus(member: TeamMember) {
     const isCurrentlyActive = member.status !== "Suspended" && member.status !== "Inactive";
     const newStatus = isCurrentlyActive ? "Suspended" : "Active";
@@ -1183,7 +1187,7 @@ export default function UsersPage() {
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {filteredMembers.length > 0 ? (
-                      filteredMembers.map((m) => {
+                      membersPager.pageItems.map((m) => {
                         const isOwner = m.role === "Owner" || m.role === "OWNER";
                         const isAdmin = m.role === "Shop Admin" || m.role === "ADMIN";
                         const isSales = m.role === "Shop Sale" || m.role === "SALES";
@@ -1301,6 +1305,7 @@ export default function UsersPage() {
                   </tbody>
                 </table>
               </div>
+              <TablePagination pagination={membersPager} noun="staff members" />
             </div>
           )}
 
@@ -1318,7 +1323,7 @@ export default function UsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {auditLogs.map((log) => (
+                  {auditPager.pageItems.map((log) => (
                     <tr key={log.id} className="transition-colors hover:bg-zinc-50/70">
                       <td className="px-5 py-3.5 font-mono text-xs text-zinc-600 tabular-nums">
                         {new Date(log.timestamp).toLocaleString()}
@@ -1360,6 +1365,7 @@ export default function UsersPage() {
                   ))}
                 </tbody>
               </table>
+              <TablePagination pagination={auditPager} noun="log entries" />
             </div>
           )}
         </div>

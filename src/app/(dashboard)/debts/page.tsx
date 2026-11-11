@@ -29,6 +29,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { LoadError } from "@/components/shared/load-error";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { createDebt, getCustomers, getDebts, getDebtSummary, recordDebtPayment, recordBatchDebtPayments } from "@/lib/api/app-data";
 import type { Customer, Debt, DebtSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -2282,6 +2283,9 @@ export default function DebtsPage() {
     });
   }, [filteredDebts, debtSortField, debtSortOrder]);
 
+  const ledgerPager = usePagination(sortedCustomers, 15);
+  const debtsPager = usePagination(sortedAndFilteredDebts, 15);
+
   // Visible unpaid debts in table for select-all logic
   const visibleUnpaidDebts = useMemo(() => {
     return sortedAndFilteredDebts.filter((d) => {
@@ -2601,7 +2605,7 @@ export default function DebtsPage() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {sortedCustomers.length > 0 ? (
-                  sortedCustomers.map((cust) => {
+                  ledgerPager.pageItems.map((cust) => {
                     const custDebts = debtsByCustomerId[cust.id] || [];
                     const calculatedDebt = custDebts.reduce(
                       (sum, d) => sum + parseFloat(d.remainingAmount || d.amount || "0"),
@@ -2942,6 +2946,7 @@ export default function DebtsPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination pagination={ledgerPager} noun="customers" />
         </div>
       )}
 
@@ -3093,7 +3098,7 @@ export default function DebtsPage() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {sortedAndFilteredDebts.length > 0 ? (
-                  sortedAndFilteredDebts.map((debt) => {
+                  debtsPager.pageItems.map((debt) => {
                     const totalAmount = parseFloat(debt.amount || "0");
                     const paid = parseFloat(debt.paidAmount || "0");
                     const remaining = parseFloat(debt.remainingAmount || String(Math.max(0, totalAmount - paid)));
@@ -3245,6 +3250,7 @@ export default function DebtsPage() {
               </tbody>
             </table>
           </div>
+          <TablePagination pagination={debtsPager} noun="debts" />
 
           {/* Floating Batch Action Bar when ≥1 debt is selected */}
           {selectedTableDebtIds.length > 0 && (

@@ -5,8 +5,6 @@ import {
   Bell,
   Check,
   CheckCheck,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   CreditCard,
   ExternalLink,
@@ -21,6 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { TablePagination } from "@/components/shared/table-pagination";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   getAdminNotifications,
@@ -530,36 +529,17 @@ export default function NotificationsPage() {
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
-            <div>
-              Page <span className="font-semibold text-zinc-900 font-mono">{page}</span> of{" "}
-              <span className="font-semibold text-zinc-900 font-mono">{totalPages}</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1 font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
-              >
-                <ChevronLeft className="size-3.5" />
-                <span>Prev</span>
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1 font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
-              >
-                <span>Next</span>
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          noun="notifications"
+          pagination={{
+            page,
+            setPage,
+            totalPages,
+            from: (page - 1) * PAGE_SIZE + 1,
+            to: Math.min(page * PAGE_SIZE, totalCount),
+            total: totalCount,
+          }}
+        />
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { LoadingState } from "@/components/shared/loading-state";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
@@ -554,7 +555,6 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [page, setPage] = useState(1);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -622,11 +622,9 @@ export default function ExpensesPage() {
       });
   }, [expenses, statusFilter, categoryFilter, searchQuery, sortKey, sortOrder]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / PAGE_SIZE));
-  const currentExpenses = useMemo(
-    () => filteredExpenses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredExpenses, page],
-  );
+  const pagination = usePagination(filteredExpenses, PAGE_SIZE);
+  const { setPage } = pagination;
+  const currentExpenses = pagination.pageItems;
 
   const availableCategories = useMemo(() => {
     const cats = new Set(expenses.map((e) => e.category).filter(Boolean));
@@ -1045,31 +1043,7 @@ export default function ExpensesPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-zinc-200/80 bg-zinc-50/30 px-5 py-3 text-xs">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-md border border-zinc-200/80 bg-white px-3 py-1.5 font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <span className="font-mono text-xs text-zinc-500">
-              Page <span className="font-semibold text-zinc-900">{page}</span> of{" "}
-              <span className="font-semibold text-zinc-900">{totalPages}</span>
-            </span>
-
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border border-zinc-200/80 bg-white px-3 py-1.5 font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <TablePagination pagination={pagination} noun="expenses" />
         </div>
       </div>
     </RouteGuard>

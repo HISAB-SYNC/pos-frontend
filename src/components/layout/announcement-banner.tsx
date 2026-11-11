@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth-store";
  */
 const ANNOUNCEMENT = {
   id: "products-merged-into-inventory",
-  until: "2027-01-31",
+  until: "2026-11-13",
   title: "Products have moved to Inventory",
   message:
     "The Products tab is gone. Add, edit and organise products (and categories) from the Inventory tab, next to your stock.",

@@ -28,6 +28,7 @@ import {
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { LoadError } from "@/components/shared/load-error";
+import { DebtReport } from "@/components/reports/debt-report";
 import { ProductReport } from "@/components/reports/product-report";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getShopAnalytics } from "@/lib/api/app-data";
@@ -555,7 +556,7 @@ function SalesReport() {
                 <p className="text-xs text-zinc-500">Highest quantity sold during this period</p>
               </div>
               <Link
-                href="/products"
+                href="/inventory"
                 className="text-xs font-semibold text-zinc-700 hover:text-zinc-900 transition-colors"
               >
                 View Catalog &rarr;
@@ -577,7 +578,7 @@ function SalesReport() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {products?.topSellingProducts && products.topSellingProducts.length > 0 ? (
-                    products.topSellingProducts.map((p, idx) => {
+                    products.topSellingProducts.slice(0, 5).map((p, idx) => {
                       const bp = getProductBuyingPrice(p);
                       const sp = getProductSellingPrice(p);
                       return (
@@ -610,6 +611,12 @@ function SalesReport() {
                 </tbody>
               </table>
             </div>
+            <Link
+              href="/reports/top-selling"
+              className="flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+            >
+              See more &rarr;
+            </Link>
           </div>
 
           {/* Top Spending Customers */}
@@ -639,7 +646,7 @@ function SalesReport() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {customers?.topCustomers && customers.topCustomers.length > 0 ? (
-                    customers.topCustomers.map((c) => (
+                    customers.topCustomers.slice(0, 5).map((c) => (
                       <tr key={c.customerId} className="hover:bg-zinc-50/60 transition-colors">
                         <td className="py-2.5 font-semibold text-zinc-900">{c.name}</td>
                         <td className="py-2.5 font-mono text-zinc-500">{c.phone || c.email || "—"}</td>
@@ -661,6 +668,12 @@ function SalesReport() {
                 </tbody>
               </table>
             </div>
+            <Link
+              href="/reports/top-customers"
+              className="flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+            >
+              See more &rarr;
+            </Link>
           </div>
         </div>
       </div>
@@ -669,12 +682,14 @@ function SalesReport() {
 }
 
 
-type ReportTab = "sales" | "products";
+type ReportTab = "sales" | "products" | "debts";
 
 function ReportsContent() {
   const searchParams = useSearchParams();
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
-  const [tab, setTab] = useState<ReportTab>(searchParams.get("tab") === "products" ? "products" : "sales");
+  const [tab, setTab] = useState<ReportTab>(
+    searchParams.get("tab") === "products" ? "products" : searchParams.get("tab") === "debts" ? "debts" : "sales",
+  );
 
   return (
     <div className="space-y-5">
@@ -683,6 +698,7 @@ function ReportsContent() {
           [
             { id: "sales", label: "Sales" },
             { id: "products", label: "Products" },
+            { id: "debts", label: "Debts" },
           ] as Array<{ id: ReportTab; label: string }>
         ).map((t) => (
           <button
@@ -701,6 +717,16 @@ function ReportsContent() {
       </div>
       {tab === "sales" ? (
         <SalesReport />
+      ) : tab === "debts" ? (
+        <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
+          <div className="space-y-1 print:hidden">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Debt report</h1>
+            <p className="text-xs text-zinc-500">
+              How much credit was given, how much has been repaid and who still owes. Filter by status and period, then print it, save it as PDF or export it to Excel.
+            </p>
+          </div>
+          <DebtReport shopId={activeShopId} />
+        </RouteGuard>
       ) : (
         <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
           <div className="space-y-1 print:hidden">

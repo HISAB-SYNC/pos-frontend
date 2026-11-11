@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useHorizontalWheel } from "@/hooks/use-horizontal-wheel";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { createCustomer, createSale, getCustomers, saveCreditSaleItems } from "@/lib/api/app-data";
@@ -900,6 +901,7 @@ export default function PosPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const categoryPillsRef = useHorizontalWheel<HTMLDivElement>();
 
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -1840,16 +1842,19 @@ export default function PosPage() {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_400px]">
+    <div className="space-y-4 lg:h-[calc(100dvh-7rem)] lg:space-y-0 lg:overflow-hidden">
+      <div className="grid grid-cols-1 gap-5 lg:h-full lg:min-h-0 lg:grid-cols-[1fr_340px] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[1fr_380px] 2xl:grid-cols-[1fr_400px]">
         {/* ================================================================= */}
         {/* Left Column: Product Catalog & Category Filters                   */}
         {/* ================================================================= */}
-        <div className="min-w-0 space-y-3.5">
+        <div className="@container min-w-0 space-y-3.5 lg:flex lg:min-h-0 lg:flex-col lg:gap-3.5 lg:space-y-0">
+          {/* Below lg the page scrolls, so the search and category bar stick under the app header.
+              From lg this wrapper disappears (contents) and its children are flex items of the column. */}
+          <div className="sticky top-16 z-10 -mx-3.5 space-y-3 bg-[#f3f4f6] px-3.5 pb-2 pt-1 sm:-mx-5 sm:px-5 lg:contents lg:space-y-0">
           {/* Header & Quick Search Bar */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:shrink-0">
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                 <h1 className="text-lg font-bold tracking-tight text-zinc-950">{t("pos.title")}</h1>
                 {isOnline ? (
                   <button
@@ -1894,10 +1899,10 @@ export default function PosPage() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-zinc-500">{t("pos.subtitle")}</p>
+              <p className="hidden text-xs text-zinc-500 sm:block">{t("pos.subtitle")}</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="relative w-full sm:w-80">
+              <div className="relative min-w-0 flex-1 sm:w-80 sm:flex-none">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
                 <input
                   ref={searchInputRef}
@@ -1924,7 +1929,7 @@ export default function PosPage() {
                 <ShoppingCart className="size-3.5 text-indigo-400" />
                 <span>Order ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
                 {cart.length > 0 && (
-                  <span className="border-l border-slate-700 pl-2 font-mono font-bold text-indigo-300">
+                  <span className="hidden border-l border-slate-700 pl-2 font-mono font-bold text-indigo-300 sm:inline">
                     {total.toLocaleString()} ETB
                   </span>
                 )}
@@ -1934,14 +1939,14 @@ export default function PosPage() {
 
           {/* Sync Success Notification */}
           {syncToastMessage && (
-            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 animate-in fade-in duration-200 lg:shrink-0">
               <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
               <span>{syncToastMessage}</span>
             </div>
           )}
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div ref={categoryPillsRef} className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none lg:shrink-0">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -1957,9 +1962,11 @@ export default function PosPage() {
               </button>
             ))}
           </div>
+          </div>
 
-          {/* Products grid: 2 columns on phones and next to the cart on tablets, 3 on laptops, 4 on wide screens */}
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {/* Products grid: columns follow the space the grid actually gets (sidebar and cart panel included):
+              2 up to 512px, 3 up to 768px, 4 beyond. */}
+          <div className="grid grid-cols-2 gap-2.5 @lg:grid-cols-3 @3xl:grid-cols-4 lg:min-h-0 lg:flex-1 lg:content-start lg:overflow-y-auto lg:pr-1">
             {filteredProducts.map((product) => {
               const inCart = cart.find((it) => it.product.id === product.id);
               const isOutOfStock = product.stockQuantity <= 0;
@@ -1993,15 +2000,15 @@ export default function PosPage() {
                     <p className="text-[10px] text-zinc-400">{product.category?.name || "General"}</p>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2.5">
-                    <div className="font-mono text-sm font-bold text-zinc-950 tabular-nums">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-2.5">
+                    <div className="whitespace-nowrap font-mono text-sm font-bold text-zinc-950 tabular-nums">
                       {parseFloat(product.price || "0").toLocaleString()}{" "}
                       <span className="font-sans text-[10px] font-semibold text-zinc-400">
                         ETB / {product.unit || "pcs"}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="ml-auto flex items-center gap-1">
                       {isFractionalUnit(product.unit) && (
                         <button
                           type="button"
@@ -2047,7 +2054,7 @@ export default function PosPage() {
         {/* ================================================================= */}
         {/* Right Column: checkout panel beside the products from lg (1024px)  */}
         {/* ================================================================= */}
-        <div className="hidden lg:flex lg:sticky lg:top-4 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto flex-col justify-between rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs min-w-0">
+        <div className="hidden lg:flex lg:min-h-0 lg:overflow-y-auto flex-col justify-between rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs min-w-0">
           {renderOrderPanel(false)}
         </div>
       </div>

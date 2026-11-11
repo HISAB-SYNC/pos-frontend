@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { LoadingState } from "@/components/shared/loading-state";
@@ -758,7 +759,6 @@ export default function CustomersPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Pagination State
-  const [page, setPage] = useState(1);
 
   // Modals State
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -873,12 +873,9 @@ export default function CustomersPage() {
     0
   );
 
-  // Pagination Slice
-  const totalPages = Math.ceil(filteredCustomers.length / PAGE_SIZE);
-  const paginatedCustomers = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredCustomers.slice(start, start + PAGE_SIZE);
-  }, [filteredCustomers, page]);
+  const pagination = usePagination(filteredCustomers, PAGE_SIZE);
+  const { setPage } = pagination;
+  const paginatedCustomers = pagination.pageItems;
 
   function handleDownload() {
     exportToCsv("customers-ledger", filteredCustomers, [
@@ -1331,47 +1328,7 @@ export default function CustomersPage() {
             </table>
           </div>
 
-          {/* Pagination Toolbar */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
-              <div>
-                Showing{" "}
-                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
-                  {(page - 1) * PAGE_SIZE + 1}
-                </span>{" "}
-                to{" "}
-                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
-                  {Math.min(page * PAGE_SIZE, filteredCustomers.length)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
-                  {filteredCustomers.length}
-                </span>{" "}
-                customers
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 shadow-2xs transition-colors"
-                >
-                  Previous
-                </button>
-                <span className="px-2 font-mono text-xs tabular-nums text-zinc-600">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 shadow-2xs transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <TablePagination pagination={pagination} noun="customers" />
         </div>
       </div>
     </>

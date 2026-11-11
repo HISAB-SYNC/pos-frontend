@@ -4,53 +4,17 @@ import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { LoadError } from "@/components/shared/load-error";
+import { TablePagination, isOnPage, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport as ProductReportData, ProductReportItem } from "@/lib/api/types";
+import { PRESETS, periodLabel, rangeFor, type Preset } from "@/lib/utils/report-range";
 import { formatQuantity } from "@/lib/utils/units";
 import { useShopStore } from "@/stores/shop-store";
 
 import { downloadProductReportXlsx } from "./product-report-export";
 
-type Preset = "TODAY" | "WEEK" | "MONTH" | "ALL" | "CUSTOM";
 type SortKey = "revenue" | "units" | "profit" | "restock";
 type View = "ALL" | "SOLD" | "RESTOCKED";
-
-const PRESETS: Array<{ id: Preset; label: string }> = [
-  { id: "TODAY", label: "Today" },
-  { id: "WEEK", label: "7 days" },
-  { id: "MONTH", label: "This month" },
-  { id: "ALL", label: "All time" },
-  { id: "CUSTOM", label: "Custom" },
-];
-
-function localDate(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-/** Plain local dates for the backend (it reads them as shop-local days). */
-function rangeFor(preset: Preset, customFrom: string, customTo: string): { from?: string; to?: string } {
-  const now = new Date();
-  if (preset === "TODAY") return { from: localDate(now), to: localDate(now) };
-  if (preset === "WEEK") {
-    const from = new Date(now);
-    from.setDate(from.getDate() - 6);
-    return { from: localDate(from), to: localDate(now) };
-  }
-  if (preset === "MONTH") return { from: localDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: localDate(now) };
-  if (preset === "CUSTOM") return { from: customFrom || undefined, to: customTo || undefined };
-  return {};
-}
-
-function formatDay(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function periodLabel(preset: Preset, range: { from?: string; to?: string }) {
-  if (preset === "ALL" || (!range.from && !range.to)) return "All time";
-  if (range.from && range.to && range.from === range.to) return formatDay(range.from);
-  return `${range.from ? formatDay(range.from) : "Start"} – ${range.to ? formatDay(range.to) : "Today"}`;
-}
 
 function etb(value: number) {
   return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -136,6 +100,8 @@ export function ProductReport({ shopId }: { shopId: string }) {
   }, [rows]);
   const isFiltered = !!search.trim() || view !== "ALL";
 
+  const pager = usePagination(rows, 20);
+
   return (
     <div id="product-report" className="space-y-5">
       {/* Only the report prints: hide the app around it */}
@@ -211,7 +177,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
       ) : (
         <>
           {/* Summary */}
-          <p className="-mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
             {label} · all products
           </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -283,8 +249,11 @@ export function ProductReport({ shopId }: { shopId: string }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {rows.map((i) => (
-                      <tr key={i.productId ?? i.name} className="break-inside-avoid">
+                    {rows.map((i, index) => (
+                      <tr
+                        key={i.productId ?? i.name}
+                        className={`break-inside-avoid ${isOnPage(pager, index) ? "" : "hidden print:table-row"}`}
+                      >
                         <td className="px-4 py-2">
                           <p className="font-medium text-zinc-900">{i.name}</p>
                           <p className="font-mono text-[10px] text-zinc-400">
@@ -326,6 +295,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
                     </tfoot>
                   )}
                 </table>
+                <TablePagination pagination={pager} noun="products" />
                 {isFiltered && (
                   <p className="border-t border-zinc-100 px-4 py-2 text-[11px] text-zinc-500 print:hidden">
                     The total row covers the products shown. The cards at the top cover every product in the period.

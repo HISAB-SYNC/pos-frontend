@@ -21,16 +21,23 @@ import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart"
 import { LoadingState } from "@/components/shared/loading-state";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
-import { getDashboardMetrics } from "@/lib/api/app-data";
+import { getDashboardMetrics, getProductReport } from "@/lib/api/app-data";
+import type { ProductReportItem } from "@/lib/api/types";
 import { useT } from "@/lib/i18n/use-t";
 import type { DashboardMetrics } from "@/lib/mock/data";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { formatQuantity } from "@/lib/utils/units";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
 /* ------------------------------------------------------------------ */
 /* Low Quantity Stock item with Restock action                        */
 /* ------------------------------------------------------------------ */
+/** Rows shown in the dashboard list cards; the full lists live on their own pages. */
+const DASHBOARD_LIST_LIMIT = 5;
+/** Table rows are shorter than the low-stock cards, so more fit in the same height. */
+const TOP_SELLING_LIMIT = 8;
+
 function LowStockItem({
   name,
   remainingQuantity,
@@ -95,6 +102,25 @@ export default function DashboardPage() {
     }
   }, [authUser, router]);
 
+  // The dashboard overview only returns the top 4 sellers, so the card is
+  // filled from the all-time product report instead (falls back to the overview).
+  const [topSellers, setTopSellers] = useState<ProductReportItem[] | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    getProductReport(shopId)
+      .then((report) => {
+        if (!mounted) return;
+        const sold = report.items.filter((i) => i.sold.units > 0).sort((a, b) => b.sold.units - a.sold.units);
+        setTopSellers(sold.length > 0 ? sold : null);
+      })
+      .catch(() => {
+        if (mounted) setTopSellers(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [shopId, reloadKey]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -158,7 +184,7 @@ export default function DashboardPage() {
               <span>{t("dashboard.newSale")}</span>
             </Link>
             <Link
-              href="/products"
+              href="/inventory?add=1"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-950 transition-all"
             >
               <Plus className="size-3.5 text-zinc-500" />
@@ -324,7 +350,7 @@ export default function DashboardPage() {
         {/* ================================================================= */}
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           {/* Top Selling Stock */}
-          <DashboardCard title="Top Selling Products" action={<SeeAllLink href="/products" />}>
+          <DashboardCard title="Top Selling Products" action={<SeeAllLink href="/dashboard/top-selling" />}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[380px] text-left text-xs">
                 <thead>
@@ -332,24 +358,51 @@ export default function DashboardPage() {
                     <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">Product</th>
                     <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">Sold</th>
                     <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">Stock</th>
-                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px] text-right">Price</th>
+                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px] text-right">
+                      {topSellers ? "Revenue" : "Price"}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {metrics.topSellingStock.map((item) => (
-                    <tr
-                      key={item.name}
-                      className="transition-colors hover:bg-zinc-50/80"
-                    >
-                      <td className="py-2.5 font-medium text-zinc-900">{item.name}</td>
-                      <td className="py-2.5 font-mono font-medium text-zinc-600 tabular-nums">{item.soldQuantity}</td>
-                      <td className="py-2.5 font-mono font-medium text-zinc-600 tabular-nums">{item.remainingQuantity}</td>
-                      <td className="py-2.5 font-mono font-bold text-zinc-900 tabular-nums text-right">{item.price}</td>
-                    </tr>
-                  ))}
+                  {topSellers
+                    ? topSellers.slice(0, TOP_SELLING_LIMIT).map((item) => (
+                        <tr key={item.productId ?? item.name} className="transition-colors hover:bg-zinc-50/80">
+                          <td className="py-2.5 font-medium text-zinc-900">{item.name}</td>
+                          <td className="py-2.5 font-mono font-medium text-zinc-600 tabular-nums">
+                            {formatQuantity(item.sold.units)}
+                          </td>
+                          <td className="py-2.5 font-mono font-medium text-zinc-600 tabular-nums">
+                            {item.stock ? formatQuantity(item.stock.onHand) : "—"}
+                          </td>
+                          <td className="py-2.5 font-mono font-bold text-zinc-900 tabular-nums text-right">
+                            {Math.round(item.sold.revenue).toLocaleString("en-US")} Birr
+                          </td>
+                        </tr>
+                      ))
+                    : metrics.topSellingStock.slice(0, TOP_SELLING_LIMIT).map((item) => (
+                        <tr key={item.name} className="transition-colors hover:bg-zinc-50/80">
+                          <td className="py-2.5 font-medium text-zinc-900">{item.name}</td>
+                          <td className="py-2.5 font-mono font-medium text-zinc-600 tabular-nums">
+                            {formatQuantity(item.soldQuantity)}
+                          </td>
+                          <td className="py-2.5 font-mono font-medium text-zinc-600 tabular-nums">
+                            {formatQuantity(item.remainingQuantity)}
+                          </td>
+                          <td className="py-2.5 font-mono font-bold text-zinc-900 tabular-nums text-right">{item.price}</td>
+                        </tr>
+                      ))}
                 </tbody>
               </table>
             </div>
+            {topSellers && topSellers.length > TOP_SELLING_LIMIT && (
+              <Link
+                href="/dashboard/top-selling"
+                className="group mt-3 flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+              >
+                <span>See {topSellers.length - TOP_SELLING_LIMIT} more</span>
+                <ArrowUpRight className="size-3.5 text-zinc-400 group-hover:text-zinc-900" />
+              </Link>
+            )}
           </DashboardCard>
 
           {/* Low Quantity Stock */}
@@ -371,7 +424,7 @@ export default function DashboardPage() {
           >
             {metrics.lowQuantityStock.length > 0 ? (
               <div className="space-y-1.5">
-                {metrics.lowQuantityStock.map((item) => (
+                {metrics.lowQuantityStock.slice(0, DASHBOARD_LIST_LIMIT).map((item) => (
                   <LowStockItem
                     key={item.id}
                     name={item.name}
@@ -379,6 +432,15 @@ export default function DashboardPage() {
                     unit={item.unit}
                   />
                 ))}
+                {metrics.lowQuantityStock.length > DASHBOARD_LIST_LIMIT && (
+                  <Link
+                    href="/dashboard/low-inventory"
+                    className="group flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
+                  >
+                    <span>See {metrics.lowQuantityStock.length - DASHBOARD_LIST_LIMIT} more</span>
+                    <ArrowUpRight className="size-3.5 text-zinc-400 group-hover:text-zinc-900" />
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-7 text-center">

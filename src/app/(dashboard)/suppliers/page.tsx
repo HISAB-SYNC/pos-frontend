@@ -20,6 +20,7 @@ import { useDismiss } from "@/hooks/use-dismiss";
 
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { LoadingState } from "@/components/shared/loading-state";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { RouteGuard } from "@/components/shared/route-guard";
 import {
   createSupplier,
@@ -461,7 +462,6 @@ export default function SuppliersPage() {
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -484,10 +484,6 @@ export default function SuppliersPage() {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, typeFilter]);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -541,11 +537,8 @@ export default function SuppliersPage() {
     });
   }, [suppliers, typeFilter, debouncedSearch]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSuppliers.length / PAGE_SIZE));
-  const currentSuppliers = useMemo(
-    () => filteredSuppliers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredSuppliers, page],
-  );
+  const pagination = usePagination(filteredSuppliers, PAGE_SIZE);
+  const currentSuppliers = pagination.pageItems;
 
   function handleDownload() {
     exportToCsv("suppliers-directory", filteredSuppliers, [
@@ -900,30 +893,7 @@ export default function SuppliersPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-zinc-200/80 bg-zinc-50/30 px-6 py-3.5">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <span className="font-mono text-xs text-zinc-500 tabular-nums">
-              Page {page} of {totalPages}
-            </span>
-
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <TablePagination pagination={pagination} noun="suppliers" />
         </div>
       </div>
     </RouteGuard>

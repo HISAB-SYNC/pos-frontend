@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { LoadingState } from "@/components/shared/loading-state";
@@ -1061,7 +1062,6 @@ export default function SalesHistoryPage() {
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
 
   // Search & Filter State
   const [search, setSearch] = useState("");
@@ -1198,11 +1198,9 @@ export default function SalesHistoryPage() {
     customEndDate,
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredSales.length / PAGE_SIZE));
-  const currentSales = useMemo(
-    () => filteredSales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredSales, page],
-  );
+  const pagination = usePagination(filteredSales, PAGE_SIZE);
+  const { setPage } = pagination;
+  const currentSales = pagination.pageItems;
 
   // Financial Summary Metrics
   const activeFilteredSales = useMemo(
@@ -1970,47 +1968,7 @@ export default function SalesHistoryPage() {
             </table>
           </div>
 
-          {/* Pagination Toolbar */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
-              <div>
-                Showing{" "}
-                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
-                  {(page - 1) * PAGE_SIZE + 1}
-                </span>{" "}
-                to{" "}
-                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
-                  {Math.min(page * PAGE_SIZE, filteredSales.length)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-zinc-900 font-mono tabular-nums">
-                  {filteredSales.length}
-                </span>{" "}
-                receipts
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 shadow-2xs transition-colors"
-                >
-                  Previous
-                </button>
-                <span className="px-2 font-mono text-xs tabular-nums text-zinc-600">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 shadow-2xs transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <TablePagination pagination={pagination} noun="receipts" />
         </div>
       </div>
     </>

@@ -5,8 +5,6 @@ import {
   Bell,
   Check,
   CheckCheck,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   CreditCard,
   ExternalLink,
@@ -21,6 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { TablePagination } from "@/components/shared/table-pagination";
 import { LoadingState } from "@/components/shared/loading-state";
 import {
   getAdminNotifications,
@@ -59,7 +58,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <PackageX className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
         actionLabel: "View Product",
-        routePrefix: "/products",
+        routePrefix: "/inventory?status=low",
       };
     case "PRODUCT_EXPIRED":
       return {
@@ -67,7 +66,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <AlertCircle className="size-4 text-red-600" />,
         color: "bg-red-50 text-red-800 border-red-200",
         actionLabel: "Inspect Item",
-        routePrefix: "/products",
+        routePrefix: "/inventory?status=expired",
       };
     case "PRODUCT_EXPIRING_SOON":
       return {
@@ -75,7 +74,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <Hourglass className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
         actionLabel: "Review Stock",
-        routePrefix: "/products",
+        routePrefix: "/inventory?status=expiring",
       };
     case "OVERDUE_DEBT":
       return {
@@ -91,7 +90,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <TrendingDown className="size-4 text-red-600" />,
         color: "bg-red-50 text-red-800 border-red-200",
         actionLabel: "Fix Prices",
-        routePrefix: "/products",
+        routePrefix: "/inventory",
       };
     case "PENDING_OWNER_APPROVAL":
       return {
@@ -530,36 +529,17 @@ export default function NotificationsPage() {
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500">
-            <div>
-              Page <span className="font-semibold text-zinc-900 font-mono">{page}</span> of{" "}
-              <span className="font-semibold text-zinc-900 font-mono">{totalPages}</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1 font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
-              >
-                <ChevronLeft className="size-3.5" />
-                <span>Prev</span>
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 px-3 py-1 font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
-              >
-                <span>Next</span>
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          noun="notifications"
+          pagination={{
+            page,
+            setPage,
+            totalPages,
+            from: (page - 1) * PAGE_SIZE + 1,
+            to: Math.min(page * PAGE_SIZE, totalCount),
+            total: totalCount,
+          }}
+        />
       </div>
     </div>
   );

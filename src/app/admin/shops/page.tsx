@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { LoadingState } from "@/components/shared/loading-state";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { activateShop, getAdminShops, suspendShop } from "@/lib/api/admin";
 import type { AdminShop } from "@/lib/api/types";
 
@@ -76,6 +77,8 @@ export default function AdminShopsPage() {
       setActionError(errorMessage(err, "The server didn't accept this change. Nothing was changed."));
     }
   }
+
+  const pager = usePagination(filteredShops, 20);
 
   if (loading && shops.length === 0) {
     return <LoadingState />;
@@ -268,7 +271,7 @@ export default function AdminShopsPage() {
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {filteredShops.length > 0 ? (
-                filteredShops.map((shop) => (
+                pager.pageItems.map((shop) => (
                   <tr key={shop.id} className="transition-colors hover:bg-zinc-50/70">
                     <td className="px-5 py-3.5 font-bold text-zinc-900">{shop.name}</td>
                     <td className="px-4 py-3.5">
@@ -330,6 +333,7 @@ export default function AdminShopsPage() {
             </tbody>
           </table>
         </div>
+        <TablePagination pagination={pager} noun="shops" />
       </div>
     </div>
   );

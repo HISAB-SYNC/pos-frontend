@@ -28,9 +28,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Role-based route guard: SALES users are restricted to POS, products, orders, customers, debts
+    // Role-based route guard: SALES users are restricted to POS, inventory (read-only), orders, customers, debts
     if (user?.role === "SALES") {
-      const restrictedRoutes = ["/dashboard", "/expenses", "/suppliers", "/reports", "/inventory", "/users"];
+      const restrictedRoutes = ["/dashboard", "/expenses", "/suppliers", "/reports", "/users"];
       const isRestricted = restrictedRoutes.some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       );

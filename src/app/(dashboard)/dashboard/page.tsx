@@ -184,7 +184,7 @@ export default function DashboardPage() {
               <span>{t("dashboard.newSale")}</span>
             </Link>
             <Link
-              href="/products"
+              href="/inventory?add=1"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-950 transition-all"
             >
               <Plus className="size-3.5 text-zinc-500" />

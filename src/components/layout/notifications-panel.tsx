@@ -159,13 +159,14 @@ export function NotificationsPanel({
     }
     onClose();
 
-    if (
-      n.type === "LOW_STOCK" ||
-      n.type === "PRODUCT_EXPIRED" ||
-      n.type === "PRODUCT_EXPIRING_SOON" ||
-      n.type === "PRICE_BELOW_COST"
-    ) {
-      router.push("/products");
+    if (n.type === "LOW_STOCK") {
+      router.push("/inventory?status=low");
+    } else if (n.type === "PRODUCT_EXPIRED") {
+      router.push("/inventory?status=expired");
+    } else if (n.type === "PRODUCT_EXPIRING_SOON") {
+      router.push("/inventory?status=expiring");
+    } else if (n.type === "PRICE_BELOW_COST") {
+      router.push("/inventory");
     } else if (n.type === "OVERDUE_DEBT") {
       router.push("/debts");
     } else if (n.type === "PENDING_OWNER_APPROVAL") {

@@ -82,11 +82,11 @@ export default function NotFound() {
                 <span className="truncate">POS Checkout</span>
               </Link>
               <Link
-                href="/products"
+                href="/inventory"
                 className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/70 p-2.5 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-100/70 transition-all"
               >
                 <Package className="size-3.5 text-zinc-500 shrink-0" />
-                <span className="truncate">Products</span>
+                <span className="truncate">Inventory</span>
               </Link>
               <Link
                 href="/orders"

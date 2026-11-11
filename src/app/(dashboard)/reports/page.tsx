@@ -556,7 +556,7 @@ function SalesReport() {
                 <p className="text-xs text-zinc-500">Highest quantity sold during this period</p>
               </div>
               <Link
-                href="/products"
+                href="/inventory"
                 className="text-xs font-semibold text-zinc-700 hover:text-zinc-900 transition-colors"
               >
                 View Catalog &rarr;

@@ -113,14 +113,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
           {!isSales && (
             <CommandItem
-              onSelect={() => handleSelect("/products")}
+              onSelect={() => handleSelect("/inventory?add=1")}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs font-medium text-zinc-800 hover:bg-zinc-100 cursor-pointer"
             >
               <div className="flex size-6 items-center justify-center rounded bg-emerald-50 text-emerald-600">
                 <Plus className="size-3.5" />
               </div>
-              <span>Add or Manage Products</span>
-              <span className="ml-auto font-mono text-[10px] text-zinc-400">/products</span>
+              <span>Add a Product</span>
+              <span className="ml-auto font-mono text-[10px] text-zinc-400">/inventory</span>
             </CommandItem>
           )}
 

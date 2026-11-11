@@ -58,7 +58,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <PackageX className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
         actionLabel: "View Product",
-        routePrefix: "/products",
+        routePrefix: "/inventory?status=low",
       };
     case "PRODUCT_EXPIRED":
       return {
@@ -66,7 +66,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <AlertCircle className="size-4 text-red-600" />,
         color: "bg-red-50 text-red-800 border-red-200",
         actionLabel: "Inspect Item",
-        routePrefix: "/products",
+        routePrefix: "/inventory?status=expired",
       };
     case "PRODUCT_EXPIRING_SOON":
       return {
@@ -74,7 +74,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <Hourglass className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
         actionLabel: "Review Stock",
-        routePrefix: "/products",
+        routePrefix: "/inventory?status=expiring",
       };
     case "OVERDUE_DEBT":
       return {
@@ -90,7 +90,7 @@ function getNotificationTypeMeta(type: NotificationType) {
         icon: <TrendingDown className="size-4 text-red-600" />,
         color: "bg-red-50 text-red-800 border-red-200",
         actionLabel: "Fix Prices",
-        routePrefix: "/products",
+        routePrefix: "/inventory",
       };
     case "PENDING_OWNER_APPROVAL":
       return {

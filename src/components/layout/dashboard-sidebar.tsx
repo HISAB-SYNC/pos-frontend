@@ -48,7 +48,6 @@ type NavItem = {
 const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "POS Checkout", href: "/pos", icon: Store, badge: "Live" },
-  { label: "Products", href: "/products", icon: Package },
   { label: "Inventory", href: "/inventory", icon: Package },
   { label: "Reports", href: "/reports", icon: BarChart3 },
   { label: "Suppliers", href: "/suppliers", icon: Truck },
@@ -75,8 +74,6 @@ const footerNav: NavItem[] = [{ label: "Settings", href: "/settings", icon: Sett
 const NAV_LABEL_KEYS: Record<string, MessageKey> = {
   Dashboard: "nav.dashboard",
   "POS Checkout": "nav.pos",
-  Products: "nav.products",
-  "Products Catalog": "nav.products",
   Inventory: "nav.inventory",
   Reports: "nav.reports",
   Suppliers: "nav.suppliers",
@@ -186,7 +183,7 @@ export function DashboardSidebar() {
     if (user?.role === "SALES") {
       return [
         { label: "POS Checkout", href: "/pos", icon: Store, badge: "Live" },
-        { label: "Products Catalog", href: "/products", icon: Package },
+        { label: "Inventory", href: "/inventory", icon: Package },
         { label: "Sales History", href: "/orders", icon: ShoppingCart },
         { label: "Customers", href: "/customers", icon: Users },
         { label: "Debts / Credit", href: "/debts", icon: HandCoins },
@@ -197,7 +194,6 @@ export function DashboardSidebar() {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "POS Checkout", href: "/pos", icon: Store, badge: "Live" },
-        { label: "Products", href: "/products", icon: Package },
         { label: "Inventory", href: "/inventory", icon: Package },
         { label: "Suppliers", href: "/suppliers", icon: Truck },
         { label: "Sales History", href: "/orders", icon: ShoppingCart },

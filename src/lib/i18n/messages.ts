@@ -14,7 +14,6 @@ export const en = {
   // Sidebar
   "nav.dashboard": "Dashboard",
   "nav.pos": "POS Checkout",
-  "nav.products": "Products",
   "nav.inventory": "Inventory",
   "nav.reports": "Reports",
   "nav.suppliers": "Suppliers",
@@ -117,7 +116,6 @@ export const am: Partial<Record<MessageKey, string>> = {
 
   "nav.dashboard": "ዳሽቦርድ",
   "nav.pos": "ሽያጭ (POS)",
-  "nav.products": "ምርቶች",
   "nav.inventory": "ክምችት",
   "nav.reports": "ሪፖርቶች",
   "nav.suppliers": "አቅራቢዎች",

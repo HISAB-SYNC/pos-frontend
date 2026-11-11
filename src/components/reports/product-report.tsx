@@ -4,6 +4,7 @@ import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { LoadError } from "@/components/shared/load-error";
+import { TablePagination, isOnPage, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport as ProductReportData, ProductReportItem } from "@/lib/api/types";
 import { PRESETS, periodLabel, rangeFor, type Preset } from "@/lib/utils/report-range";
@@ -98,6 +99,8 @@ export function ProductReport({ shopId }: { shopId: string }) {
     };
   }, [rows]);
   const isFiltered = !!search.trim() || view !== "ALL";
+
+  const pager = usePagination(rows, 20);
 
   return (
     <div id="product-report" className="space-y-5">
@@ -246,8 +249,11 @@ export function ProductReport({ shopId }: { shopId: string }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {rows.map((i) => (
-                      <tr key={i.productId ?? i.name} className="break-inside-avoid">
+                    {rows.map((i, index) => (
+                      <tr
+                        key={i.productId ?? i.name}
+                        className={`break-inside-avoid ${isOnPage(pager, index) ? "" : "hidden print:table-row"}`}
+                      >
                         <td className="px-4 py-2">
                           <p className="font-medium text-zinc-900">{i.name}</p>
                           <p className="font-mono text-[10px] text-zinc-400">
@@ -289,6 +295,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
                     </tfoot>
                   )}
                 </table>
+                <TablePagination pagination={pager} noun="products" />
                 {isFiltered && (
                   <p className="border-t border-zinc-100 px-4 py-2 text-[11px] text-zinc-500 print:hidden">
                     The total row covers the products shown. The cards at the top cover every product in the period.

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -70,6 +71,8 @@ export default function TopSellingPage() {
         return sortDesc ? -cmp : cmp;
       });
   }, [report, search, sortKey, sortDesc]);
+
+  const pager = usePagination(rows, 20);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) setSortDesc((d) => !d);
@@ -180,9 +183,9 @@ export default function TopSellingPage() {
                       </td>
                     </tr>
                   ) : (
-                    rows.map((item, index) => (
+                    pager.pageItems.map((item, index) => (
                       <tr key={item.productId ?? item.name} className="transition-colors hover:bg-zinc-50/80">
-                        <td className="px-4 py-3 font-mono text-zinc-400 tabular-nums">{index + 1}</td>
+                        <td className="px-4 py-3 font-mono text-zinc-400 tabular-nums">{pager.from + index}</td>
                         <td className="px-4 py-3">
                           <p className="font-medium text-zinc-900">{item.name}</p>
                           {item.category && <p className="text-[11px] text-zinc-500">{item.category}</p>}
@@ -202,6 +205,7 @@ export default function TopSellingPage() {
                 </tbody>
               </table>
             </div>
+            <TablePagination pagination={pager} noun="products" />
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PeriodBar, ReportSortTh, reportInputClass } from "@/components/reports/report-controls";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport, ProductReportItem } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -112,6 +113,7 @@ export default function TopSellingReportPage() {
     );
   }
 
+  const pager = usePagination(rows, 20);
   const sortProps = { activeField: sortKey, desc: sortDesc, onSort: toggleSort };
 
   return (
@@ -172,6 +174,7 @@ export default function TopSellingReportPage() {
             ) : rows.length === 0 ? (
               <p className="py-12 text-center text-xs text-zinc-500">No products were sold in this period.</p>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[820px] text-left text-xs">
                   <thead>
@@ -186,9 +189,9 @@ export default function TopSellingReportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {rows.map((i, index) => (
+                    {pager.pageItems.map((i, index) => (
                       <tr key={i.productId ?? i.name} className="transition-colors hover:bg-zinc-50/80">
-                        <td className="px-4 py-2.5 font-mono font-bold text-zinc-400">{index + 1}</td>
+                        <td className="px-4 py-2.5 font-mono font-bold text-zinc-400">{pager.from + index}</td>
                         <td className="px-4 py-2.5">
                           <p className="font-semibold text-zinc-900">{i.name}</p>
                           <p className="font-mono text-[11px] text-zinc-500">{[i.sku, i.category].filter(Boolean).join(" · ") || "—"}</p>
@@ -211,6 +214,8 @@ export default function TopSellingReportPage() {
                   </tbody>
                 </table>
               </div>
+              <TablePagination pagination={pager} noun="products" />
+              </>
             )}
           </section>
         )}

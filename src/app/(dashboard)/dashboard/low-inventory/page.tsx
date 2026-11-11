@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getLowStockProducts } from "@/lib/api/shops";
 import type { Product } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -57,6 +58,8 @@ export default function LowInventoryPage() {
         return sortDesc ? -cmp : cmp;
       });
   }, [products, search, sortKey, sortDesc]);
+
+  const pager = usePagination(rows, 20);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) setSortDesc((d) => !d);
@@ -145,7 +148,7 @@ export default function LowInventoryPage() {
                       </td>
                     </tr>
                   ) : (
-                    rows.map((p) => (
+                    pager.pageItems.map((p) => (
                       <tr key={p.id} className="transition-colors hover:bg-zinc-50/80">
                         <td className="px-4 py-3">
                           <p className="font-medium text-zinc-900">{p.name}</p>
@@ -171,6 +174,7 @@ export default function LowInventoryPage() {
                 </tbody>
               </table>
             </div>
+            <TablePagination pagination={pager} noun="products" />
           </div>
         )}
       </div>

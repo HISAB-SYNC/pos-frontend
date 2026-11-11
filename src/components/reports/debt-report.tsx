@@ -4,6 +4,7 @@ import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { LoadError } from "@/components/shared/load-error";
+import { TablePagination, isOnPage, usePagination } from "@/components/shared/table-pagination";
 import { getDebts } from "@/lib/api/app-data";
 import type { Debt } from "@/lib/api/types";
 import {
@@ -145,6 +146,7 @@ export function DebtReport({ shopId }: { shopId: string }) {
   }
 
   const byCustomer = view === "CUSTOMER";
+  const pager = usePagination(rows, 20);
   const sortProps = { activeField: sortKey, desc: sortDesc, onSort: toggleSort };
   const collectedPct = totals.issued > 0 ? Math.round((totals.paid / totals.issued) * 100) : 0;
 
@@ -271,6 +273,7 @@ export function DebtReport({ shopId }: { shopId: string }) {
             ) : rows.length === 0 ? (
               <p className="py-12 text-center text-xs text-zinc-500">No debts match this period and filter.</p>
             ) : (
+              <>
               <div className="overflow-x-auto print:overflow-visible">
                 <table className="w-full min-w-[860px] text-left text-xs print:min-w-0">
                   <thead>
@@ -290,8 +293,11 @@ export function DebtReport({ shopId }: { shopId: string }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {rows.map((r) => (
-                      <tr key={r.key} className="transition-colors hover:bg-zinc-50/80">
+                    {rows.map((r, index) => (
+                      <tr
+                        key={r.key}
+                        className={`transition-colors hover:bg-zinc-50/80 ${isOnPage(pager, index) ? "" : "hidden print:table-row"}`}
+                      >
                         <td className="px-4 py-2.5">
                           <p className="font-semibold text-zinc-900">{r.customer}</p>
                           {r.phone && <p className="font-mono text-[11px] text-zinc-500">{r.phone}</p>}
@@ -340,6 +346,8 @@ export function DebtReport({ shopId }: { shopId: string }) {
                   </tfoot>
                 </table>
               </div>
+              <TablePagination pagination={pager} noun={byCustomer ? "customers" : "debts"} />
+              </>
             )}
           </section>
         </>

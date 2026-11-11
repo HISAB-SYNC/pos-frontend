@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PeriodBar, ReportSortTh, reportInputClass } from "@/components/reports/report-controls";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
+import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getSales } from "@/lib/api/app-data";
 import type { Sale } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
@@ -136,6 +137,7 @@ export default function TopCustomersReportPage() {
     );
   }
 
+  const pager = usePagination(rows, 20);
   const sortProps = { activeField: sortKey, desc: sortDesc, onSort: toggleSort };
 
   return (
@@ -196,6 +198,7 @@ export default function TopCustomersReportPage() {
             ) : rows.length === 0 ? (
               <p className="py-12 text-center text-xs text-zinc-500">No customer purchases found in this period.</p>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-xs">
                   <thead>
@@ -209,9 +212,9 @@ export default function TopCustomersReportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
-                    {rows.map((r, index) => (
+                    {pager.pageItems.map((r, index) => (
                       <tr key={r.customerId} className="transition-colors hover:bg-zinc-50/80">
-                        <td className="px-4 py-2.5 font-mono font-bold text-zinc-400">{index + 1}</td>
+                        <td className="px-4 py-2.5 font-mono font-bold text-zinc-400">{pager.from + index}</td>
                         <td className="px-4 py-2.5">
                           <p className="font-semibold text-zinc-900">{r.name}</p>
                           <p className="font-mono text-[11px] text-zinc-500">{r.contact || "—"}</p>
@@ -231,6 +234,8 @@ export default function TopCustomersReportPage() {
                   </tbody>
                 </table>
               </div>
+              <TablePagination pagination={pager} noun="customers" />
+              </>
             )}
           </section>
         )}

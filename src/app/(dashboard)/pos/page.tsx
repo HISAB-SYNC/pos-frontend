@@ -872,6 +872,47 @@ function MeasureItemModal({
 /* ------------------------------------------------------------------ */
 /* Main POS Page Component                                            */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Editable cart quantity: type a number instead of tapping + 50 times */
+/* ------------------------------------------------------------------ */
+function QuantityInput({ value, onCommit }: { value: number; onCommit: (quantity: number) => void }) {
+  // While typing, keep the raw text; otherwise show the cart value.
+  const [draft, setDraft] = useState<string | null>(null);
+
+  function commit() {
+    if (draft === null) return;
+    const n = Math.floor(Number(draft));
+    setDraft(null);
+    if (!Number.isFinite(n) || n <= 0 || n === value) return; // empty / 0 / invalid keeps the old number
+    onCommit(n);
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      aria-label="Quantity"
+      title="Type a quantity"
+      value={draft ?? formatQuantity(value)}
+      onFocus={(e) => {
+        setDraft(String(value));
+        e.target.select();
+      }}
+      onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ""))}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setDraft(null);
+          e.currentTarget.blur();
+        }
+      }}
+      className="h-6 w-10 pointer-coarse:h-9 pointer-coarse:w-12 border-x border-zinc-200 bg-white text-center font-mono text-xs font-bold text-zinc-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-[#5B4FE9]/40"
+    />
+  );
+}
+
 export default function PosPage() {
   const t = useT();
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
@@ -1551,9 +1592,18 @@ export default function PosPage() {
                         >
                           <Minus className="size-3" />
                         </button>
-                        <span className="min-w-[28px] px-1 text-center font-mono text-xs font-bold text-zinc-900 tabular-nums">
-                          {formatQuantity(item.quantity)}
-                        </span>
+                        <QuantityInput
+                          value={item.quantity}
+                          onCommit={(qty) => {
+                            const stock = item.product.stockQuantity;
+                            updateCartItem(item.product.id, Math.min(qty, stock));
+                            if (qty > stock) {
+                              setValidationError(
+                                `Only ${formatQuantity(stock, item.product.unit)} of ${item.product.name} in stock, so the quantity was set to that.`,
+                              );
+                            }
+                          }}
+                        />
                         <button
                           type="button"
                           onClick={() => updateQuantity(item.product.id, 1)}

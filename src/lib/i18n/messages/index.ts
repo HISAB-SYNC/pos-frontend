@@ -25,11 +25,12 @@ import { users } from "./users";
 import { notifications } from "./notifications";
 import { settings } from "./settings";
 import { shared } from "./shared";
+import { errors } from "./errors";
 import type { Language } from "./types";
 
 export type { Language } from "./types";
 
-const areas = [common, nav, dashboard, pos, auth, landing, inventory, orders, customers, debts, suppliers, expenses, funds, reports, users, notifications, settings, shared] as const;
+const areas = [common, nav, dashboard, pos, auth, landing, inventory, orders, customers, debts, suppliers, expenses, funds, reports, users, notifications, settings, shared, errors] as const;
 
 export const en = {
   ...common.en,
@@ -50,6 +51,7 @@ export const en = {
   ...notifications.en,
   ...settings.en,
   ...shared.en,
+  ...errors.en,
 } as const;
 
 export type MessageKey = keyof typeof en;

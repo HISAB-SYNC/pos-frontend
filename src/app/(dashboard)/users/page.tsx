@@ -1054,7 +1054,7 @@ export default function UsersPage() {
         )}
 
         {/* Metric Cards Row */}
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
@@ -1213,7 +1213,7 @@ export default function UsersPage() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-xs">
+                <table className="w-full text-xs sm:min-w-[760px] max-sm:[&>thead>tr>:nth-child(3)]:hidden max-sm:[&>tbody>tr>:nth-child(3)]:hidden max-sm:[&>thead>tr>:nth-child(4)]:hidden max-sm:[&>tbody>tr>:nth-child(4)]:hidden max-sm:[&>thead>tr>:nth-child(5)]:hidden max-sm:[&>tbody>tr>:nth-child(5)]:hidden max-sm:[&>thead>tr>*]:px-2 max-sm:[&>tbody>tr>*]:px-2">
                   <thead>
                     <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                       <th className="px-5 py-3">{t("users.col.employee")}</th>
@@ -1288,7 +1288,7 @@ export default function UsersPage() {
                             </td>
                             <td className="px-5 py-3.5 text-right">
                               {canModify ? (
-                                <div className="flex items-center justify-end gap-1.5 text-zinc-500">
+                                <div className="flex items-center justify-end gap-1.5 text-zinc-500 max-sm:w-16 max-sm:flex-wrap">
                                   <button
                                     type="button"
                                     onClick={() => setMemberToEditDetails(m)}
@@ -1351,7 +1351,7 @@ export default function UsersPage() {
           {/* Tab 2: Activity & Audit Logs Table */}
           {activeTab === "AUDIT_LOGS" && (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-xs">
+              <table className="w-full text-xs sm:min-w-[760px] max-sm:[&>thead>tr>:nth-child(4)]:hidden max-sm:[&>tbody>tr>:nth-child(4)]:hidden max-sm:[&>thead>tr>:nth-child(5)]:hidden max-sm:[&>tbody>tr>:nth-child(5)]:hidden max-sm:[&>thead>tr>*]:px-2 max-sm:[&>tbody>tr>*]:px-2">
                 <thead>
                   <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                     <th className="px-5 py-3">{t("users.audit.col.timestamp")}</th>

@@ -353,7 +353,7 @@ export default function DashboardPage() {
           {/* Top Selling Stock */}
           <DashboardCard title={t("dashboard.topSelling")} action={<SeeAllLink href="/dashboard/top-selling" />}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[380px] text-left text-xs">
+              <table className="w-full text-left text-xs sm:min-w-[380px]">
                 <thead>
                   <tr className="border-b border-zinc-100 text-zinc-400">
                     <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">{t("dashboard.colProduct")}</th>

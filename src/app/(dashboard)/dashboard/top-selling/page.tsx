@@ -183,7 +183,7 @@ export default function TopSellingPage() {
         ) : (
           <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-xs">
+              <table className="w-full text-left text-xs sm:min-w-[560px] max-sm:[&>thead>tr>:nth-child(1)]:hidden max-sm:[&>tbody>tr>:nth-child(1)]:hidden max-sm:[&>thead>tr>:nth-child(5)]:hidden max-sm:[&>tbody>tr>:nth-child(5)]:hidden max-sm:[&>thead>tr>*]:px-2 max-sm:[&>tbody>tr>*]:px-2">
                 <thead className="border-b border-zinc-100 bg-zinc-50/60">
                   <tr>
                     <th className="w-12 px-4 py-3 font-semibold text-zinc-600">#</th>

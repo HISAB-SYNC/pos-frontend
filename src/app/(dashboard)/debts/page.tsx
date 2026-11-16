@@ -2493,7 +2493,7 @@ export default function DebtsPage() {
       {/* ------------------------------------------------------------------ */}
       {/* 2. Top Summary Metric Cards                                        */}
       {/* ------------------------------------------------------------------ */}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
         {/* Total Outstanding */}
         <div className="rounded-xl border border-rose-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
@@ -2670,7 +2670,7 @@ export default function DebtsPage() {
 
           {/* Customer Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs max-sm:[&>thead>tr>:nth-child(3)]:hidden max-sm:[&>tbody>tr>:nth-child(3)]:hidden max-sm:[&>thead>tr>:nth-child(4)]:hidden max-sm:[&>tbody>tr>:nth-child(4)]:hidden max-sm:[&>thead>tr>:nth-child(6)]:hidden max-sm:[&>tbody>tr>:nth-child(6)]:hidden max-sm:[&>thead>tr>:nth-child(7)]:hidden max-sm:[&>tbody>tr>:nth-child(7)]:hidden max-sm:[&>thead>tr>:nth-child(8)]:hidden max-sm:[&>tbody>tr>:nth-child(8)]:hidden max-sm:[&>thead>tr>*]:px-1.5 max-sm:[&>tbody>tr>*]:px-1.5">
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="w-9 px-3 py-3.5"></th>
@@ -2755,7 +2755,7 @@ export default function DebtsPage() {
                           {/* Customer Profile */}
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-3">
-                              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-xs font-bold text-zinc-800">
+                              <div className="flex size-8 items-center justify-center rounded-xl bg-zinc-100 text-xs font-bold text-zinc-800 max-sm:hidden">
                                 {cust.name.slice(0, 2).toUpperCase()}
                               </div>
                               <div>
@@ -2825,7 +2825,7 @@ export default function DebtsPage() {
                           {/* Actions */}
                           <td className="px-5 py-3.5 text-right">
                             <div
-                              className="flex items-center justify-end gap-1.5"
+                              className="flex items-center justify-end gap-1.5 max-sm:w-24 max-sm:flex-wrap"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {!isCashier && (
@@ -3079,7 +3079,7 @@ export default function DebtsPage() {
 
           {/* Debts Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs max-sm:[&>thead>tr>:nth-child(2)]:hidden max-sm:[&>tbody>tr>:nth-child(2)]:hidden max-sm:[&>thead>tr>:nth-child(4)]:hidden max-sm:[&>tbody>tr>:nth-child(4)]:hidden max-sm:[&>thead>tr>:nth-child(5)]:hidden max-sm:[&>tbody>tr>:nth-child(5)]:hidden max-sm:[&>thead>tr>:nth-child(7)]:hidden max-sm:[&>tbody>tr>:nth-child(7)]:hidden max-sm:[&>thead>tr>:nth-child(8)]:hidden max-sm:[&>tbody>tr>:nth-child(8)]:hidden max-sm:[&>thead>tr>*]:px-1.5 max-sm:[&>tbody>tr>*]:px-1.5">
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="px-4 py-3.5 w-10">
@@ -3286,7 +3286,7 @@ export default function DebtsPage() {
 
                         {/* Actions */}
                         <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1.5 max-sm:w-24 max-sm:flex-wrap">
                             <button
                               type="button"
                               onClick={() => setSelectedDebtDetail(debt)}

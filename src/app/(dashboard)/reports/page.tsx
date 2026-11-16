@@ -366,7 +366,7 @@ function SalesReport() {
         {/* ================================================================= */}
         {/* 2. KPI Summary Metric Cards                                       */}
         {/* ================================================================= */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {/* Gross Revenue */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">

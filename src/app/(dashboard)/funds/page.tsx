@@ -1,28 +1,25 @@
 "use client";
 
-import { ArrowLeftRight, Download, Info, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, Info, RotateCcw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ACCOUNT_LABELS,
-  ALL_LINES,
   IN_LINES,
   LINE_HINTS,
   LINE_LABELS,
   OUT_LINES,
   formatEtb,
 } from "@/components/funds/funds-shared";
+import { ActivityList, EMPTY_FILTER, type LedgerFilter } from "@/components/funds/activity-list";
 import { BalanceOverview } from "@/components/funds/balance-overview";
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { TransferModal } from "@/components/funds/transfer-modal";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
-import { TablePagination, usePagination } from "@/components/shared/table-pagination";
-import { getFundsEntries, getFundsSummary, getSupplierPayables, getSupplierPayments } from "@/lib/api/app-data";
+import { getFundsSummary, getSupplierPayables, getSupplierPayments } from "@/lib/api/app-data";
 import type {
-  FundAccount,
-  FundsEntries,
   FundsLine,
   FundsSummary,
   SupplierPayables,
@@ -31,16 +28,9 @@ import type {
 import { useFormat } from "@/lib/i18n/use-format";
 import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
-import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
 
 type Tab = "activity" | "summary" | "suppliers";
-type LedgerFilter = { line: FundsLine | ""; account: FundAccount | ""; from: string; to: string };
-
-const EMPTY_FILTER: LedgerFilter = { line: "", account: "", from: "", to: "" };
-
-const selectClass =
-  "h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden";
 
 /* ------------------------------------------------------------------ */
 /* Overview: money in / out lines and the split per account           */
@@ -131,196 +121,6 @@ function OverviewTab({ funds, onOpenLine }: { funds: FundsSummary; onOpenLine: (
         </p>
       </section>
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Ledger: every money movement with filters and CSV export           */
-/* ------------------------------------------------------------------ */
-function LedgerTab({
-  shopId,
-  filter,
-  onFilterChange,
-}: {
-  shopId: string;
-  filter: LedgerFilter;
-  onFilterChange: (filter: LedgerFilter) => void;
-}) {
-  const t = useT();
-  const { formatDate } = useFormat();
-  const [data, setData] = useState<{ key: string; entries: FundsEntries | null; error: boolean } | null>(null);
-  const filterKey = JSON.stringify(filter);
-
-  useEffect(() => {
-    let mounted = true;
-    const from = filter.from ? new Date(`${filter.from}T00:00:00`) : null;
-    const to = filter.to ? new Date(`${filter.to}T00:00:00`) : null;
-    if (to) to.setDate(to.getDate() + 1); // include the whole "to" day
-    getFundsEntries(shopId, {
-      line: filter.line || undefined,
-      account: filter.account || undefined,
-      from: from?.toISOString(),
-      to: to?.toISOString(),
-      limit: 500,
-    })
-      .then((entries) => {
-        if (mounted) setData({ key: filterKey, entries, error: false });
-      })
-      .catch(() => {
-        if (mounted) setData({ key: filterKey, entries: null, error: true });
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [shopId, filter, filterKey]);
-
-  const isLoading = data?.key !== filterKey;
-  const entries = !isLoading ? data?.entries : null;
-  const hasFilter = filterKey !== JSON.stringify(EMPTY_FILTER);
-  const ledgerPager = usePagination(entries?.items ?? [], 20);
-
-  function handleExport() {
-    if (!entries) return;
-    exportToCsv(`funds-ledger-${new Date().toISOString().slice(0, 10)}`, entries.items, [
-      { header: t("shared.date"), formatter: (e) => new Date(e.date).toISOString().slice(0, 10) },
-      { header: t("fundsPage.ledger.description"), key: "label" },
-      { header: t("fundsPage.ledger.type"), formatter: (e) => t(LINE_LABELS[e.line]) },
-      { header: t("fundsPage.ledger.account"), formatter: (e) => t(ACCOUNT_LABELS[e.account]) },
-      { header: t("fundsPage.ledger.csvInOut"), key: "direction" },
-      { header: t("fundsPage.ledger.csvAmount"), formatter: (e) => (e.direction === "IN" ? e.amount : -e.amount) },
-      { header: t("shared.notes"), formatter: (e) => e.notes || "" },
-    ]);
-  }
-
-  return (
-    <section className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
-      <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 p-4">
-        <select
-          value={filter.line}
-          onChange={(e) => onFilterChange({ ...filter, line: e.target.value as FundsLine | "" })}
-          className={selectClass}
-        >
-          <option value="">{t("fundsPage.ledger.allTypes")}</option>
-          {ALL_LINES.map((line) => (
-            <option key={line} value={line}>
-              {t(LINE_LABELS[line])}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filter.account}
-          onChange={(e) => onFilterChange({ ...filter, account: e.target.value as FundAccount | "" })}
-          className={selectClass}
-        >
-          <option value="">{t("fundsPage.ledger.allAccounts")}</option>
-          {(Object.keys(ACCOUNT_LABELS) as FundAccount[]).map((a) => (
-            <option key={a} value={a}>
-              {t(ACCOUNT_LABELS[a])}
-            </option>
-          ))}
-        </select>
-        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
-          {t("fundsPage.ledger.from")}
-          <input
-            type="date"
-            value={filter.from}
-            onChange={(e) => onFilterChange({ ...filter, from: e.target.value })}
-            className={selectClass}
-          />
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
-          {t("fundsPage.ledger.to")}
-          <input
-            type="date"
-            value={filter.to}
-            onChange={(e) => onFilterChange({ ...filter, to: e.target.value })}
-            className={selectClass}
-          />
-        </label>
-        {hasFilter && (
-          <button
-            type="button"
-            onClick={() => onFilterChange(EMPTY_FILTER)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900"
-          >
-            <X className="size-3.5" />
-            {t("fundsPage.ledger.clear")}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={handleExport}
-          disabled={!entries || entries.items.length === 0}
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 disabled:opacity-50"
-        >
-          <Download className="size-3.5 text-zinc-500" />
-          {t("fundsPage.ledger.exportCsv")}
-        </button>
-      </div>
-
-      {entries && (
-        <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/60 px-4 py-2 text-xs">
-          <span className="text-zinc-500">
-            {t.n("fundsPage.ledger.records", entries.count)}
-          </span>
-          <span className="text-zinc-500">
-            {filter.line && (OUT_LINES.includes(filter.line) || filter.line === "transferOut")
-              ? t("fundsPage.ledger.totalOut")
-              : t("fundsPage.ledger.net")}{" "}
-            <span className="font-mono font-bold tabular-nums text-zinc-900">{formatEtb(entries.total)} {t("shared.etb")}</span>
-          </span>
-        </div>
-      )}
-
-      {isLoading ? (
-        <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
-      ) : data?.error ? (
-        <p className="py-12 text-center text-xs text-zinc-500">{t("fundsPage.ledger.loadFailed")}</p>
-      ) : !entries || entries.items.length === 0 ? (
-        <p className="py-12 text-center text-xs text-zinc-500">{t("fundsPage.ledger.noMatch")}</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                <th className="px-4 py-2.5 font-bold">{t("shared.date")}</th>
-                <th className="px-4 py-2.5 font-bold">{t("fundsPage.ledger.description")}</th>
-                <th className="px-4 py-2.5 font-bold">{t("fundsPage.ledger.type")}</th>
-                <th className="px-4 py-2.5 font-bold">{t("fundsPage.ledger.account")}</th>
-                <th className="px-4 py-2.5 text-right font-bold">{t("shared.amount")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {ledgerPager.pageItems.map((e) => (
-                <tr key={e.id} className="hover:bg-zinc-50/60">
-                  <td className="whitespace-nowrap px-4 py-2.5 font-mono text-zinc-500">{formatDate(e.date)}</td>
-                  <td className="px-4 py-2.5 text-zinc-800">
-                    {e.label}
-                    {e.notes && <span className="ml-1.5 text-zinc-400">· {e.notes}</span>}
-                  </td>
-                  <td className="px-4 py-2.5 text-zinc-600">{t(LINE_LABELS[e.line])}</td>
-                  <td className="px-4 py-2.5 text-zinc-600">{t(ACCOUNT_LABELS[e.account])}</td>
-                  <td
-                    className={`px-4 py-2.5 text-right font-mono font-semibold tabular-nums ${
-                      e.direction === "IN" ? "text-emerald-700" : "text-zinc-900"
-                    }`}
-                  >
-                    {e.direction === "IN" ? "+" : "−"}
-                    {formatEtb(e.amount)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <TablePagination pagination={ledgerPager} noun={t("fundsPage.ledger.recordsNoun")} />
-          {entries.count > entries.items.length && (
-            <p className="border-t border-zinc-100 px-4 py-2.5 text-[11px] text-zinc-500">
-              {t("fundsPage.ledger.showingLatest", { shown: entries.items.length, count: entries.count })}
-            </p>
-          )}
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -593,7 +393,7 @@ function FundsPageContent() {
         />
       )}
       {tab === "activity" && (
-        <LedgerTab key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
+        <ActivityList key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       )}
       {tab === "suppliers" && <SuppliersTab payables={payables} payments={payments} onPay={setPayKey} />}
 

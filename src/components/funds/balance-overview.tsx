@@ -51,7 +51,7 @@ export function BalanceOverview({
                 key={account.account}
                 type="button"
                 onClick={() => onOpenAccount(account.account)}
-                className="group flex flex-col rounded-xl border border-zinc-200/80 bg-white p-4 text-left shadow-2xs transition-all hover:border-zinc-300 hover:shadow-xs"
+                className="group flex flex-col rounded-xl border border-zinc-200/80 bg-white p-3.5 text-left shadow-2xs transition-all hover:border-zinc-300 hover:shadow-xs sm:p-4"
               >
                 <span className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-xs font-semibold text-zinc-700">
@@ -63,7 +63,7 @@ export function BalanceOverview({
                   <ChevronRight className="size-4 text-zinc-300 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-500" />
                 </span>
                 <span
-                  className={`mt-3 font-mono text-xl font-bold tracking-tight tabular-nums ${
+                  className={`mt-2 font-mono text-xl font-bold tracking-tight tabular-nums sm:mt-3 ${
                     negative ? "text-rose-700" : "text-zinc-900"
                   }`}
                 >

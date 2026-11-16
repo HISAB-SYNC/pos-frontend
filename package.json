@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "i18n:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/i18n-check.mjs",
+    "i18n:export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/i18n-export.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",

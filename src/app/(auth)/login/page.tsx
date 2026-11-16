@@ -114,7 +114,9 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error) {
       const apiError = error as ApiError;
-      const rawMsg = apiError.message ?? t("auth.invalidCredentials");
+      // Inspect the English text the backend sent, since apiError.message may be translated.
+      const rawMsg = apiError.rawMessage ?? apiError.message ?? t("auth.invalidCredentials");
+      const shownMsg = apiError.message ?? t("auth.invalidCredentials");
       const rawCode = (apiError as any)?.code || (error as any)?.code;
       if (
         rawCode === "ACCOUNT_PENDING_APPROVAL" ||
@@ -127,7 +129,7 @@ export default function LoginPage() {
         setErrorMessage(t("auth.pendingMessage"));
       } else {
         setIsPendingActivation(false);
-        setErrorMessage(rawMsg);
+        setErrorMessage(shownMsg);
       }
       setStatus("error");
     }

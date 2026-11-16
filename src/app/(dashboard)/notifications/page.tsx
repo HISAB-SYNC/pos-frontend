@@ -36,6 +36,7 @@ import type {
 } from "@/lib/api/types";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useFormat } from "@/lib/i18n/use-format";
+import { useBackendText } from "@/lib/i18n/backend-text";
 import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
@@ -112,6 +113,7 @@ function getNotificationTypeMeta(type: NotificationType): {
 export default function NotificationsPage() {
   const t = useT();
   const { formatDateTime } = useFormat();
+  const backendText = useBackendText();
   const formatFullTime = (dateStr: string): string => {
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? t("notificationsPage.recently") : formatDateTime(d);
@@ -209,9 +211,11 @@ export default function NotificationsPage() {
       (n) =>
         n.title.toLowerCase().includes(q) ||
         n.message.toLowerCase().includes(q) ||
+        backendText.text(n.title).toLowerCase().includes(q) ||
+        backendText.text(n.message).toLowerCase().includes(q) ||
         n.type.toLowerCase().includes(q),
     );
-  }, [notifications, search]);
+  }, [notifications, search, backendText]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -472,7 +476,7 @@ export default function NotificationsPage() {
                         </span>
 
                         <h3 className="text-xs font-bold text-zinc-900 truncate">
-                          {n.title}
+                          {backendText.text(n.title)}
                         </h3>
 
                         {!n.isRead && (
@@ -481,7 +485,7 @@ export default function NotificationsPage() {
                       </div>
 
                       <p className="text-xs text-zinc-600 leading-relaxed">
-                        {n.message}
+                        {backendText.text(n.message)}
                       </p>
 
                       <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-zinc-400 font-mono">

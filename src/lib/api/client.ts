@@ -1,6 +1,20 @@
+import { translateBackendText } from "@/lib/i18n/backend-match";
+import { messages, type MessageKey } from "@/lib/i18n/messages";
 import { useAuthStore } from "@/stores/auth-store";
+import { useLanguageStore } from "@/stores/language-store";
 
 import type { ApiError, ApiResponse } from "./types";
+
+/** Translates a known backend message to the current interface language (unknown text is kept). */
+function localized(message: string) {
+  const language = useLanguageStore.getState().language;
+  const dictionary = messages[language] ?? messages.en;
+  return translateBackendText(message, (key: MessageKey, vars) => {
+    let text = dictionary[key] ?? messages.en[key] ?? key;
+    for (const [name, value] of Object.entries(vars ?? {})) text = text.split(`{${name}}`).join(String(value));
+    return text;
+  });
+}
 
 export function getApiBaseUrl() {
   const url = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-0fzk.onrender.com";
@@ -72,11 +86,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
 
   if (!response.ok || !payload || payload.success === false) {
     const extra = (payload ?? {}) as { code?: string; details?: Record<string, unknown> };
+    const rawMessage =
+      payload && "error" in payload ? payload.error : `Request failed with status ${response.status}`;
     throw {
-      message:
-        payload && "error" in payload
-          ? payload.error
-          : `Request failed with status ${response.status}`,
+      message: localized(rawMessage),
+      rawMessage,
       status: response.status,
       ...(extra.code ? { code: extra.code } : {}),
       ...(extra.details ? { details: extra.details } : {}),

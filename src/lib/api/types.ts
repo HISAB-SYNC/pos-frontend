@@ -1,7 +1,10 @@
 import type { Role } from "@/lib/permissions/roles";
 
 export type ApiError = {
+  /** Shown to the user; known backend messages are translated to the interface language. */
   message: string;
+  /** The message exactly as the backend sent it (English), for code that needs to inspect it. */
+  rawMessage?: string;
   status: number;
   /** Machine-readable reason from the backend, e.g. PRICE_BELOW_COST. */
   code?: string;

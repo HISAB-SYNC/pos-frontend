@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/app-data";
 import type { AppNotification, NotificationType } from "@/lib/api/types";
 import { useFormat } from "@/lib/i18n/use-format";
+import { useBackendText } from "@/lib/i18n/backend-text";
 import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
@@ -68,6 +69,7 @@ export function NotificationsPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const t = useT();
   const { formatDate } = useFormat();
+  const backendText = useBackendText();
 
   function formatRelativeTime(dateStr: string): string {
     const date = new Date(dateStr);
@@ -272,14 +274,14 @@ export function NotificationsPanel({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5">
                     <p className="text-xs font-bold leading-tight text-zinc-900">
-                      {n.title}
+                      {backendText.text(n.title)}
                     </p>
                     {!n.isRead && (
                       <span className="size-1.5 rounded-full bg-blue-600" />
                     )}
                   </div>
                   <p className="text-[11px] leading-snug text-zinc-600 line-clamp-2">
-                    {n.message}
+                    {backendText.text(n.message)}
                   </p>
                   <p className="font-mono text-[10px] text-zinc-400 pt-0.5">
                     {formatRelativeTime(n.createdAt)}

@@ -47,6 +47,7 @@ function LowStockItem({
   remainingQuantity: number;
   unit: string;
 }) {
+  const t = useT();
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -63,20 +64,20 @@ function LowStockItem({
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold text-zinc-900">{name}</p>
           <p className="font-mono text-[11px] text-zinc-500 tabular-nums">
-            {remainingQuantity} {unit} in stock
+            {t("dashboard.inStockQty", { qty: remainingQuantity, unit })}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
           <span className="size-1.5 rounded-full bg-rose-600" />
-          Low
+          {t("dashboard.low")}
         </span>
         <Link
           href={`/inventory?search=${encodeURIComponent(name)}`}
           className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 transition-colors"
         >
-          Restock
+          {t("dashboard.restock")}
         </Link>
       </div>
     </div>
@@ -149,7 +150,7 @@ export default function DashboardPage() {
   if (authUser?.role === "SALES") return <LoadingState />;
 
   if (!isLoading && loadError && !metrics) {
-    return <LoadError what="the dashboard" onRetry={() => setReloadKey((k) => k + 1)} />;
+    return <LoadError what={t("dashboard.whatDashboard")} onRetry={() => setReloadKey((k) => k + 1)} />;
   }
 
   if (isLoading || !metrics) return <LoadingState />;
@@ -226,11 +227,11 @@ export default function DashboardPage() {
           <section className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs xl:col-span-2">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-zinc-900">Sales &amp; Revenue Trends</h2>
+                <h2 className="text-sm font-bold tracking-tight text-zinc-900">{t("dashboard.trendsTitle")}</h2>
                 <p className="text-xs text-zinc-500">
                   {trendPeriod === "monthly"
-                    ? "Monthly commercial volume overview"
-                    : "Daily commercial volume (Last 7 Days)"}
+                    ? t("dashboard.trendsMonthlySub")
+                    : t("dashboard.trendsWeeklySub")}
                 </p>
               </div>
               <div className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 p-0.5">
@@ -243,7 +244,7 @@ export default function DashboardPage() {
                       : "text-zinc-500 hover:text-zinc-900"
                   }`}
                 >
-                  Monthly
+                  {t("dashboard.monthly")}
                 </button>
                 <button
                   type="button"
@@ -254,7 +255,7 @@ export default function DashboardPage() {
                       : "text-zinc-500 hover:text-zinc-900"
                   }`}
                 >
-                  Last 7 Days
+                  {t("dashboard.last7")}
                 </button>
               </div>
             </div>
@@ -268,10 +269,10 @@ export default function DashboardPage() {
           </section>
 
           {/* Payment Method Breakdown (Cash, Bank, Telebirr) */}
-          <DashboardCard title="Payment Method Breakdown">
+          <DashboardCard title={t("dashboard.paymentBreakdown")}>
             <div className="space-y-4 pt-1">
               <p className="text-xs text-zinc-500">
-                Collections split by payment channel:
+                {t("dashboard.collectionsSplit")}
               </p>
 
               {/* Cash */}
@@ -279,10 +280,10 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 font-medium text-zinc-700">
                     <Banknote className="size-4 text-emerald-600" />
-                    <span>Cash</span>
+                    <span>{t("pos.cash")}</span>
                   </span>
                   <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                    {metrics.paymentBreakdown.cash.toLocaleString()} ETB{" "}
+                    {t("pos.money", { amount: metrics.paymentBreakdown.cash.toLocaleString() })}{" "}
                     <span className="font-sans text-[11px] font-normal text-zinc-400">({cashPct}%)</span>
                   </span>
                 </div>
@@ -299,10 +300,10 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 font-medium text-zinc-700">
                     <Landmark className="size-4 text-blue-600" />
-                    <span>Bank Transfer</span>
+                    <span>{t("pos.bankTransfer")}</span>
                   </span>
                   <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                    {metrics.paymentBreakdown.bank.toLocaleString()} ETB{" "}
+                    {t("pos.money", { amount: metrics.paymentBreakdown.bank.toLocaleString() })}{" "}
                     <span className="font-sans text-[11px] font-normal text-zinc-400">({bankPct}%)</span>
                   </span>
                 </div>
@@ -319,10 +320,10 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2 font-medium text-zinc-700">
                     <Smartphone className="size-4 text-amber-600" />
-                    <span>Telebirr</span>
+                    <span>{t("pos.telebirr")}</span>
                   </span>
                   <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                    {metrics.paymentBreakdown.telebirr.toLocaleString()} ETB{" "}
+                    {t("pos.money", { amount: metrics.paymentBreakdown.telebirr.toLocaleString() })}{" "}
                     <span className="font-sans text-[11px] font-normal text-zinc-400">({telebirrPct}%)</span>
                   </span>
                 </div>
@@ -336,9 +337,9 @@ export default function DashboardPage() {
 
               {/* Total collected footer */}
               <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs">
-                <span className="font-medium text-zinc-500">Total Tendered:</span>
+                <span className="font-medium text-zinc-500">{t("dashboard.totalTendered")}</span>
                 <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                  {totalCollected.toLocaleString()} ETB
+                  {t("pos.money", { amount: totalCollected.toLocaleString() })}
                 </span>
               </div>
             </div>
@@ -350,16 +351,16 @@ export default function DashboardPage() {
         {/* ================================================================= */}
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           {/* Top Selling Stock */}
-          <DashboardCard title="Top Selling Products" action={<SeeAllLink href="/dashboard/top-selling" />}>
+          <DashboardCard title={t("dashboard.topSelling")} action={<SeeAllLink href="/dashboard/top-selling" />}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[380px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-zinc-100 text-zinc-400">
-                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">Product</th>
-                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">Sold</th>
-                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">Stock</th>
+                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">{t("dashboard.colProduct")}</th>
+                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">{t("dashboard.colSold")}</th>
+                    <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px]">{t("dashboard.colStock")}</th>
                     <th className="pb-2.5 font-bold uppercase tracking-wider text-[10px] text-right">
-                      {topSellers ? "Revenue" : "Price"}
+                      {topSellers ? t("kpi.revenue") : t("dashboard.colPrice")}
                     </th>
                   </tr>
                 </thead>
@@ -375,7 +376,7 @@ export default function DashboardPage() {
                             {item.stock ? formatQuantity(item.stock.onHand) : "—"}
                           </td>
                           <td className="py-2.5 font-mono font-bold text-zinc-900 tabular-nums text-right">
-                            {Math.round(item.sold.revenue).toLocaleString("en-US")} Birr
+                            {t("pos.money", { amount: Math.round(item.sold.revenue).toLocaleString("en-US") })}
                           </td>
                         </tr>
                       ))
@@ -399,7 +400,7 @@ export default function DashboardPage() {
                 href="/dashboard/top-selling"
                 className="group mt-3 flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
               >
-                <span>See {topSellers.length - TOP_SELLING_LIMIT} more</span>
+                <span>{t("dashboard.seeMore", { count: topSellers.length - TOP_SELLING_LIMIT })}</span>
                 <ArrowUpRight className="size-3.5 text-zinc-400 group-hover:text-zinc-900" />
               </Link>
             )}
@@ -407,17 +408,17 @@ export default function DashboardPage() {
 
           {/* Low Quantity Stock */}
           <DashboardCard
-            title="Low Inventory Warnings"
+            title={t("dashboard.lowInventory")}
             action={
               metrics.lowQuantityStock.length > 0 ? (
                 <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[10px] font-bold text-rose-700">
                   <span className="size-1.5 rounded-full bg-rose-600" />
-                  {metrics.lowQuantityStock.length} items
+                  {t.n("dashboard.itemsBadge", metrics.lowQuantityStock.length)}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                   <span className="size-1.5 rounded-full bg-emerald-600" />
-                  Healthy
+                  {t("dashboard.healthy")}
                 </span>
               )
             }
@@ -437,7 +438,7 @@ export default function DashboardPage() {
                     href="/dashboard/low-inventory"
                     className="group flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
                   >
-                    <span>See {metrics.lowQuantityStock.length - DASHBOARD_LIST_LIMIT} more</span>
+                    <span>{t("dashboard.seeMore", { count: metrics.lowQuantityStock.length - DASHBOARD_LIST_LIMIT })}</span>
                     <ArrowUpRight className="size-3.5 text-zinc-400 group-hover:text-zinc-900" />
                   </Link>
                 )}
@@ -447,15 +448,15 @@ export default function DashboardPage() {
                 <div className="mb-2.5 flex size-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200/70">
                   <CheckCircle2 className="size-4" />
                 </div>
-                <p className="text-xs font-bold text-zinc-900">No Low Inventory Warnings</p>
+                <p className="text-xs font-bold text-zinc-900">{t("dashboard.noLowTitle")}</p>
                 <p className="mt-1 max-w-[230px] text-[11px] leading-relaxed text-zinc-500">
-                  All catalog items are currently above minimum replenishment levels.
+                  {t("dashboard.noLowBody")}
                 </p>
                 <Link
                   href="/inventory"
                   className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 hover:text-zinc-950 hover:underline"
                 >
-                  <span>View Full Inventory</span>
+                  <span>{t("dashboard.viewFullInventory")}</span>
                   <ArrowUpRight className="size-3" />
                 </Link>
               </div>

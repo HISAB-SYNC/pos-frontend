@@ -32,6 +32,7 @@ import { createCustomer, createSale, getCustomers, saveCreditSaleItems } from "@
 import { getProducts } from "@/lib/api/shops";
 import type { Customer, Product, Sale } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { useFormat } from "@/lib/i18n/use-format";
 import { useT } from "@/lib/i18n/use-t";
 import { useShopStore } from "@/stores/shop-store";
 import { cacheProducts, getCachedProducts, queueOfflineSale, useOfflineStatus, type OfflineSale } from "@/lib/offline";
@@ -73,6 +74,7 @@ function QuickAddCustomerModal({
   onClose: () => void;
   onCreated: (customer: Customer) => void;
 }) {
+  const t = useT();
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const [name, setName] = useState("");
@@ -109,12 +111,13 @@ function QuickAddCustomerModal({
       <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-xl animate-in zoom-in-95 duration-100">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-zinc-950">Register New Customer</h2>
-            <p className="text-[11px] text-zinc-500">Record customer profile for cash or debt transactions</p>
+            <h2 className="text-sm font-bold text-zinc-950">{t("pos.newCustomerTitle")}</h2>
+            <p className="text-[11px] text-zinc-500">{t("pos.newCustomerSub")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -123,18 +126,18 @@ function QuickAddCustomerModal({
 
         <form onSubmit={handleCreate} className="space-y-3 text-xs">
           <div>
-            <label className="mb-1 block font-medium text-zinc-700">Full Name *</label>
+            <label className="mb-1 block font-medium text-zinc-700">{t("pos.fullName")}</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Ahmed Ali"
+              placeholder={t("pos.fullNamePh")}
               className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-none focus:ring-1 focus:ring-[#5B4FE9]/30"
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-zinc-700">Phone Number</label>
+            <label className="mb-1 block font-medium text-zinc-700">{t("shared.phone")}</label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -144,17 +147,17 @@ function QuickAddCustomerModal({
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-zinc-700">Address / Location</label>
+            <label className="mb-1 block font-medium text-zinc-700">{t("pos.addressLocation")}</label>
             <input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. Bole, Addis Ababa"
+              placeholder={t("pos.addressPh")}
               className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-none focus:ring-1 focus:ring-[#5B4FE9]/30"
             />
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-zinc-700">Credit Limit (ETB)</label>
+            <label className="mb-1 block font-medium text-zinc-700">{t("pos.creditLimit")}</label>
             <input
               type="number"
               value={creditLimit}
@@ -169,14 +172,14 @@ function QuickAddCustomerModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
               className="rounded-md bg-slate-900 px-4 py-1.5 font-semibold text-white shadow-2xs hover:bg-slate-800 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Customer"}
+              {isSubmitting ? t("shared.saving") : t("pos.saveCustomer")}
             </button>
           </div>
         </form>
@@ -225,13 +228,14 @@ function OrderConfirmationModal({
   onConfirm: () => void;
   isSubmitting: boolean;
 }) {
+  const t = useT();
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const methodLabel =
     paymentMethod === "BANK"
-      ? bankName || "Bank Transfer"
+      ? bankName || t("pos.bankTransfer")
       : paymentMethod === "TELEBIRR"
-      ? "Telebirr"
-      : "Cash";
+      ? t("pos.telebirr")
+      : t("pos.cash");
 
   // Keyboard shortcut: Press Enter to confirm, Escape to cancel/back
   useEffect(() => {
@@ -258,9 +262,12 @@ function OrderConfirmationModal({
               <Receipt className="size-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-zinc-950">Review &amp; Confirm Sale</h2>
+              <h2 className="text-sm font-bold text-zinc-950">{t("pos.reviewConfirmTitle")}</h2>
               <p className="text-[11px] text-zinc-500 font-mono">
-                {cart.length} item type{cart.length === 1 ? "" : "s"} ({formatQuantity(totalItemsCount)} total units) • {customer ? customer.name : "Walk-in Customer"}
+                {t.n("pos.reviewSummary", cart.length, {
+                  units: formatQuantity(totalItemsCount),
+                  customer: customer ? customer.name : t("pos.walkInCustomer"),
+                })}
               </p>
             </div>
           </div>
@@ -269,7 +276,8 @@ function OrderConfirmationModal({
             onClick={onClose}
             disabled={isSubmitting}
             className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
-            title="Close review"
+            title={t("pos.closeReview")}
+            aria-label={t("pos.closeReview")}
           >
             <X className="size-4" />
           </button>
@@ -280,9 +288,9 @@ function OrderConfirmationModal({
           {/* Itemized Order Table */}
           <div className="rounded-lg border border-zinc-200/80 bg-white overflow-hidden shadow-2xs">
             <div className="grid grid-cols-[1fr_90px_90px] px-3 py-1.5 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 bg-zinc-50/80 border-b border-zinc-200/70">
-              <span>Item &amp; Unit Rate</span>
-              <span className="text-center">Qty / Scale</span>
-              <span className="text-right">Line Total</span>
+              <span>{t("pos.itemUnitRate")}</span>
+              <span className="text-center">{t("pos.qtyScale")}</span>
+              <span className="text-right">{t("pos.lineTotal")}</span>
             </div>
             <div className="max-h-44 overflow-y-auto divide-y divide-zinc-100 px-3 py-0.5">
               {cart.map((item) => {
@@ -296,11 +304,11 @@ function OrderConfirmationModal({
                       </p>
                       <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mt-0.5">
                         <span>
-                          {item.unitPrice.toLocaleString()} ETB/{item.product.unit || "pcs"}
+                          {t("pos.priceUnit", { price: item.unitPrice.toLocaleString(), unit: item.product.unit || "pcs" })}
                         </span>
                         {item.isCustomPrice && (
                           <span className="rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-900 border border-amber-200">
-                            Deal
+                            {t("pos.deal")}
                           </span>
                         )}
                       </div>
@@ -310,7 +318,7 @@ function OrderConfirmationModal({
                       <span className="text-[10px] font-normal text-zinc-500">{item.product.unit || "pcs"}</span>
                     </div>
                     <div className="text-right font-mono font-bold text-zinc-950 tabular-nums">
-                      {lineTotal.toLocaleString()} ETB
+                      {t("pos.money", { amount: lineTotal.toLocaleString() })}
                     </div>
                   </div>
                 );
@@ -322,19 +330,19 @@ function OrderConfirmationModal({
           <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3 space-y-2">
             <div className="space-y-1 text-xs">
               <div className="flex justify-between text-zinc-600">
-                <span>Subtotal:</span>
-                <span className="font-mono tabular-nums">{subtotal.toLocaleString()} ETB</span>
+                <span>{t("pos.subtotalLabel")}</span>
+                <span className="font-mono tabular-nums">{t("pos.money", { amount: subtotal.toLocaleString() })}</span>
               </div>
               {discountVal > 0 && (
                 <div className="flex justify-between text-rose-600 font-medium">
-                  <span>Discount Applied:</span>
-                  <span className="font-mono tabular-nums">-{discountVal.toLocaleString()} ETB</span>
+                  <span>{t("pos.discountApplied")}</span>
+                  <span className="font-mono tabular-nums">-{t("pos.money", { amount: discountVal.toLocaleString() })}</span>
                 </div>
               )}
               <div className="flex items-baseline justify-between border-t border-zinc-200/70 pt-1.5 font-bold">
-                <span className="text-zinc-900 uppercase text-[11px] tracking-wider">Total Payable:</span>
+                <span className="text-zinc-900 uppercase text-[11px] tracking-wider">{t("pos.totalPayableLabel")}</span>
                 <span className="font-mono text-base text-zinc-950 tabular-nums">
-                  {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+                  {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">{t("pos.etb")}</span>
                 </span>
               </div>
             </div>
@@ -342,28 +350,28 @@ function OrderConfirmationModal({
             {/* Payment Channel Particulars */}
             <div className="border-t border-zinc-200/70 pt-2 text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-zinc-500">Tender Channel:</span>
+                <span className="text-zinc-500">{t("pos.tenderChannel")}:</span>
                 <span className="font-semibold text-zinc-900">{methodLabel}</span>
               </div>
               {paymentMethod === "CASH" ? (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">Cash Received:</span>
+                    <span className="text-zinc-500">{t("pos.cashReceived")}</span>
                     <span className="font-mono font-bold text-zinc-900 tabular-nums">
-                      {effectivePaid.toLocaleString()} ETB
+                      {t("pos.money", { amount: effectivePaid.toLocaleString() })}
                     </span>
                   </div>
                   {changeAmount > 0 && (
                     <div className="flex justify-between font-bold text-emerald-800 bg-emerald-50/80 border border-emerald-200/80 rounded px-2 py-1">
-                      <span>Cash Change Due:</span>
-                      <span className="font-mono tabular-nums">{changeAmount.toLocaleString()} ETB</span>
+                      <span>{t("pos.changeDue")}</span>
+                      <span className="font-mono tabular-nums">{t("pos.money", { amount: changeAmount.toLocaleString() })}</span>
                     </div>
                   )}
                 </>
               ) : (
                 paymentReference && (
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">TxID / Reference:</span>
+                    <span className="text-zinc-500">{t("pos.txRef")}</span>
                     <span className="font-mono font-medium text-zinc-900">{paymentReference}</span>
                   </div>
                 )
@@ -376,22 +384,22 @@ function OrderConfirmationModal({
             <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 space-y-1.5 text-xs">
               <div className="flex items-center gap-1.5 font-bold text-amber-900">
                 <HandCoins className="size-3.5 text-amber-700" />
-                <span>Credit / Debt Obligation for {customer?.name || "Customer"}</span>
+                <span>{t("pos.creditObligation", { name: customer?.name || t("pos.customerFallback") })}</span>
               </div>
               <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between text-zinc-600">
-                  <span>Previous Balance:</span>
-                  <span className="font-mono tabular-nums">{currentCustomerDebt.toLocaleString()} ETB</span>
+                  <span>{t("pos.previousBalance")}</span>
+                  <span className="font-mono tabular-nums">{t("pos.money", { amount: currentCustomerDebt.toLocaleString() })}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-amber-800">
-                  <span>Added to Debt:</span>
+                  <span>{t("pos.addedToDebt")}</span>
                   <span className="font-mono text-rose-600 tabular-nums">
-                    +{debtAdditionAmount.toLocaleString()} ETB
+                    +{t("pos.money", { amount: debtAdditionAmount.toLocaleString() })}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-amber-200 pt-1 text-xs font-bold text-rose-700">
-                  <span>New Total Customer Debt:</span>
-                  <span className="font-mono tabular-nums">{newProjectedDebt.toLocaleString()} ETB</span>
+                  <span>{t("pos.newTotalDebt")}</span>
+                  <span className="font-mono tabular-nums">{t("pos.money", { amount: newProjectedDebt.toLocaleString() })}</span>
                 </div>
               </div>
             </div>
@@ -406,7 +414,7 @@ function OrderConfirmationModal({
             disabled={isSubmitting}
             className="rounded-md border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
-            ← Back to Cart
+            {t("pos.backToCart")}
           </button>
           <button
             type="button"
@@ -419,16 +427,16 @@ function OrderConfirmationModal({
             }`}
           >
             {isSubmitting ? (
-              <span>Processing Transaction...</span>
+              <span>{t("pos.processing")}</span>
             ) : debtAdditionAmount > 0 ? (
               <>
                 <HandCoins className="size-3.5" />
-                <span>Confirm &amp; Record Credit (Enter)</span>
+                <span>{t("pos.confirmRecordCredit")}</span>
               </>
             ) : (
               <>
                 <Check className="size-3.5 stroke-[3]" />
-                <span>Confirm &amp; Complete Sale (Enter)</span>
+                <span>{t("pos.confirmCompleteSale")}</span>
               </>
             )}
           </button>
@@ -450,11 +458,14 @@ function SaleReceiptModal({
   onClose: () => void;
   onNewSale: () => void;
 }) {
+  const t = useT();
+  const { formatDateTime } = useFormat();
   const paid = sale.amountPaid !== undefined ? parseFloat(String(sale.amountPaid)) : (sale.splitDetails?.cashAmount ?? parseFloat(sale.totalAmount));
   const debt = sale.debtAmount !== undefined ? parseFloat(String(sale.debtAmount)) : (sale.splitDetails?.debtAmount ?? Math.max(0, parseFloat(sale.totalAmount) - paid));
   const isDebtSale = debt > 0;
 
-  const methodLabel = sale.paymentMethod === "BANK" ? "Bank Transfer" : sale.paymentMethod === "TELEBIRR" ? "Telebirr" : "Cash";
+  const methodLabel =
+    sale.paymentMethod === "BANK" ? t("pos.bankTransfer") : sale.paymentMethod === "TELEBIRR" ? t("pos.telebirr") : t("pos.cash");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs animate-in fade-in duration-100">
@@ -464,11 +475,11 @@ function SaleReceiptModal({
           <div className="flex size-10 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20">
             <CheckCircle2 className="size-5" />
           </div>
-          <h2 className="mt-2.5 text-sm font-bold text-zinc-950">Sale Completed Successfully</h2>
-          <p className="font-mono text-[10px] text-zinc-400">RECEIPT #{sale.id.slice(0, 12).toUpperCase()}</p>
+          <h2 className="mt-2.5 text-sm font-bold text-zinc-950">{t("pos.saleCompleted")}</h2>
+          <p className="font-mono text-[10px] text-zinc-400">{t("pos.receiptNo", { id: sale.id.slice(0, 12).toUpperCase() })}</p>
           {sale.paymentReference?.includes("Offline") && (
             <div className="mt-2 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800 border border-amber-200">
-              Recorded Offline • Queued for Automatic Sync
+              {t("pos.recordedOffline")}
             </div>
           )}
         </div>
@@ -477,34 +488,34 @@ function SaleReceiptModal({
         <div className="my-3 space-y-2.5 text-xs">
           <div className="rounded-md border border-zinc-100 bg-zinc-50/70 p-2.5 space-y-1.5 text-[11px]">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Date &amp; Time:</span>
-              <span className="font-medium text-zinc-800">{new Date().toLocaleString()}</span>
+              <span className="text-zinc-500">{t("pos.dateTime")}</span>
+              <span className="font-medium text-zinc-800">{formatDateTime(new Date())}</span>
             </div>
             {sale.customer && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Customer:</span>
+                <span className="text-zinc-500">{t("pos.customerLabel")}</span>
                 <span className="font-bold text-zinc-900">{sale.customer.name}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-zinc-500">Tender Method:</span>
+              <span className="text-zinc-500">{t("pos.tenderMethod")}</span>
               <span className="font-semibold text-zinc-900">{methodLabel}</span>
             </div>
             {sale.bankName && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Bank / Channel:</span>
+                <span className="text-zinc-500">{t("pos.bankChannel")}</span>
                 <span className="font-medium text-zinc-800">{sale.bankName}</span>
               </div>
             )}
             {sale.paymentReference && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Reference:</span>
+                <span className="text-zinc-500">{t("pos.reference")}</span>
                 <span className="font-mono text-zinc-800">{sale.paymentReference}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-zinc-200/60 pt-1">
-              <span className="text-zinc-500">Amount Tendered:</span>
-              <span className="font-mono font-bold text-emerald-700 tabular-nums">{paid.toLocaleString()} ETB</span>
+              <span className="text-zinc-500">{t("pos.amountTendered")}</span>
+              <span className="font-mono font-bold text-emerald-700 tabular-nums">{t("pos.money", { amount: paid.toLocaleString() })}</span>
             </div>
           </div>
 
@@ -514,15 +525,15 @@ function SaleReceiptModal({
               <div key={idx} className="flex items-center justify-between">
                 <div className="truncate pr-2">
                   <span className="font-medium text-zinc-800">
-                    {formatQuantity(it.quantity, it.product?.unit || it.unit || "pcs")} × {it.product?.name || it.name || `Item #${it.productId.slice(0, 6)}`}
+                    {formatQuantity(it.quantity, it.product?.unit || it.unit || "pcs")} × {it.product?.name || it.name || t("pos.itemFallback", { id: it.productId.slice(0, 6) })}
                   </span>
                   {it.isCustomPrice && (
                     <span className="ml-1 rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">
-                      Deal
+                      {t("pos.deal")}
                     </span>
                   )}
                 </div>
-                <span className="font-mono font-semibold text-zinc-900 tabular-nums shrink-0">{it.subtotal} ETB</span>
+                <span className="font-mono font-semibold text-zinc-900 tabular-nums shrink-0">{t("pos.money", { amount: it.subtotal ?? 0 })}</span>
               </div>
             ))}
           </div>
@@ -531,17 +542,17 @@ function SaleReceiptModal({
           {isDebtSale && (
             <div className="rounded-md border border-amber-200 bg-amber-50/80 p-2.5 text-[11px] space-y-1">
               <div className="flex justify-between font-bold text-amber-900">
-                <span>Credit Balance Added:</span>
-                <span className="font-mono text-rose-600 tabular-nums">+{debt.toLocaleString()} ETB</span>
+                <span>{t("pos.creditBalanceAdded")}</span>
+                <span className="font-mono text-rose-600 tabular-nums">+{t("pos.money", { amount: debt.toLocaleString() })}</span>
               </div>
             </div>
           )}
 
           {/* Total */}
           <div className="flex items-baseline justify-between border-t border-zinc-100 pt-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">Grand Total</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">{t("pos.grandTotal")}</span>
             <span className="font-mono text-base font-bold text-zinc-950 tabular-nums">
-              {parseFloat(sale.totalAmount).toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+              {parseFloat(sale.totalAmount).toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">{t("pos.etb")}</span>
             </span>
           </div>
         </div>
@@ -554,7 +565,7 @@ function SaleReceiptModal({
             className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
           >
             <Printer className="size-3.5 text-zinc-500" />
-            Print Docket
+            {t("pos.printDocket")}
           </button>
           <button
             type="button"
@@ -564,7 +575,7 @@ function SaleReceiptModal({
             }}
             className="flex items-center gap-1.5 rounded-md bg-[#5B4FE9] px-4 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-[#4D40D9]"
           >
-            <span>Next Customer</span>
+            <span>{t("pos.nextCustomer")}</span>
             <ArrowRight className="size-3.5" />
           </button>
         </div>
@@ -585,6 +596,7 @@ function MeasureItemModal({
   onClose: () => void;
   onSave: (quantity: number, customTotal?: number) => void;
 }) {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<"MEASURE" | "BUDGET">("MEASURE");
   const [quantityInput, setQuantityInput] = useState<string>(String(item.quantity));
   const [budgetInput, setBudgetInput] = useState<string>("");
@@ -634,9 +646,9 @@ function MeasureItemModal({
             <div>
               <h2 className="text-sm font-bold text-zinc-950">{item.product.name}</h2>
               <p className="font-mono text-[11px] text-zinc-500">
-                Rate: <span className="font-semibold text-zinc-800">{unitPrice.toLocaleString()} ETB / {unit}</span>
+                {t("pos.rate")} <span className="font-semibold text-zinc-800">{t("pos.priceUnit", { price: unitPrice.toLocaleString(), unit })}</span>
                 {item.product.stockQuantity !== undefined && (
-                  <span className="text-zinc-400"> • Stock: {formatQuantity(item.product.stockQuantity, unit)}</span>
+                  <span className="text-zinc-400"> • {t("pos.stockLabel", { qty: formatQuantity(item.product.stockQuantity, unit) })}</span>
                 )}
               </p>
             </div>
@@ -644,6 +656,7 @@ function MeasureItemModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
           >
             <X className="size-4" />
@@ -662,7 +675,7 @@ function MeasureItemModal({
             }`}
           >
             <Scale className="size-3.5" />
-            <span>By Measurement ({unit})</span>
+            <span>{t("pos.byMeasurement", { unit })}</span>
           </button>
           <button
             type="button"
@@ -674,7 +687,7 @@ function MeasureItemModal({
             }`}
           >
             <Calculator className="size-3.5" />
-            <span>By Birr Amount</span>
+            <span>{t("pos.byBirr")}</span>
           </button>
         </div>
 
@@ -683,7 +696,7 @@ function MeasureItemModal({
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block font-semibold text-zinc-700">
-                  Exact Quantity / Measurement ({unit})
+                  {t("pos.exactQty", { unit })}
                 </label>
                 <div className="relative">
                   <input
@@ -693,7 +706,7 @@ function MeasureItemModal({
                     required
                     value={quantityInput}
                     onChange={(e) => setQuantityInput(e.target.value)}
-                    placeholder="e.g. 1.5"
+                    placeholder={t("pos.qtyPh")}
                     className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-base font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
                     autoFocus
                   />
@@ -706,7 +719,7 @@ function MeasureItemModal({
               {/* Quick Fraction Presets */}
               <div>
                 <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                  Quick Fractions
+                  {t("pos.quickFractions")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {FRACTION_PRESETS.map((p) => (
@@ -730,7 +743,7 @@ function MeasureItemModal({
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block font-semibold text-zinc-700">
-                  Customer Budget / Target Cash (ETB)
+                  {t("pos.budgetLabel")}
                 </label>
                 <div className="relative">
                   <input
@@ -739,12 +752,12 @@ function MeasureItemModal({
                     min="1"
                     value={budgetInput}
                     onChange={(e) => handleBudgetChange(e.target.value)}
-                    placeholder="e.g. 50"
+                    placeholder={t("pos.budgetPh")}
                     className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-base font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
                     autoFocus
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-semibold text-zinc-400">
-                    ETB
+                    {t("pos.etb")}
                   </span>
                 </div>
               </div>
@@ -758,7 +771,7 @@ function MeasureItemModal({
                     onClick={() => handleBudgetChange(String(b))}
                     className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 font-mono text-[11px] text-zinc-700 hover:bg-zinc-100"
                   >
-                    +{b} ETB
+                    +{t("pos.money", { amount: b })}
                   </button>
                 ))}
               </div>
@@ -767,13 +780,13 @@ function MeasureItemModal({
               {parsedQty > 0 && (
                 <div className="rounded-md border border-emerald-200 bg-emerald-50/70 p-2.5 text-emerald-900">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-700">
-                    Calculated Weight to Measure:
+                    {t("pos.calcWeight")}
                   </div>
                   <div className="mt-0.5 font-mono text-base font-bold">
                     {formatQuantity(parsedQty, unit)}
                   </div>
                   <p className="mt-0.5 text-[11px] text-emerald-700">
-                    {budgetInput || "0"} ETB ÷ {unitPrice} ETB/{unit} = {parsedQty} {unit}
+                    {t("pos.calcFormula", { budget: budgetInput || "0", price: unitPrice, unit, qty: parsedQty })}
                   </p>
                 </div>
               )}
@@ -795,11 +808,11 @@ function MeasureItemModal({
                   }}
                   className="rounded border-zinc-300 text-[#5B4FE9] focus:ring-[#5B4FE9]"
                 />
-                <span>Custom Agreed Price (Bargain / Special Deal)</span>
+                <span>{t("pos.customPriceLabel")}</span>
               </label>
               {isCustomPrice && (
                 <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 uppercase tracking-wider">
-                  Override Active
+                  {t("pos.overrideActive")}
                 </span>
               )}
             </div>
@@ -818,13 +831,12 @@ function MeasureItemModal({
                       className="h-8 w-full rounded border border-zinc-200 bg-white px-2.5 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-zinc-400">
-                      ETB Total
+                      {t("pos.etbTotal")}
                     </span>
                   </div>
                 </div>
                 <p className="text-[10px] text-zinc-500">
-                  Standard total would be <span className="font-mono font-medium">{standardTotal.toLocaleString()} ETB</span>.
-                  Charging a custom lump sum.
+                  {t("pos.standardTotalNote", { amount: t("pos.money", { amount: standardTotal.toLocaleString() }) })}
                 </p>
               </div>
             )}
@@ -833,13 +845,13 @@ function MeasureItemModal({
           {/* Summary Box */}
           <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-100/60 px-3 py-2 text-xs">
             <div>
-              <span className="text-zinc-500">Line Total:</span>
+              <span className="text-zinc-500">{t("pos.lineTotalLabel")}</span>
               <div className="font-mono text-sm font-bold text-zinc-950 tabular-nums">
-                {effectiveTotal.toLocaleString()} ETB
+                {t("pos.money", { amount: effectiveTotal.toLocaleString() })}
               </div>
             </div>
             <div className="text-right">
-              <span className="text-zinc-500">Quantity:</span>
+              <span className="text-zinc-500">{t("pos.quantityLabel")}</span>
               <div className="font-mono text-xs font-semibold text-zinc-800">
                 {formatQuantity(parsedQty, unit)}
               </div>
@@ -853,14 +865,14 @@ function MeasureItemModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={parsedQty <= 0}
               className="rounded-md bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              Apply to Cart
+              {t("pos.applyToCart")}
             </button>
           </div>
         </form>
@@ -876,6 +888,7 @@ function MeasureItemModal({
 /* Editable cart quantity: type a number instead of tapping + 50 times */
 /* ------------------------------------------------------------------ */
 function QuantityInput({ value, onCommit }: { value: number; onCommit: (quantity: number) => void }) {
+  const t = useT();
   // While typing, keep the raw text; otherwise show the cart value.
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -892,8 +905,8 @@ function QuantityInput({ value, onCommit }: { value: number; onCommit: (quantity
       type="text"
       inputMode="numeric"
       pattern="[0-9]*"
-      aria-label="Quantity"
-      title="Type a quantity"
+      aria-label={t("pos.quantity")}
+      title={t("pos.typeQuantity")}
       value={draft ?? formatQuantity(value)}
       onFocus={(e) => {
         setDraft(String(value));
@@ -928,7 +941,7 @@ export default function PosPage() {
     checkConnectivity,
   } = useOfflineStatus(activeShopId, {
     onSyncComplete: (result) => {
-      setSyncToastMessage(`✓ Synced ${result.salesSynced} offline sale${result.salesSynced === 1 ? "" : "s"} to database`);
+      setSyncToastMessage(t.n("pos.syncedToast", result.salesSynced));
       loadData();
       setTimeout(() => setSyncToastMessage(null), 4000);
     },
@@ -1079,7 +1092,7 @@ export default function PosPage() {
   function addToCart(product: Product) {
     setValidationError("");
     if (product.stockQuantity <= 0) {
-      setValidationError(`${product.name} is currently out of stock.`);
+      setValidationError(t("pos.outOfStockMsg", { name: product.name }));
       return;
     }
     setCart((prev) => {
@@ -1089,7 +1102,7 @@ export default function PosPage() {
         const nextQty = Math.round((existing.quantity + step) * 1000) / 1000;
         if (nextQty > product.stockQuantity) {
           setValidationError(
-            `Max available stock (${formatQuantity(product.stockQuantity, product.unit)}) reached for ${product.name}.`
+            t("pos.maxStockReached", { qty: formatQuantity(product.stockQuantity, product.unit), name: product.name }),
           );
           return prev;
         }
@@ -1121,7 +1134,10 @@ export default function PosPage() {
         if (item.product.id === productId) {
           if (quantity > item.product.stockQuantity) {
             setValidationError(
-              `Cannot exceed available stock (${formatQuantity(item.product.stockQuantity, item.product.unit)}) for ${item.product.name}.`
+              t("pos.cannotExceedStock", {
+                qty: formatQuantity(item.product.stockQuantity, item.product.unit),
+                name: item.product.name,
+              }),
             );
             return item;
           }
@@ -1149,7 +1165,10 @@ export default function PosPage() {
             if (nextQty <= 0) return null;
             if (nextQty > item.product.stockQuantity) {
               setValidationError(
-                `Cannot exceed available stock (${formatQuantity(item.product.stockQuantity, item.product.unit)}) for ${item.product.name}.`
+                t("pos.cannotExceedStock", {
+                  qty: formatQuantity(item.product.stockQuantity, item.product.unit),
+                  name: item.product.name,
+                }),
               );
               return item;
             }
@@ -1183,19 +1202,23 @@ export default function PosPage() {
     setValidationError("");
 
     if (cart.length === 0) {
-      setValidationError("Cart is empty. Please add products to checkout.");
+      setValidationError(t("pos.cartEmptyError"));
       return;
     }
 
     for (const it of cart) {
       if (it.quantity > it.product.stockQuantity) {
-        setValidationError(`Insufficient stock for "${it.product.name}". Available: ${it.product.stockQuantity}, in cart: ${it.quantity}.`);
+        setValidationError(
+          t("pos.insufficientStock", { name: it.product.name, available: it.product.stockQuantity, inCart: it.quantity }),
+        );
         return;
       }
     }
 
     if (debtAdditionAmount > 0 && !selectedCustomer) {
-      setValidationError(`Please select or register a customer for the outstanding credit balance of ${debtAdditionAmount.toLocaleString()} ETB.`);
+      setValidationError(
+        t("pos.selectCustomerForCredit", { amount: t("pos.money", { amount: debtAdditionAmount.toLocaleString() }) }),
+      );
       return;
     }
 
@@ -1204,7 +1227,7 @@ export default function PosPage() {
 
   const processOfflineSale = async () => {
     if (debtAdditionAmount > 0) {
-      setValidationError("Credit / Debt sales require an active internet connection to verify customer balance.");
+      setValidationError(t("pos.creditNeedsOnline"));
       return;
     }
 
@@ -1312,7 +1335,7 @@ export default function PosPage() {
         const errorMsg =
           err && typeof err === "object" && "message" in err
             ? String((err as any).message)
-            : "Failed to save offline sale.";
+            : t("pos.offlineSaveFailed");
         setValidationError(errorMsg);
       } finally {
         setIsProcessing(false);
@@ -1384,21 +1407,21 @@ export default function PosPage() {
           const offlineMsg =
             offlineErr && typeof offlineErr === "object" && "message" in offlineErr
               ? String((offlineErr as any).message)
-              : "Failed to queue offline sale.";
-          setValidationError(`Network unavailable. Offline save failed: ${offlineMsg}`);
+              : t("pos.offlineQueueFailed");
+          setValidationError(t("pos.networkOfflineFailed", { message: offlineMsg }));
           return;
         }
       }
 
       if (isNetworkErr && debtAdditionAmount > 0) {
-        setValidationError("Unable to connect to backend. Credit / Debt sales require an active connection to verify debt balance.");
+        setValidationError(t("pos.backendUnreachableCredit"));
         return;
       }
 
       const errorMsg =
         err && typeof err === "object" && "message" in err
           ? String((err as any).message)
-          : "Failed to complete sale. Please try again.";
+          : t("pos.saleFailed");
       setValidationError(errorMsg);
     } finally {
       setIsProcessing(false);
@@ -1418,7 +1441,7 @@ export default function PosPage() {
             </div>
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-950">{t("pos.currentOrder")}</h2>
-              <span className="text-[10px] text-zinc-400 font-mono">{cart.length} item{cart.length === 1 ? "" : "s"} in cart</span>
+              <span className="text-[10px] text-zinc-400 font-mono">{t.n("pos.itemsInCart", cart.length)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1462,7 +1485,7 @@ export default function PosPage() {
                 type="button"
                 onClick={() => setIsCartDrawerOpen(false)}
                 className="flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
-                title="Close drawer"
+                title={t("pos.closeDrawer")}
               >
                 <X className="size-3.5" />
                 <span>{t("pos.close")}</span>
@@ -1489,7 +1512,7 @@ export default function PosPage() {
               className="flex items-center gap-1 text-[11px] font-semibold text-zinc-900 hover:text-[#5B4FE9] transition-colors"
             >
               <UserPlus className="size-3 text-zinc-500" />
-              + New Customer
+              {t("pos.newCustomer")}
             </button>
           </div>
 
@@ -1501,7 +1524,7 @@ export default function PosPage() {
             <option value="">{t("pos.walkIn")}</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} ({parseFloat(c.debtBalance || "0").toLocaleString()} ETB Debt)
+                {t("pos.customerDebtOption", { name: c.name, amount: parseFloat(c.debtBalance || "0").toLocaleString() })}
               </option>
             ))}
           </select>
@@ -1510,12 +1533,12 @@ export default function PosPage() {
             <div className="flex items-center justify-between rounded-md bg-white p-2 text-[11px] border border-zinc-200/80">
               <div>
                 <span className="font-semibold text-zinc-900">{selectedCustomer.name}</span>
-                <span className="block text-zinc-400 font-mono text-[10px]">{selectedCustomer.phone || "No phone"}</span>
+                <span className="block text-zinc-400 font-mono text-[10px]">{selectedCustomer.phone || t("pos.noPhone")}</span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-zinc-400">Current Debt:</span>
+                <span className="text-[10px] text-zinc-400">{t("pos.currentDebt")}</span>
                 <div className="font-mono font-bold text-rose-600 tabular-nums">
-                  {currentCustomerDebt.toLocaleString()} ETB
+                  {t("pos.money", { amount: currentCustomerDebt.toLocaleString() })}
                 </div>
               </div>
             </div>
@@ -1542,11 +1565,11 @@ export default function PosPage() {
                       </p>
                       <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-zinc-500 mt-0.5">
                         <span className="font-mono">
-                          {item.unitPrice.toLocaleString()} ETB / {item.product.unit || "pcs"}
+                          {t("pos.priceUnit", { price: item.unitPrice.toLocaleString(), unit: item.product.unit || "pcs" })}
                         </span>
                         {item.isCustomPrice && (
                           <span className="rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-900 border border-amber-200">
-                            Deal Override
+                            {t("pos.dealOverride")}
                           </span>
                         )}
                       </div>
@@ -1557,7 +1580,7 @@ export default function PosPage() {
                       type="button"
                       onClick={() => removeFromCart(item.product.id)}
                       className="rounded p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                      title="Remove item"
+                      title={t("pos.removeItem")}
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -1571,14 +1594,14 @@ export default function PosPage() {
                         type="button"
                         onClick={() => setMeasuringItem(item)}
                         className="flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50/80 px-2.5 py-1 text-xs font-semibold text-indigo-950 hover:bg-indigo-100 hover:border-indigo-300 transition-all active:scale-98"
-                        title="Tap to weigh, pick fraction, or bargain price"
+                        title={t("pos.scaleTip")}
                       >
                         <Scale className="size-3 text-[#5B4FE9]" />
                         <span className="font-mono font-bold tabular-nums">
                           {formatQuantity(item.quantity)} {item.product.unit || "kg"}
                         </span>
                         <span className="text-[10px] font-medium text-[#5B4FE9]">
-                          · Scale / Deal
+                          {t("pos.scaleDeal")}
                         </span>
                       </button>
                     ) : (
@@ -1588,7 +1611,7 @@ export default function PosPage() {
                           type="button"
                           onClick={() => updateQuantity(item.product.id, -1)}
                           className="flex size-6 pointer-coarse:size-9 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-l transition-colors"
-                          title="Subtract 1"
+                          title={t("pos.subtract1")}
                         >
                           <Minus className="size-3" />
                         </button>
@@ -1599,7 +1622,7 @@ export default function PosPage() {
                             updateCartItem(item.product.id, Math.min(qty, stock));
                             if (qty > stock) {
                               setValidationError(
-                                `Only ${formatQuantity(stock, item.product.unit)} of ${item.product.name} in stock, so the quantity was set to that.`,
+                                t("pos.onlyInStock", { qty: formatQuantity(stock, item.product.unit), name: item.product.name }),
                               );
                             }
                           }}
@@ -1608,7 +1631,7 @@ export default function PosPage() {
                           type="button"
                           onClick={() => updateQuantity(item.product.id, 1)}
                           className="flex size-6 pointer-coarse:size-9 items-center justify-center text-zinc-600 hover:bg-white hover:text-zinc-950 rounded-r transition-colors"
-                          title="Add 1"
+                          title={t("pos.add1")}
                         >
                           <Plus className="size-3" />
                         </button>
@@ -1618,7 +1641,7 @@ export default function PosPage() {
                     {/* Line Total */}
                     <div className="text-right">
                       <span className="font-mono text-xs font-bold text-zinc-950 tabular-nums">
-                        {lineTotal.toLocaleString()} ETB
+                        {t("pos.money", { amount: lineTotal.toLocaleString() })}
                       </span>
                     </div>
                   </div>
@@ -1627,7 +1650,7 @@ export default function PosPage() {
             })
           ) : (
             <div className="py-8 text-center text-xs text-zinc-400">
-              Cart is empty. Select products or scan barcode.
+              {t("pos.cartEmptyHint")}
             </div>
           )}
         </div>
@@ -1675,7 +1698,9 @@ export default function PosPage() {
             <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("pos.cashReceived")}</label>
-                <span className="font-mono text-[11px] font-semibold text-zinc-600">Total: {total.toLocaleString()} ETB</span>
+                <span className="font-mono text-[11px] font-semibold text-zinc-600">
+                  {t("pos.totalColon", { amount: t("pos.money", { amount: total.toLocaleString() }) })}
+                </span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -1687,7 +1712,7 @@ export default function PosPage() {
                   placeholder={String(total)}
                   className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2.5 font-mono text-xs font-bold text-zinc-900 focus:border-[#5B4FE9] focus:outline-none"
                 />
-                <span className="text-xs font-semibold text-zinc-500">ETB</span>
+                <span className="text-xs font-semibold text-zinc-500">{t("pos.etb")}</span>
               </div>
 
               {/* Quick Cash Tender Chips */}
@@ -1697,7 +1722,7 @@ export default function PosPage() {
                   onClick={() => setAmountPaidInput(String(total))}
                   className="rounded border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-800 hover:bg-zinc-100"
                 >
-                  Exact ({total} ETB)
+                  {t("pos.exact", { amount: t("pos.money", { amount: total }) })}
                 </button>
                 <button
                   type="button"
@@ -1725,16 +1750,16 @@ export default function PosPage() {
                   onClick={() => setAmountPaidInput(String(Math.round(total / 2)))}
                   className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-mono text-zinc-700 hover:bg-zinc-100"
                 >
-                  Half
+                  {t("pos.half")}
                 </button>
                 {selectedCustomerId && (
                   <button
                     type="button"
                     onClick={() => setAmountPaidInput("0")}
                     className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100"
-                    title="Charge 0 ETB cash and record full amount as debt on customer account"
+                    title={t("pos.creditZeroTip")}
                   >
-                    Credit (0 ETB)
+                    {t("pos.creditZero")}
                   </button>
                 )}
               </div>
@@ -1743,7 +1768,7 @@ export default function PosPage() {
               {changeAmount > 0 && (
                 <div className="flex items-center justify-between rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1 text-xs font-bold text-emerald-800">
                   <span>{t("pos.changeDue")}</span>
-                  <span className="font-mono text-emerald-900 tabular-nums">{changeAmount.toLocaleString()} ETB</span>
+                  <span className="font-mono text-emerald-900 tabular-nums">{t("pos.money", { amount: changeAmount.toLocaleString() })}</span>
                 </div>
               )}
             </div>
@@ -1754,17 +1779,17 @@ export default function PosPage() {
             <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
               <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
                 <Smartphone className="size-3.5 text-emerald-600" />
-                <span>Telebirr Instant Transfer ({total.toLocaleString()} ETB)</span>
+                <span>{t("pos.telebirrInstant", { amount: t("pos.money", { amount: total.toLocaleString() }) })}</span>
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                  TxID / Reference (Optional):
+                  {t("pos.txIdOptional")}
                 </label>
                 <input
                   type="text"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder="e.g. FT2409... or Slip #"
+                  placeholder={t("pos.txIdPh")}
                   className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-none"
                 />
               </div>
@@ -1776,7 +1801,7 @@ export default function PosPage() {
             <div className="rounded-md border border-zinc-200/80 bg-zinc-50/70 p-2.5 space-y-2 text-xs">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                  Bank Name:
+                  {t("pos.bankNameLabel")}
                 </label>
                 <select
                   value={bankName}
@@ -1785,20 +1810,20 @@ export default function PosPage() {
                 >
                   {POPULAR_BANKS.filter((b) => b !== "Telebirr").map((b) => (
                     <option key={b} value={b}>
-                      {b}
+                      {b === "Other Bank / Custom" ? t("pos.otherBank") : b}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block mb-1">
-                  TxID / Slip # (Optional):
+                  {t("pos.slipOptional")}
                 </label>
                 <input
                   type="text"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder="e.g. CBE12345678"
+                  placeholder={t("pos.bankRefPh")}
                   className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-none"
                 />
               </div>
@@ -1811,23 +1836,23 @@ export default function PosPage() {
           <div className="rounded-md border border-amber-200 bg-amber-50/80 p-2.5 space-y-1.5 text-xs">
             <div className="flex items-center gap-1.5 font-bold text-amber-900">
               <HandCoins className="size-3.5 text-amber-700" />
-              <span>Credit / Debt Notice</span>
+              <span>{t("pos.creditNotice")}</span>
             </div>
             <div className="space-y-1 text-[11px]">
               <div className="flex justify-between">
-                <span className="text-zinc-600">Target Account:</span>
+                <span className="text-zinc-600">{t("pos.targetAccount")}</span>
                 <span className={`font-semibold ${selectedCustomer ? "text-zinc-900" : "text-rose-600 font-bold"}`}>
-                  {selectedCustomer ? selectedCustomer.name : "⚠️ Required (Select Customer)"}
+                  {selectedCustomer ? selectedCustomer.name : t("pos.selectCustomerRequired")}
                 </span>
               </div>
               <div className="flex justify-between font-semibold">
-                <span className="text-amber-800">Added to Debt:</span>
-                <span className="font-mono text-rose-600 tabular-nums">+{debtAdditionAmount.toLocaleString()} ETB</span>
+                <span className="text-amber-800">{t("pos.addedToDebt")}</span>
+                <span className="font-mono text-rose-600 tabular-nums">+{t("pos.money", { amount: debtAdditionAmount.toLocaleString() })}</span>
               </div>
               {selectedCustomer && (
                 <div className="flex justify-between border-t border-amber-200 pt-1 text-xs font-bold text-rose-700">
-                  <span>Projected Debt Balance:</span>
-                  <span className="font-mono tabular-nums">{newProjectedDebt.toLocaleString()} ETB</span>
+                  <span>{t("pos.projectedDebt")}</span>
+                  <span className="font-mono tabular-nums">{t("pos.money", { amount: newProjectedDebt.toLocaleString() })}</span>
                 </div>
               )}
             </div>
@@ -1840,7 +1865,7 @@ export default function PosPage() {
         <div className="space-y-1">
           <div className="flex justify-between text-zinc-500">
             <span>{t("pos.subtotal")}</span>
-            <span className="font-mono font-medium text-zinc-900 tabular-nums">{subtotal.toLocaleString()} ETB</span>
+            <span className="font-mono font-medium text-zinc-900 tabular-nums">{t("pos.money", { amount: subtotal.toLocaleString() })}</span>
           </div>
           <div className="flex justify-between text-zinc-500">
             <span>{t("pos.discount")}</span>
@@ -1852,13 +1877,13 @@ export default function PosPage() {
                 placeholder="0"
                 className="h-6 w-16 rounded border border-zinc-200 bg-white px-1.5 text-right font-mono text-xs focus:border-[#5B4FE9] focus:outline-none"
               />
-              <span>ETB</span>
+              <span>{t("pos.etb")}</span>
             </div>
           </div>
           <div className="flex items-baseline justify-between border-t border-zinc-100 pt-1.5">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t("pos.totalPayable")}</span>
             <span className="font-mono text-lg font-bold text-zinc-950 tabular-nums">
-              {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+              {total.toLocaleString()} <span className="font-sans text-xs font-semibold text-zinc-500">{t("pos.etb")}</span>
             </span>
           </div>
         </div>
@@ -1878,12 +1903,12 @@ export default function PosPage() {
           ) : debtAdditionAmount > 0 ? (
             <>
               <HandCoins className="size-4" />
-              <span>Complete Sale (+{debtAdditionAmount.toLocaleString()} ETB Debt)</span>
+              <span>{t("pos.completeSaleDebt", { amount: t("pos.money", { amount: debtAdditionAmount.toLocaleString() }) })}</span>
             </>
           ) : (
             <>
               <Check className="size-4 stroke-[3]" />
-              <span>Charge {total.toLocaleString()} ETB</span>
+              <span>{t("pos.charge", { amount: t("pos.money", { amount: total.toLocaleString() }) })}</span>
             </>
           )}
         </button>
@@ -1910,7 +1935,7 @@ export default function PosPage() {
                   <button
                     type="button"
                     onClick={toggleForceOffline}
-                    title="Online and connected to backend. Click to switch to Offline Mode manually."
+                    title={t("pos.onlineTip")}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-all hover:opacity-80 cursor-pointer ${
                       pendingCount > 0
                         ? "bg-indigo-50 text-indigo-700 border-indigo-200"
@@ -1923,17 +1948,17 @@ export default function PosPage() {
                       }`}
                     />
                     <Wifi className="size-3 text-emerald-600" />
-                    <span>{pendingCount > 0 ? `Online (${pendingCount} queued)` : "Online"}</span>
+                    <span>{pendingCount > 0 ? t("pos.onlineQueued", { count: pendingCount }) : t("shared.online")}</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={toggleForceOffline}
-                    title={isForcedOffline ? "Manual offline mode active. Click to reconnect." : "Backend unreachable. Click to recheck connectivity."}
+                    title={isForcedOffline ? t("pos.offlineManualTip") : t("pos.offlineBackendTip")}
                     className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-300 hover:bg-amber-100 transition-all cursor-pointer"
                   >
                     <WifiOff className="size-3 text-amber-600" />
-                    <span>{isForcedOffline ? "Offline (Manual)" : "Offline Mode"} {pendingCount > 0 ? `(${pendingCount} queued)` : ""}</span>
+                    <span>{isForcedOffline ? t("pos.offlineManual") : t("pos.offlineMode")} {pendingCount > 0 ? t("pos.queued", { count: pendingCount }) : ""}</span>
                   </button>
                 )}
                 {isOnline && pendingCount > 0 && (
@@ -1942,10 +1967,10 @@ export default function PosPage() {
                     disabled={isSyncing}
                     onClick={() => triggerSync()}
                     className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 transition-all disabled:opacity-50 cursor-pointer"
-                    title="Upload offline sales to cloud database"
+                    title={t("pos.syncTip")}
                   >
                     <RefreshCw className={`size-3 text-indigo-600 ${isSyncing ? "animate-spin" : ""}`} />
-                    <span>{isSyncing ? "Syncing..." : "Sync Now"}</span>
+                    <span>{isSyncing ? t("pos.syncing") : t("pos.syncNow")}</span>
                   </button>
                 )}
               </div>
@@ -1974,13 +1999,13 @@ export default function PosPage() {
                 type="button"
                 onClick={() => setIsCartDrawerOpen(true)}
                 className="flex lg:hidden h-9 items-center gap-2 rounded-md bg-slate-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-[#5B4FE9] active:scale-95 shrink-0"
-                title="Open checkout panel"
+                title={t("pos.openCheckout")}
               >
                 <ShoppingCart className="size-3.5 text-indigo-400" />
-                <span>Order ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
+                <span>{t("pos.orderBtn", { count: cart.reduce((s, i) => s + i.quantity, 0) })}</span>
                 {cart.length > 0 && (
                   <span className="hidden border-l border-slate-700 pl-2 font-mono font-bold text-indigo-300 sm:inline">
-                    {total.toLocaleString()} ETB
+                    {t("pos.money", { amount: total.toLocaleString() })}
                   </span>
                 )}
               </button>
@@ -2042,19 +2067,19 @@ export default function PosPage() {
                             : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                         }`}
                       >
-                        {isOutOfStock ? "Out" : `${product.stockQuantity} left`}
+                        {isOutOfStock ? t("pos.outShort") : t("pos.leftQty", { qty: product.stockQuantity })}
                       </span>
                     </div>
 
                     <h3 className="mt-2 line-clamp-1 text-xs font-bold text-zinc-900">{product.name}</h3>
-                    <p className="text-[10px] text-zinc-400">{product.category?.name || "General"}</p>
+                    <p className="text-[10px] text-zinc-400">{product.category?.name || t("pos.general")}</p>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-2.5">
                     <div className="whitespace-nowrap font-mono text-sm font-bold text-zinc-950 tabular-nums">
                       {parseFloat(product.price || "0").toLocaleString()}{" "}
                       <span className="font-sans text-[10px] font-semibold text-zinc-400">
-                        ETB / {product.unit || "pcs"}
+                        {t("pos.etbPerUnit", { unit: product.unit || "pcs" })}
                       </span>
                     </div>
 
@@ -2078,10 +2103,10 @@ export default function PosPage() {
                             }
                           }}
                           className="flex h-7 pointer-coarse:h-10 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-bold text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                          title="Measure weight or enter custom deal"
+                          title={t("pos.measureTip")}
                         >
                           <Scale className="size-3 text-[#5B4FE9]" />
-                          <span>Measure</span>
+                          <span>{t("pos.measure")}</span>
                         </button>
                       )}
                       <button
@@ -2089,7 +2114,7 @@ export default function PosPage() {
                         disabled={isOutOfStock}
                         onClick={() => addToCart(product)}
                         className="flex size-7 pointer-coarse:size-10 items-center justify-center rounded-md bg-slate-900 text-white transition-all hover:bg-[#5B4FE9] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
-                        title="Add item to cart"
+                        title={t("pos.addToCartTip")}
                       >
                         <Plus className="size-3.5" />
                       </button>
@@ -2131,10 +2156,10 @@ export default function PosPage() {
         <div className="sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 p-3 text-white shadow-xl animate-in slide-in-from-bottom-2 lg:hidden">
           <div>
             <span className="text-[10px] text-slate-400">
-              {cart.reduce((s, i) => s + i.quantity, 0)} items in cart
+              {t.n("pos.itemsInCart", cart.reduce((s, i) => s + i.quantity, 0))}
             </span>
             <div className="font-mono text-sm font-bold text-indigo-300">
-              {total.toLocaleString()} ETB
+              {t("pos.money", { amount: total.toLocaleString() })}
             </div>
           </div>
           <button

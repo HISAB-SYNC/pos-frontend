@@ -1,7 +1,10 @@
+"use client";
+
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
+import { useT } from "@/lib/i18n/use-t";
 import { cn } from "@/lib/utils";
 
 export type MetricTone = "indigo" | "dark" | "emerald" | "amber" | "rose" | "slate";
@@ -85,12 +88,13 @@ export function DashboardCard({
 }
 
 export function SeeAllLink({ href }: { href: string }) {
+  const t = useT();
   return (
     <Link
       href={href}
       className="group inline-flex items-center gap-1 text-xs font-semibold text-zinc-600 transition-colors hover:text-zinc-950"
     >
-      <span>View all</span>
+      <span>{t("shared.viewAll")}</span>
       <ArrowUpRight className="size-3.5 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-zinc-900" />
     </Link>
   );

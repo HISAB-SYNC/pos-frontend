@@ -11,6 +11,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { useT } from "@/lib/i18n/use-t";
+
 type OrderSummaryChartProps = {
   data?: Array<{
     month: string;
@@ -20,7 +22,7 @@ type OrderSummaryChartProps = {
 };
 
 export function OrderSummaryChart({ data = [] }: OrderSummaryChartProps) {
-
+  const t = useT();
   return (
     <div className="space-y-2">
       <ResponsiveContainer width="100%" height={220}>
@@ -64,7 +66,7 @@ export function OrderSummaryChart({ data = [] }: OrderSummaryChartProps) {
           <Area
             type="monotone"
             dataKey="ordered"
-            name="Ordered"
+            name={t("dashboard.ordered")}
             stroke="#f97316"
             strokeWidth={2.5}
             fill="url(#gradOrdered)"
@@ -74,7 +76,7 @@ export function OrderSummaryChart({ data = [] }: OrderSummaryChartProps) {
           <Area
             type="monotone"
             dataKey="delivered"
-            name="Delivered"
+            name={t("dashboard.delivered")}
             stroke="#38bdf8"
             strokeWidth={2.5}
             fill="url(#gradDelivered)"

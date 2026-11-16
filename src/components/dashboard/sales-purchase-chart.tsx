@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useT } from "@/lib/i18n/use-t";
 import type { DashboardMetrics } from "@/lib/mock/data";
 
 type SalesPurchaseChartProps = {
@@ -29,6 +30,7 @@ function NetProfitDot(props: { cx?: number; cy?: number; value?: number | null }
 }
 
 export function SalesPurchaseChart({ data }: SalesPurchaseChartProps) {
+  const t = useT();
   const showNetProfit = data.some((d) => d.netProfit !== undefined);
 
   return (
@@ -56,13 +58,13 @@ export function SalesPurchaseChart({ data }: SalesPurchaseChartProps) {
               if (active && payload && payload.length) {
                 const point = payload[0]?.payload as SalesPurchaseChartProps["data"][number] | undefined;
                 const rows: Array<{ name: string; value: number; color: string }> = [
-                  { name: "Sales Revenue", value: point?.sales ?? 0, color: "#5B4FE9" },
-                  { name: "Cost of goods", value: point?.purchase ?? 0, color: "#94a3b8" },
+                  { name: t("dashboard.chartSales"), value: point?.sales ?? 0, color: "#5B4FE9" },
+                  { name: t("dashboard.chartCost"), value: point?.purchase ?? 0, color: "#94a3b8" },
                 ];
                 if (showNetProfit && point) {
-                  rows.push({ name: "Expenses", value: point.expenses ?? 0, color: "#f59e0b" });
+                  rows.push({ name: t("dashboard.chartExpenses"), value: point.expenses ?? 0, color: "#f59e0b" });
                   rows.push({
-                    name: "Net Profit",
+                    name: t("kpi.netProfit"),
                     value: point.netProfit ?? 0,
                     color: (point.netProfit ?? 0) < 0 ? NET_LOSS_RED : NET_PROFIT_GREEN,
                   });
@@ -78,7 +80,7 @@ export function SalesPurchaseChart({ data }: SalesPurchaseChartProps) {
                             <span className="text-slate-400">{entry.name}:</span>
                           </span>
                           <span className="font-bold text-white tabular-nums">
-                            {entry.value.toLocaleString()} ETB
+                            {t("pos.money", { amount: entry.value.toLocaleString() })}
                           </span>
                         </div>
                       ))}
@@ -96,13 +98,13 @@ export function SalesPurchaseChart({ data }: SalesPurchaseChartProps) {
           />
           <Bar
             dataKey="sales"
-            name="Sales Revenue"
+            name={t("dashboard.chartSales")}
             fill="#5B4FE9"
             radius={[3, 3, 0, 0]}
           />
           <Bar
             dataKey="purchase"
-            name="Cost of goods"
+            name={t("dashboard.chartCost")}
             fill="#94a3b8"
             radius={[3, 3, 0, 0]}
           />
@@ -110,7 +112,7 @@ export function SalesPurchaseChart({ data }: SalesPurchaseChartProps) {
             <Line
               type="monotone"
               dataKey="netProfit"
-              name="Net Profit"
+              name={t("kpi.netProfit")}
               stroke={NET_PROFIT_GREEN}
               strokeWidth={2}
               dot={<NetProfitDot />}

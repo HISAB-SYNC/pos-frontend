@@ -9,8 +9,11 @@ import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
-import { PRESETS, periodLabel, rangeFor, type Preset } from "@/lib/utils/report-range";
+import { PRESETS, rangeFor, type DateRange, type Preset } from "@/lib/utils/report-range";
 import { formatQuantity } from "@/lib/utils/units";
 import { useShopStore } from "@/stores/shop-store";
 
@@ -19,11 +22,21 @@ type SortKey = "name" | "units" | "revenue" | "stock";
 const inputClass =
   "h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden";
 
+const PRESET_LABELS: Record<Preset, MessageKey> = {
+  TODAY: "kpi.today",
+  WEEK: "kpi.week",
+  MONTH: "kpi.month",
+  ALL: "kpi.all",
+  CUSTOM: "dashboard.custom",
+};
+
 function etb(value: number) {
   return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 export default function TopSellingPage() {
+  const t = useT();
+  const { formatDate } = useFormat();
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
@@ -74,6 +87,16 @@ export default function TopSellingPage() {
 
   const pager = usePagination(rows, 20);
 
+  function periodText(p: Preset, r: DateRange) {
+    if (p === "ALL" || (!r.from && !r.to)) return t("kpi.all");
+    const day = (value: string) => formatDate(`${value}T00:00:00`);
+    if (r.from && r.to && r.from === r.to) return day(r.from);
+    return t("dashboard.periodRange", {
+      from: r.from ? day(r.from) : t("dashboard.periodStart"),
+      to: r.to ? day(r.to) : t("shared.today"),
+    });
+  }
+
   function toggleSort(key: SortKey) {
     if (key === sortKey) setSortDesc((d) => !d);
     else {
@@ -110,12 +133,12 @@ export default function TopSellingPage() {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-950"
           >
             <ArrowLeft className="size-3.5" />
-            Back to dashboard
+            {t("dashboard.backToDashboard")}
           </Link>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-950">Top Selling Products</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-950">{t("dashboard.topSelling")}</h1>
             <p className="mt-0.5 text-xs text-zinc-500">
-              Every product sold in the selected period · {periodLabel(preset, range)}
+              {t("dashboard.topSellingSub", { period: periodText(preset, range) })}
             </p>
           </div>
         </div>
@@ -131,14 +154,14 @@ export default function TopSellingPage() {
                   preset === p.id ? "bg-slate-900 text-white" : "text-zinc-600 hover:bg-zinc-100"
                 }`}
               >
-                {p.label}
+                {t(PRESET_LABELS[p.id])}
               </button>
             ))}
           </div>
           {preset === "CUSTOM" && (
             <>
               <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className={inputClass} />
-              <span className="text-xs text-zinc-400">to</span>
+              <span className="text-xs text-zinc-400">{t("dashboard.to")}</span>
               <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className={inputClass} />
             </>
           )}
@@ -148,14 +171,14 @@ export default function TopSellingPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search product or SKU..."
+              placeholder={t("dashboard.searchProduct")}
               className={`${inputClass} w-full pl-8`}
             />
           </div>
         </div>
 
         {result?.error && !report ? (
-          <LoadError what="top selling products" onRetry={() => setReloadKey((k) => k + 1)} />
+          <LoadError what={t("dashboard.whatTopSelling")} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : (
           <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
             <div className="overflow-x-auto">
@@ -163,23 +186,23 @@ export default function TopSellingPage() {
                 <thead className="border-b border-zinc-100 bg-zinc-50/60">
                   <tr>
                     <th className="w-12 px-4 py-3 font-semibold text-zinc-600">#</th>
-                    {sortHead("name", "Product")}
-                    {sortHead("units", "Units sold", true)}
-                    {sortHead("revenue", "Revenue", true)}
-                    {sortHead("stock", "In stock", true)}
+                    {sortHead("name", t("dashboard.colProduct"))}
+                    {sortHead("units", t("dashboard.unitsSold"), true)}
+                    {sortHead("revenue", t("kpi.revenue"), true)}
+                    {sortHead("stock", t("dashboard.inStock"), true)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {isLoading ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-10 text-center text-zinc-500">
-                        Loading...
+                        {t("shared.loading")}
                       </td>
                     </tr>
                   ) : rows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-10 text-center text-zinc-500">
-                        No sales in this period.
+                        {t("dashboard.noSalesPeriod")}
                       </td>
                     </tr>
                   ) : (
@@ -205,7 +228,7 @@ export default function TopSellingPage() {
                 </tbody>
               </table>
             </div>
-            <TablePagination pagination={pager} noun="products" />
+            <TablePagination pagination={pager} noun={t("dashboard.productsNoun")} />
           </div>
         )}
       </div>

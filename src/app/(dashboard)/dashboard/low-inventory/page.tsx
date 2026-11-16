@@ -9,6 +9,7 @@ import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getLowStockProducts } from "@/lib/api/shops";
 import type { Product } from "@/lib/api/types";
+import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { formatQuantity } from "@/lib/utils/units";
 import { useShopStore } from "@/stores/shop-store";
@@ -19,6 +20,7 @@ const inputClass =
   "h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden";
 
 export default function LowInventoryPage() {
+  const t = useT();
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
@@ -97,12 +99,12 @@ export default function LowInventoryPage() {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-950"
           >
             <ArrowLeft className="size-3.5" />
-            Back to dashboard
+            {t("dashboard.backToDashboard")}
           </Link>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-950">Low Inventory Warnings</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-950">{t("dashboard.lowInventory")}</h1>
             <p className="mt-0.5 text-xs text-zinc-500">
-              Products at or below their minimum stock level{products ? ` · ${products.length} items` : ""}
+              {products ? t.n("dashboard.lowSubCount", products.length) : t("dashboard.lowSub")}
             </p>
           </div>
         </div>
@@ -113,38 +115,38 @@ export default function LowInventoryPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search product or SKU..."
+            placeholder={t("dashboard.searchProduct")}
             className={`${inputClass} w-full pl-8`}
           />
         </div>
 
         {loadError && !products ? (
-          <LoadError what="low inventory" onRetry={() => setReloadKey((k) => k + 1)} />
+          <LoadError what={t("dashboard.whatLowInventory")} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : (
           <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-xs">
                 <thead className="border-b border-zinc-100 bg-zinc-50/60">
                   <tr>
-                    {sortHead("name", "Product")}
-                    {sortHead("stock", "In stock", true)}
-                    {sortHead("threshold", "Minimum level", true)}
-                    <th className="px-4 py-3 text-right font-semibold text-zinc-600">Action</th>
+                    {sortHead("name", t("dashboard.colProduct"))}
+                    {sortHead("stock", t("dashboard.inStock"), true)}
+                    {sortHead("threshold", t("dashboard.minimumLevel"), true)}
+                    <th className="px-4 py-3 text-right font-semibold text-zinc-600">{t("shared.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {!products ? (
                     <tr>
                       <td colSpan={4} className="px-4 py-10 text-center text-zinc-500">
-                        Loading...
+                        {t("shared.loading")}
                       </td>
                     </tr>
                   ) : rows.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-4 py-10 text-center text-zinc-500">
                         {products.length === 0
-                          ? "All catalog items are above their minimum levels."
-                          : "No products match your search."}
+                          ? t("dashboard.allAboveMin")
+                          : t("dashboard.noMatch")}
                       </td>
                     </tr>
                   ) : (
@@ -165,7 +167,7 @@ export default function LowInventoryPage() {
                             href={`/inventory?search=${encodeURIComponent(p.name)}`}
                             className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950"
                           >
-                            Restock
+                            {t("dashboard.restock")}
                           </Link>
                         </td>
                       </tr>
@@ -174,7 +176,7 @@ export default function LowInventoryPage() {
                 </tbody>
               </table>
             </div>
-            <TablePagination pagination={pager} noun="products" />
+            <TablePagination pagination={pager} noun={t("dashboard.productsNoun")} />
           </div>
         )}
       </div>

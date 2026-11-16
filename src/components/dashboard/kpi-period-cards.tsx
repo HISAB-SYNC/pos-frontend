@@ -179,7 +179,7 @@ export function KpiPeriodCards({
           </div>
           <div className="mt-3">
             <div className="font-mono text-2xl font-bold tracking-tight tabular-nums text-zinc-900">
-              {formatEtb(current.revenue)} <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              {formatEtb(current.revenue)} <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </div>
             <div className="mt-2 min-h-5">
               {previous && preset !== "ALL" ? (
@@ -206,7 +206,7 @@ export function KpiPeriodCards({
           </div>
           <div className="mt-3">
             <div className={`font-mono text-2xl font-bold tracking-tight tabular-nums ${netProfit < 0 ? "text-rose-300" : "text-white"}`}>
-              {formatEtb(netProfit)} <span className="text-xs font-semibold text-slate-400">ETB</span>
+              {formatEtb(netProfit)} <span className="text-xs font-semibold text-slate-400">{t("shared.etb")}</span>
             </div>
             <p className="mt-2 truncate text-[11px] text-slate-400">
               {t("kpi.costBreakdown", { cogs: formatEtb(current.cogs), expenses: formatEtb(current.expenses) })}
@@ -224,7 +224,7 @@ export function KpiPeriodCards({
           </div>
           <div className="mt-3">
             <div className="font-mono text-2xl font-bold tracking-tight tabular-nums text-amber-900">
-              {formatEtb(outstandingDebt)} <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              {formatEtb(outstandingDebt)} <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-amber-800">

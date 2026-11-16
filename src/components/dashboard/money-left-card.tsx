@@ -94,7 +94,7 @@ export function MoneyLeftCard({ shopId }: { shopId: string }) {
               funds.moneyLeft < 0 ? "text-rose-700" : "text-zinc-900"
             }`}
           >
-            {formatEtb(funds.moneyLeft)} <span className="text-xs font-semibold text-zinc-500">ETB</span>
+            {formatEtb(funds.moneyLeft)} <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
           </p>
         </div>
         {funds.accounts.map((account) => {

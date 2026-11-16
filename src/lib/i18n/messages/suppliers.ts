@@ -135,6 +135,12 @@ const en = {
   "suppliers.detail.colRestock": "Restock",
   "suppliers.detail.colRemaining": "Still owed",
   "suppliers.detail.noContact": "No contact details saved.",
+  "suppliers.combo.placeholder": "Type a supplier name",
+  "suppliers.combo.addNew": "Add “{name}” as a new supplier",
+  "suppliers.combo.newHint": "New supplier: it will be added to your suppliers when you save.",
+  "suppliers.combo.empty": "No supplier saved yet. Type a name to add one.",
+  "suppliers.combo.clear": "Clear supplier",
+  "suppliers.combo.createError": "Couldn't add the new supplier. Nothing was saved.",
 } as const;
 
 export const suppliers: Area<typeof en> = {
@@ -265,6 +271,12 @@ export const suppliers: Area<typeof en> = {
     "suppliers.detail.colRestock": "ግዢ",
     "suppliers.detail.colRemaining": "ገና የሚቀረው",
     "suppliers.detail.noContact": "የተቀመጠ አድራሻ የለም።",
+    "suppliers.combo.placeholder": "የአቅራቢ ስም ይጻፉ",
+    "suppliers.combo.addNew": "“{name}”ን እንደ አዲስ አቅራቢ ጨምር",
+    "suppliers.combo.newHint": "አዲስ አቅራቢ፦ ሲያስቀምጡ ወደ አቅራቢዎችዎ ይጨመራል።",
+    "suppliers.combo.empty": "እስካሁን የተቀመጠ አቅራቢ የለም። ለመጨመር ስም ይጻፉ።",
+    "suppliers.combo.clear": "አቅራቢውን አጽዳ",
+    "suppliers.combo.createError": "አዲሱን አቅራቢ መጨመር አልተቻለም። ምንም አልተቀመጠም።",
   },
   om: {
     "suppliers.title": "Dhiyeessitoota",
@@ -393,5 +405,11 @@ export const suppliers: Area<typeof en> = {
     "suppliers.detail.colRestock": "Bittaa",
     "suppliers.detail.colRemaining": "Kan hafe",
     "suppliers.detail.noContact": "Odeeffannoon quunnamtii hin olkaa'amne.",
+    "suppliers.combo.placeholder": "Maqaa dhiyeessaa barreessi",
+    "suppliers.combo.addNew": "“{name}” dhiyeessaa haaraatti dabali",
+    "suppliers.combo.newHint": "Dhiyeessaa haaraa: yeroo olkaa'attu dhiyeessitoota keetti dabalama.",
+    "suppliers.combo.empty": "Ammaaf dhiyeessaan hin olkaa'amne. Dabaluuf maqaa barreessi.",
+    "suppliers.combo.clear": "Dhiyeessaa haqi",
+    "suppliers.combo.createError": "Dhiyeessaa haaraa dabaluun hin danda'amne. Homtuu hin olkaa'amne.",
   },
 };

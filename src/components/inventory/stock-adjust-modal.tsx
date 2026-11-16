@@ -6,7 +6,9 @@ import { REASON_LABELS, REASONS_FOR, RecentProductChanges } from "@/components/i
 import { PriceIssuesBox, usePriceGuard } from "@/components/products/price-guard";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useT } from "@/lib/i18n/use-t";
-import { createPurchase, createStockAdjustment, getFundsSummary, getSuppliers } from "@/lib/api";
+import { SupplierCombobox } from "@/components/suppliers/supplier-combobox";
+import { resolveSupplier } from "@/lib/utils/supplier-match";
+import { createPurchase, createStockAdjustment, createSupplier, getFundsSummary, getSuppliers } from "@/lib/api";
 import type {
   FundAccount,
   FundsSummary,
@@ -78,8 +80,8 @@ export function StockAdjustModal({
     previousBuyingPrice: product ? Number(product.buyingPrice) || 0 : null,
   });
   const [paidFrom, setPaidFrom] = useState<PurchaseFunding>("CASH_DRAWER");
-  const [supplierId, setSupplierId] = useState(product?.supplierId || "");
-  const [supplierName, setSupplierName] = useState("");
+  // The supplier is typed (with suggestions from the saved suppliers); see resolveSupplier.
+  const [supplierText, setSupplierText] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [funds, setFunds] = useState<FundsSummary | null>(null);
   // Answer to "where did the extra money come from?", tied to the account and amount it was given for.
@@ -89,7 +91,11 @@ export function StockAdjustModal({
     let mounted = true;
     getSuppliers(shopId)
       .then((data) => {
-        if (mounted && Array.isArray(data)) setSuppliers(data);
+        if (!mounted || !Array.isArray(data)) return;
+        setSuppliers(data);
+        // Start with the product usual supplier, if it has one
+        const usual = data.find((s) => s.id === product?.supplierId);
+        if (usual) setSupplierText((current) => current || usual.name);
       })
       .catch(() => {});
     getFundsSummary(shopId)
@@ -100,7 +106,7 @@ export function StockAdjustModal({
     return () => {
       mounted = false;
     };
-  }, [shopId]);
+  }, [shopId, product?.supplierId]);
 
   if (!product) return null;
 
@@ -136,7 +142,8 @@ export function StockAdjustModal({
   const paidLabel = paidFromOption ? t(paidFromOption.label) : "";
 
   // Pay-later restocks must name who is owed, so the debt can be paid off later.
-  const needsSupplier = isRestock && paidFrom === "SUPPLIER_CREDIT" && !supplierId && !supplierName.trim();
+  const supplierChoice = resolveSupplier(suppliers, supplierText);
+  const needsSupplier = isRestock && paidFrom === "SUPPLIER_CREDIT" && !supplierChoice;
 
   const canSubmit =
     adjustQtyNum > 0 &&
@@ -152,7 +159,17 @@ export function StockAdjustModal({
     setError(null);
     try {
       if (isRestock) {
-        const selectedSupplier = suppliers.find((s) => s.id === supplierId);
+        // A new name is saved as a supplier first, so the debt belongs to a real supplier in the list.
+        let supplierId: string | undefined = supplierChoice?.supplierId ?? undefined;
+        if (supplierChoice?.kind === "new") {
+          try {
+            const created = await createSupplier(shopId, { name: supplierChoice.name });
+            supplierId = created.id;
+          } catch (createErr) {
+            setError((createErr as { message?: string })?.message || t("suppliers.combo.createError"));
+            return;
+          }
+        }
         await createPurchase(shopId, {
           productId: product.id,
           quantity: adjustQtyNum,
@@ -160,8 +177,7 @@ export function StockAdjustModal({
           sellingPrice: sellingPriceNum > 0 ? sellingPriceNum : undefined,
           ...restockPriceGuard.flags,
           fundingSource: paidFrom,
-          supplierId: selectedSupplier?.id,
-          supplier: selectedSupplier ? undefined : supplierName.trim() || undefined,
+          supplierId,
           moneyAdded: shortfall > 0 && extraMoneyReason
             ? { amount: shortfall, reason: extraMoneyReason }
             : undefined,
@@ -356,27 +372,15 @@ export function StockAdjustModal({
                 <label className="mb-1 block font-semibold text-zinc-700">
                   {paidFrom === "SUPPLIER_CREDIT" ? `${t("inventory.supplierYouOwe")} *` : t("inventory.supplierOptional")}
                 </label>
-                {suppliers.length > 0 ? (
-                  <select
-                    value={supplierId}
-                    onChange={(e) => setSupplierId(e.target.value)}
-                    className="h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-                  >
-                    <option value="">{t("inventory.walkInWholesaler")}</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={supplierName}
-                    onChange={(e) => setSupplierName(e.target.value)}
-                    placeholder={t("inventory.supplierName")}
-                    className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-                  />
+                <SupplierCombobox
+                  suppliers={suppliers}
+                  text={supplierText}
+                  onTextChange={setSupplierText}
+                  placeholder={t("inventory.supplierName")}
+                  invalid={needsSupplier}
+                />
+                {supplierChoice?.kind === "new" && (
+                  <p className="mt-1 text-[10px] text-zinc-500">{t("suppliers.combo.newHint")}</p>
                 )}
                 {needsSupplier && (
                   <p className="mt-1 text-[10px] text-amber-800">{t("inventory.pickSupplier")}</p>

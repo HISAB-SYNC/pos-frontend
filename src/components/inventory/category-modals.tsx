@@ -4,6 +4,7 @@ import { FolderPlus, Tag, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createCategory, deleteCategory, updateCategory } from "@/lib/api";
 import type { Category } from "@/lib/api/types";
+import { useT } from "@/lib/i18n/use-t";
 
 /* ------------------------------------------------------------------ */
 /* Modal: Create Category                                              */
@@ -19,6 +20,7 @@ export function CreateCategoryModal({
   onCreated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -37,7 +39,7 @@ export function CreateCategoryModal({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      setErrorMsg("Failed to create category. Please try again.");
+      setErrorMsg(t("inventory.failedCreateCategoryRetry"));
     } finally {
       setIsSubmitting(false);
     }
@@ -51,7 +53,7 @@ export function CreateCategoryModal({
             <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9]">
               <FolderPlus className="size-4" />
             </div>
-            <h3 className="text-sm font-bold text-zinc-900">Add New Category</h3>
+            <h3 className="text-sm font-bold text-zinc-900">{t("inventory.addNewCategory")}</h3>
           </div>
           <button
             type="button"
@@ -71,12 +73,12 @@ export function CreateCategoryModal({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
             <label className="mb-1.5 block font-semibold text-zinc-700">
-              Category Name <span className="text-red-500">*</span>
+              {t("inventory.categoryName")} <span className="text-red-500">*</span>
             </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Beverages, Bakery, Electronics"
+              placeholder={t("inventory.categoryPlaceholder")}
               className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-xs text-zinc-900 shadow-xs focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               required
               autoFocus
@@ -89,14 +91,14 @@ export function CreateCategoryModal({
               onClick={onClose}
               className="rounded-xl border border-zinc-200 px-3.5 py-2 font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
               className="rounded-xl bg-slate-900 px-4 py-2 font-bold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-all"
             >
-              {isSubmitting ? "Creating..." : "Save Category"}
+              {isSubmitting ? t("inventory.creating") : t("inventory.saveCategory")}
             </button>
           </div>
         </form>
@@ -119,6 +121,7 @@ export function EditCategoryModal({
   onUpdated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -142,7 +145,7 @@ export function EditCategoryModal({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      setErrorMsg("Failed to rename category.");
+      setErrorMsg(t("inventory.failedRenameCategory"));
     } finally {
       setIsSubmitting(false);
     }
@@ -156,7 +159,7 @@ export function EditCategoryModal({
             <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
               <Tag className="size-4" />
             </div>
-            <h3 className="text-sm font-bold text-zinc-900">Rename Category</h3>
+            <h3 className="text-sm font-bold text-zinc-900">{t("inventory.renameCategory")}</h3>
           </div>
           <button
             type="button"
@@ -175,7 +178,7 @@ export function EditCategoryModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-700">Category Name</label>
+            <label className="mb-1.5 block font-semibold text-zinc-700">{t("inventory.categoryName")}</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -191,14 +194,14 @@ export function EditCategoryModal({
               onClick={onClose}
               className="rounded-xl border border-zinc-200 px-3.5 py-2 font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
               className="rounded-xl bg-slate-800 px-4 py-2 font-bold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-all"
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? t("shared.saving") : t("inventory.saveChanges")}
             </button>
           </div>
         </form>
@@ -221,6 +224,7 @@ export function DeleteCategoryDialog({
   onDeleted: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -236,7 +240,7 @@ export function DeleteCategoryDialog({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      setErrorMsg("Failed to delete category. Ensure no products are strictly bound to it.");
+      setErrorMsg(t("inventory.failedDeleteCategoryBound"));
     } finally {
       setIsDeleting(false);
     }
@@ -248,9 +252,9 @@ export function DeleteCategoryDialog({
         <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
           <Trash2 className="size-5" />
         </div>
-        <h3 className="text-sm font-bold text-zinc-900">Delete Category</h3>
+        <h3 className="text-sm font-bold text-zinc-900">{t("inventory.deleteCategory")}</h3>
         <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
-          Are you sure you want to delete category <span className="font-semibold text-zinc-900">&quot;{category.name}&quot;</span>?
+          {t("inventory.confirmDeleteCategoryDialog", { name: category.name })}
         </p>
 
         {errorMsg && (
@@ -265,7 +269,7 @@ export function DeleteCategoryDialog({
             onClick={onClose}
             className="rounded-xl border border-zinc-200 px-3.5 py-2 font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
           >
-            Cancel
+            {t("shared.cancel")}
           </button>
           <button
             type="button"
@@ -273,7 +277,7 @@ export function DeleteCategoryDialog({
             onClick={handleConfirm}
             className="rounded-xl bg-red-600 px-4 py-2 font-bold text-white hover:bg-red-700 disabled:opacity-50 transition-all"
           >
-            {isDeleting ? "Deleting..." : "Delete Category"}
+            {isDeleting ? t("inventory.deleting") : t("inventory.deleteCategory")}
           </button>
         </div>
       </div>

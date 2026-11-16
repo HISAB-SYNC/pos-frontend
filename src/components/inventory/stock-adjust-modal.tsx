@@ -4,6 +4,8 @@ import { Banknote, Landmark, ReceiptText, Smartphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { REASON_LABELS, REASONS_FOR, RecentProductChanges } from "@/components/inventory/stock-log";
 import { PriceIssuesBox, usePriceGuard } from "@/components/products/price-guard";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/use-t";
 import { createPurchase, createStockAdjustment, getFundsSummary, getSuppliers } from "@/lib/api";
 import type {
   FundAccount,
@@ -22,20 +24,20 @@ import { formatQuantity, isFractionalUnit } from "@/lib/utils/units";
 /* ------------------------------------------------------------------ */
 const PAID_FROM_OPTIONS: Array<{
   key: PurchaseFunding;
-  label: string;
-  hint: string;
+  label: MessageKey;
+  hint: MessageKey;
   icon: typeof Banknote;
 }> = [
-  { key: "CASH_DRAWER", label: "Cash Till", hint: "Paid with cash from the till", icon: Banknote },
-  { key: "BANK", label: "Bank", hint: "Paid by bank transfer or card", icon: Landmark },
-  { key: "TELEBIRR", label: "Telebirr", hint: "Paid from the shop's Telebirr", icon: Smartphone },
-  { key: "SUPPLIER_CREDIT", label: "Pay later", hint: "Supplier gave it on credit. Money Left changes when you pay them (dashboard or Suppliers page).", icon: ReceiptText },
+  { key: "CASH_DRAWER", label: "inventory.fundCash", hint: "inventory.fundCashHint", icon: Banknote },
+  { key: "BANK", label: "inventory.fundBank", hint: "inventory.fundBankHint", icon: Landmark },
+  { key: "TELEBIRR", label: "inventory.fundTelebirr", hint: "inventory.fundTelebirrHint", icon: Smartphone },
+  { key: "SUPPLIER_CREDIT", label: "inventory.fundCredit", hint: "inventory.fundCreditHint", icon: ReceiptText },
 ];
 
-const ALREADY_IN_LABEL: Record<FundAccount, string> = {
-  CASH_DRAWER: "Was already in the till",
-  BANK: "Was already in the bank",
-  TELEBIRR: "Was already in Telebirr",
+const ALREADY_IN_LABEL: Record<FundAccount, MessageKey> = {
+  CASH_DRAWER: "inventory.alreadyInTill",
+  BANK: "inventory.alreadyInBank",
+  TELEBIRR: "inventory.alreadyInTelebirr",
 };
 
 function formatEtb(value: number) {
@@ -53,6 +55,7 @@ export function StockAdjustModal({
   onAdjusted: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [adjustmentType, setAdjustmentType] = useState<"ADD" | "REMOVE" | "SET">("ADD");
   const [quantity, setQuantity] = useState("");
   // Why stock changes when no money is paid; must fit the kind of change.
@@ -129,7 +132,8 @@ export function StockAdjustModal({
     : null;
   const shortfall = isRestock ? moneyShortfall(accountBalance, totalCostNum) : 0;
   const balanceAfter = moneyBalanceAfter(accountBalance, totalCostNum, extraMoneyReason ? shortfall : 0);
-  const paidLabel = PAID_FROM_OPTIONS.find((o) => o.key === paidFrom)?.label ?? "";
+  const paidFromOption = PAID_FROM_OPTIONS.find((o) => o.key === paidFrom);
+  const paidLabel = paidFromOption ? t(paidFromOption.label) : "";
 
   // Pay-later restocks must name who is owed, so the debt can be paid off later.
   const needsSupplier = isRestock && paidFrom === "SUPPLIER_CREDIT" && !supplierId && !supplierName.trim();
@@ -178,28 +182,28 @@ export function StockAdjustModal({
     } catch (err) {
       if (isRestock && restockPriceGuard.handleServerError(err)) return;
       const message = (err as { message?: string })?.message;
-      setError(message || "Could not save. Nothing was changed, please try again.");
+      setError(message || t("inventory.saveError"));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   const submitLabel = isSubmitting
-    ? "Saving..."
+    ? t("shared.saving")
     : isRestock && totalCostNum > 0
     ? paidFrom === "SUPPLIER_CREDIT"
-      ? `Restock · ${formatEtb(totalCostNum)} ETB on credit`
-      : `Restock · ${formatEtb(totalCostNum)} ETB from ${paidLabel}`
-    : "Apply Adjustment";
+      ? t("inventory.restockCredit", { amount: formatEtb(totalCostNum) })
+      : t("inventory.restockFrom", { amount: formatEtb(totalCostNum), account: paidLabel })
+    : t("inventory.applyAdjustment");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
       <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold text-zinc-900 tracking-tight">Adjust Inventory Stock</h2>
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("inventory.adjustTitle")}</h2>
             <p className="text-xs text-zinc-500">
-              Product: <span className="font-semibold text-zinc-800">{product.name}</span>
+              {t("inventory.productColon")} <span className="font-semibold text-zinc-800">{product.name}</span>
             </p>
           </div>
           <button
@@ -213,7 +217,7 @@ export function StockAdjustModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-700">Adjustment Mode</label>
+            <label className="mb-1.5 block font-semibold text-zinc-700">{t("inventory.adjustmentMode")}</label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -224,7 +228,7 @@ export function StockAdjustModal({
                     : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
                 }`}
               >
-                + Add Stock
+                {t("inventory.modeAdd")}
               </button>
               <button
                 type="button"
@@ -235,7 +239,7 @@ export function StockAdjustModal({
                     : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
                 }`}
               >
-                - Deduct Stock
+                {t("inventory.modeDeduct")}
               </button>
               <button
                 type="button"
@@ -246,7 +250,7 @@ export function StockAdjustModal({
                     : "border-zinc-200 hover:bg-zinc-50 text-zinc-600"
                 }`}
               >
-                Set Fixed Qty
+                {t("inventory.modeSet")}
               </button>
             </div>
           </div>
@@ -260,7 +264,7 @@ export function StockAdjustModal({
                   isPurchase ? "bg-white text-zinc-900 shadow-2xs" : "text-zinc-500 hover:text-zinc-800"
                 }`}
               >
-                I bought this stock
+                {t("inventory.boughtStock")}
               </button>
               <button
                 type="button"
@@ -269,7 +273,7 @@ export function StockAdjustModal({
                   !isPurchase ? "bg-white text-zinc-900 shadow-2xs" : "text-zinc-500 hover:text-zinc-800"
                 }`}
               >
-                No money paid
+                {t("inventory.noMoneyPaid")}
               </button>
             </div>
           )}
@@ -277,7 +281,7 @@ export function StockAdjustModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-semibold text-zinc-700">
-                {adjustmentType === "SET" ? "New Total Count *" : "Quantity *"}
+                {adjustmentType === "SET" ? t("inventory.newTotalCount") : t("inventory.quantity")} *
               </label>
               <input
                 type="number"
@@ -286,14 +290,14 @@ export function StockAdjustModal({
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                placeholder={isFractionalUnit(product.unit) ? "e.g. 1.5" : "e.g. 10"}
+                placeholder={t("inventory.egValue", { value: isFractionalUnit(product.unit) ? "1.5" : "10" })}
                 className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
 
             {isRestock ? (
               <div>
-                <label className="mb-1 block font-semibold text-zinc-700">Buying price per unit (ETB) *</label>
+                <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.buyingPricePerUnit")} *</label>
                 <input
                   type="number"
                   min="0.01"
@@ -301,13 +305,13 @@ export function StockAdjustModal({
                   required
                   value={unitCost}
                   onChange={(e) => setUnitCost(e.target.value)}
-                  placeholder="e.g. 1500"
+                  placeholder={t("inventory.egValue", { value: "1500" })}
                   className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
                 />
               </div>
             ) : (
               <div>
-                <label className="mb-1 block font-semibold text-zinc-700">Store Location</label>
+                <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.storeLocation")}</label>
                 <input
                   type="text"
                   value={storeLocation}
@@ -321,14 +325,14 @@ export function StockAdjustModal({
           {isRestock && (
             <>
               <div>
-                <label className="mb-1 block font-semibold text-zinc-700">New selling price (optional)</label>
+                <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.newSellingPrice")}</label>
                 <input
                   type="number"
                   min="0.01"
                   step="any"
                   value={sellingPrice}
                   onChange={(e) => setSellingPrice(e.target.value)}
-                  placeholder={`Now ${formatEtb(currentSellingPrice)} ETB — leave blank to keep`}
+                  placeholder={t("inventory.sellingNowPlaceholder", { price: formatEtb(currentSellingPrice) })}
                   className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:font-sans placeholder:font-normal placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
                 />
                 {(() => {
@@ -338,8 +342,11 @@ export function StockAdjustModal({
                   return (
                     <p className={`mt-1 text-[10px] ${price < unitCostNum ? "text-rose-700" : "text-zinc-500"}`}>
                       {price < unitCostNum
-                        ? `Selling below buying price: you lose ${formatEtb(unitCostNum - price)} ETB per unit.`
-                        : `Profit ${formatEtb(price - unitCostNum)} ETB per unit (${margin.toFixed(1)}% margin)${sellingPriceNum > 0 ? "" : " at the current price"}.`}
+                        ? t("inventory.sellingBelowBuying", { amount: formatEtb(unitCostNum - price) })
+                        : t(sellingPriceNum > 0 ? "inventory.profitPerUnit" : "inventory.profitPerUnitCurrent", {
+                            amount: formatEtb(price - unitCostNum),
+                            margin: margin.toFixed(1),
+                          })}
                     </p>
                   );
                 })()}
@@ -347,7 +354,7 @@ export function StockAdjustModal({
 
               <div>
                 <label className="mb-1 block font-semibold text-zinc-700">
-                  {paidFrom === "SUPPLIER_CREDIT" ? "Supplier you owe *" : "Supplier (optional)"}
+                  {paidFrom === "SUPPLIER_CREDIT" ? `${t("inventory.supplierYouOwe")} *` : t("inventory.supplierOptional")}
                 </label>
                 {suppliers.length > 0 ? (
                   <select
@@ -355,7 +362,7 @@ export function StockAdjustModal({
                     onChange={(e) => setSupplierId(e.target.value)}
                     className="h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
                   >
-                    <option value="">Walk-in wholesaler</option>
+                    <option value="">{t("inventory.walkInWholesaler")}</option>
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -367,21 +374,21 @@ export function StockAdjustModal({
                     type="text"
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
-                    placeholder="Supplier name"
+                    placeholder={t("inventory.supplierName")}
                     className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
                   />
                 )}
                 {needsSupplier && (
-                  <p className="mt-1 text-[10px] text-amber-800">Pick the supplier for a pay-later restock, so you can pay them off later.</p>
+                  <p className="mt-1 text-[10px] text-amber-800">{t("inventory.pickSupplier")}</p>
                 )}
               </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="font-semibold text-zinc-700">Paid from *</label>
+                  <label className="font-semibold text-zinc-700">{t("inventory.paidFrom")} *</label>
                   {totalCostNum > 0 && (
                     <span className="font-mono text-xs font-bold text-zinc-900 tabular-nums">
-                      Total {formatEtb(totalCostNum)} ETB
+                      {t("inventory.totalAmount", { amount: formatEtb(totalCostNum) })}
                     </span>
                   )}
                 </div>
@@ -405,13 +412,13 @@ export function StockAdjustModal({
                       >
                         <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${selected ? "text-zinc-900" : "text-zinc-600"}`}>
                           <Icon className={`size-3.5 ${selected ? "text-[#5B4FE9]" : "text-zinc-400"}`} />
-                          {option.label}
+                          {t(option.label)}
                         </span>
                         <span className="font-mono text-[10px] text-zinc-500 tabular-nums">
                           {option.key === "SUPPLIER_CREDIT"
-                            ? "on credit"
+                            ? t("inventory.onCredit")
                             : balance !== undefined && balance !== null
-                            ? `${formatEtb(balance)} ETB`
+                            ? t("inventory.etbAmount", { amount: formatEtb(balance) })
                             : "—"}
                         </span>
                       </button>
@@ -419,23 +426,24 @@ export function StockAdjustModal({
                   })}
                 </div>
                 <p className="mt-1.5 text-[10px] text-zinc-500">
-                  {PAID_FROM_OPTIONS.find((o) => o.key === paidFrom)?.hint}
+                  {paidFromOption ? t(paidFromOption.hint) : null}
                 </p>
               </div>
 
               {shortfall > 0 && paidAccount && (
                 <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50/70 p-3">
-                  <p className="text-xs text-amber-900">
-                    <span className="font-semibold">{paidLabel}</span> only shows{" "}
-                    <span className="font-mono font-semibold tabular-nums">{formatEtb(Math.max(accountBalance ?? 0, 0))} ETB</span>.
-                    Where did the other{" "}
-                    <span className="font-mono font-semibold tabular-nums">{formatEtb(shortfall)} ETB</span> come from?
+                  <p className="text-xs font-medium text-amber-900">
+                    {t("inventory.shortfall", {
+                      account: paidLabel,
+                      balance: formatEtb(Math.max(accountBalance ?? 0, 0)),
+                      missing: formatEtb(shortfall),
+                    })}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {(
                       [
-                        ["OWNER_MONEY", "Owner's own money"],
-                        ["ALREADY_IN_ACCOUNT", ALREADY_IN_LABEL[paidAccount]],
+                        ["OWNER_MONEY", t("inventory.ownerMoney")],
+                        ["ALREADY_IN_ACCOUNT", t(ALREADY_IN_LABEL[paidAccount])],
                       ] as Array<[MoneyAddedReason, string]>
                     ).map(([value, label]) => (
                       <button
@@ -460,7 +468,7 @@ export function StockAdjustModal({
           {!isRestock && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block font-semibold text-zinc-700">Why? *</label>
+                <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.why")} *</label>
                 <select
                   value={reason}
                   onChange={(e) => setReasonChoice(e.target.value as StockAdjustmentReason)}
@@ -468,18 +476,18 @@ export function StockAdjustModal({
                 >
                   {reasonOptions.map((r) => (
                     <option key={r} value={r}>
-                      {REASON_LABELS[r]}
+                      {t(REASON_LABELS[r])}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block font-semibold text-zinc-700">Note (optional)</label>
+                <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.noteOptional")}</label>
                 <input
                   type="text"
                   value={adjustNotes}
                   onChange={(e) => setAdjustNotes(e.target.value)}
-                  placeholder="e.g. 2 bags torn in delivery"
+                  placeholder={t("inventory.notePlaceholder")}
                   className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
                 />
               </div>
@@ -491,7 +499,7 @@ export function StockAdjustModal({
           {/* Real-time stock and money preview */}
           <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-zinc-500">Stock</span>
+              <span className="text-zinc-500">{t("inventory.colStock")}</span>
               <div className="flex items-center gap-2">
                 {adjustQtyNum > 0 && (
                   <span
@@ -514,10 +522,10 @@ export function StockAdjustModal({
             {isRestock && totalCostNum > 0 && (
               <div className="mt-1.5 flex items-center justify-between border-t border-zinc-200/60 pt-1.5 text-xs">
                 <span className="text-zinc-500">
-                  {paidFrom === "SUPPLIER_CREDIT" ? "Owed to supplier" : `${paidLabel} after this restock`}
+                  {paidFrom === "SUPPLIER_CREDIT" ? t("inventory.owedToSupplier") : t("inventory.afterRestock", { account: paidLabel })}
                 </span>
                 {paidFrom === "SUPPLIER_CREDIT" ? (
-                  <span className="font-mono font-bold text-amber-800 tabular-nums">+{formatEtb(totalCostNum)} ETB</span>
+                  <span className="font-mono font-bold text-amber-800 tabular-nums">+{t("inventory.etbAmount", { amount: formatEtb(totalCostNum) })}</span>
                 ) : accountBalance !== null && balanceAfter !== null ? (
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-semibold text-zinc-500 tabular-nums">{formatEtb(accountBalance)}</span>
@@ -525,11 +533,11 @@ export function StockAdjustModal({
                     <span
                       className={`font-mono font-bold tabular-nums ${balanceAfter < 0 ? "text-rose-700" : "text-zinc-900"}`}
                     >
-                      {formatEtb(balanceAfter)} ETB
+                      {t("inventory.etbAmount", { amount: formatEtb(balanceAfter) })}
                     </span>
                   </div>
                 ) : (
-                  <span className="font-mono font-bold text-zinc-900 tabular-nums">−{formatEtb(totalCostNum)} ETB</span>
+                  <span className="font-mono font-bold text-zinc-900 tabular-nums">−{t("inventory.etbAmount", { amount: formatEtb(totalCostNum) })}</span>
                 )}
               </div>
             )}
@@ -553,7 +561,7 @@ export function StockAdjustModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"

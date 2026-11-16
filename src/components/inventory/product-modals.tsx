@@ -6,6 +6,7 @@ import { queueOfflineProduct, type OfflineProduct } from "@/lib/offline";
 import { createCategory, createProduct, deleteCategory, deleteProduct, updateProduct } from "@/lib/api";
 import { MarginHint, PriceIssuesBox, usePriceGuard } from "@/components/products/price-guard";
 import type { Category, Product } from "@/lib/api/types";
+import { useT } from "@/lib/i18n/use-t";
 import { formatQuantity, STANDARD_UNITS } from "@/lib/utils/units";
 
 /* ------------------------------------------------------------------ */
@@ -26,6 +27,7 @@ export function AddProductModal({
   categories: Category[];
   isOnline?: boolean;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -79,7 +81,7 @@ export function AddProductModal({
       onCreated();
     } catch (err: unknown) {
       console.error(err);
-      setErrorMsg("Failed to create category.");
+      setErrorMsg(t("inventory.failedCreateCategory"));
     } finally {
       setIsCreatingCat(false);
     }
@@ -89,7 +91,7 @@ export function AddProductModal({
     if (!form.categoryId) return;
     const catToDelete = localCategories.find((c) => c.id === form.categoryId);
     const confirmed = window.confirm(
-      `Are you sure you want to delete category "${catToDelete?.name || "Selected"}"?`,
+      t("inventory.confirmDeleteCategory", { name: catToDelete?.name || t("inventory.selectedCategory") }),
     );
     if (!confirmed) return;
 
@@ -101,7 +103,7 @@ export function AddProductModal({
       onCreated();
     } catch (err: unknown) {
       console.error(err);
-      setErrorMsg("Failed to delete category.");
+      setErrorMsg(t("inventory.failedDeleteCategory"));
     } finally {
       setIsDeletingCat(false);
     }
@@ -149,7 +151,7 @@ export function AddProductModal({
           location: "",
         });
       } catch (err: unknown) {
-        setErrorMsg("Failed to save offline product.");
+        setErrorMsg(t("inventory.failedOffline"));
       } finally {
         setIsSubmitting(false);
       }
@@ -224,7 +226,7 @@ export function AddProductModal({
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as any).message)
-          : "Failed to create product. Please verify SKU and details.";
+          : t("inventory.failedCreateProduct");
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -236,8 +238,8 @@ export function AddProductModal({
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-center justify-between border-b border-zinc-100 pb-3.5">
           <div>
-            <h2 className="text-base font-bold text-zinc-900">Add New Product</h2>
-            <p className="text-xs text-zinc-500">Record a new SKU in your store inventory</p>
+            <h2 className="text-base font-bold text-zinc-900">{t("inventory.addTitle")}</h2>
+            <p className="text-xs text-zinc-500">{t("inventory.addSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -258,14 +260,14 @@ export function AddProductModal({
           {/* Product Name */}
           <div>
             <label className="mb-1.5 block font-semibold text-zinc-700">
-              Product Name <span className="text-red-500">*</span>
+              {t("inventory.productName")} <span className="text-red-500">*</span>
             </label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               required
-              placeholder="e.g. Arabica Coffee Beans"
+              placeholder={t("inventory.productNamePlaceholder")}
               className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
             />
           </div>
@@ -273,26 +275,26 @@ export function AddProductModal({
           {/* SKU and Category Row */}
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block font-semibold text-zinc-700">SKU / Barcode</label>
+              <label className="mb-1.5 block font-semibold text-zinc-700">{t("inventory.skuBarcode")}</label>
               <input
                 name="sku"
                 value={form.sku}
                 onChange={handleChange}
-                placeholder="e.g. 6001234567"
+                placeholder={t("inventory.skuPlaceholder")}
                 className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 font-mono text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
 
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="font-semibold text-zinc-700">Category</label>
+                <label className="font-semibold text-zinc-700">{t("shared.category")}</label>
                 <button
                   type="button"
                   onClick={() => setShowAddCat(!showAddCat)}
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-700 hover:text-zinc-950 transition-colors"
                 >
                   <Plus className="size-3" />
-                  <span>{showAddCat ? "Close" : "New"}</span>
+                  <span>{showAddCat ? t("shared.close") : t("inventory.new")}</span>
                 </button>
               </div>
               <div className="flex items-center gap-1.5">
@@ -302,7 +304,7 @@ export function AddProductModal({
                   onChange={handleChange}
                   className="h-10 flex-1 rounded-xl border border-zinc-200 px-3 text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 >
-                  <option value="">No Category (General)</option>
+                  <option value="">{t("inventory.noCategoryGeneral")}</option>
                   {localCategories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -314,7 +316,7 @@ export function AddProductModal({
                     type="button"
                     onClick={handleDeleteCategory}
                     disabled={isDeletingCat}
-                    title="Delete selected category"
+                    title={t("inventory.deleteSelectedCategory")}
                     className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
                   >
                     <Trash2 className="size-3.5" />
@@ -327,12 +329,12 @@ export function AddProductModal({
           {/* Quick Create Category Inline Box */}
           {showAddCat && (
             <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 animate-in fade-in duration-150">
-              <p className="mb-2 text-[11px] font-semibold text-zinc-700">Create New Category</p>
+              <p className="mb-2 text-[11px] font-semibold text-zinc-700">{t("inventory.createNewCategory")}</p>
               <div className="flex items-center gap-2">
                 <input
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="e.g. Beverages, Snacks, Groceries"
+                  placeholder={t("inventory.categoryPlaceholderMany")}
                   className="h-9 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-xs shadow-xs focus:border-zinc-900 focus:outline-none"
                 />
                 <button
@@ -341,7 +343,7 @@ export function AddProductModal({
                   onClick={handleCreateCategory}
                   className="h-9 rounded-lg bg-slate-800 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-50 transition-all"
                 >
-                  {isCreatingCat ? "Saving..." : "Save"}
+                  {isCreatingCat ? t("shared.saving") : t("shared.save")}
                 </button>
                 <button
                   type="button"
@@ -351,7 +353,7 @@ export function AddProductModal({
                   }}
                   className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition-colors"
                 >
-                  Cancel
+                  {t("shared.cancel")}
                 </button>
               </div>
             </div>
@@ -361,7 +363,7 @@ export function AddProductModal({
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block font-semibold text-zinc-700">
-                Selling Price (ETB) <span className="text-red-500">*</span>
+                {t("inventory.sellingPriceEtb")} <span className="text-red-500">*</span>
               </label>
               <input
                 name="salingPrice"
@@ -376,7 +378,7 @@ export function AddProductModal({
             </div>
 
             <div>
-              <label className="mb-1.5 block font-semibold text-zinc-700">Stock Quantity</label>
+              <label className="mb-1.5 block font-semibold text-zinc-700">{t("inventory.stockQuantity")}</label>
               <input
                 name="quantity"
                 type="number"
@@ -394,7 +396,7 @@ export function AddProductModal({
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block font-medium text-zinc-500">
-                Cost / Buying Price (ETB) <span className="text-[10px] text-zinc-400 font-normal">(optional)</span>
+                {t("inventory.costPrice")} <span className="text-[10px] text-zinc-400 font-normal">({t("shared.optional")})</span>
               </label>
               <input
                 name="buyingPrice"
@@ -412,7 +414,7 @@ export function AddProductModal({
 
             <div>
               <label className="mb-1.5 block font-medium text-zinc-500">
-                Low Stock Threshold <span className="text-[10px] text-zinc-400 font-normal">(alert level)</span>
+                {t("inventory.lowStockThreshold")} <span className="text-[10px] text-zinc-400 font-normal">{t("inventory.alertLevel")}</span>
               </label>
               <input
                 name="threshold"
@@ -428,12 +430,12 @@ export function AddProductModal({
           {/* Unit & Expiry Date */}
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block font-semibold text-zinc-700">Measurement Unit</label>
+              <label className="mb-1.5 block font-semibold text-zinc-700">{t("inventory.measurementUnit")}</label>
               <input
                 name="unit"
                 value={form.unit}
                 onChange={handleChange}
-                placeholder="pcs, kg, bottle, etc."
+                placeholder={t("inventory.unitPlaceholder")}
                 className="h-10 w-full rounded-xl border border-zinc-200 px-3.5 text-xs text-zinc-900 shadow-xs transition-all focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
               <div className="mt-1.5 flex flex-wrap gap-1">
@@ -456,7 +458,7 @@ export function AddProductModal({
 
             <div>
               <label className="mb-1.5 block font-medium text-zinc-600">
-                Expiry Date <span className="text-[10px] text-zinc-400 font-normal">(optional)</span>
+                {t("inventory.expiryDate")} <span className="text-[10px] text-zinc-400 font-normal">({t("shared.optional")})</span>
               </label>
               <input
                 name="expiryDate"
@@ -481,14 +483,14 @@ export function AddProductModal({
               onClick={onClose}
               className="rounded-xl border border-zinc-200 px-4 py-2 font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !form.name.trim() || !form.salingPrice || priceGuard.blocked}
               className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Adding..." : "Save Product"}
+              {isSubmitting ? t("inventory.adding") : t("inventory.saveProduct")}
             </button>
           </div>
         </form>
@@ -516,6 +518,7 @@ export function EditProductModal({
   /** Stock is changed through Adjust Stock so every change is logged with a reason. */
   onAdjustStock?: (product: Product) => void;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -580,7 +583,7 @@ export function EditProductModal({
       onClose();
     } catch (err) {
       if (!editPriceGuard.handleServerError(err)) {
-        setEditError((err as { message?: string })?.message || "Couldn't save the changes. Please try again.");
+        setEditError((err as { message?: string })?.message || t("inventory.couldntSaveChanges"));
       }
     } finally {
       setIsSubmitting(false);
@@ -592,8 +595,8 @@ export function EditProductModal({
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h3 className="text-base font-bold text-zinc-900">Edit Product</h3>
-            <p className="text-[11px] text-zinc-500">Update pricing, cost, stock, and classification</p>
+            <h3 className="text-base font-bold text-zinc-900">{t("inventory.editTitle")}</h3>
+            <p className="text-[11px] text-zinc-500">{t("inventory.editSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -606,7 +609,7 @@ export function EditProductModal({
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div>
-            <label className="mb-1 block font-medium text-zinc-600">Product Name</label>
+            <label className="mb-1 block font-medium text-zinc-600">{t("inventory.productName")}</label>
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -618,7 +621,7 @@ export function EditProductModal({
           {/* Dual Price Editing: Selling Price & Buying Price */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block font-semibold text-zinc-700">Selling Price (ETB) *</label>
+              <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.sellingPriceEtb")} *</label>
               <input
                 type="number"
                 step="0.01"
@@ -630,7 +633,7 @@ export function EditProductModal({
               />
             </div>
             <div>
-              <label className="mb-1 block font-semibold text-zinc-700">Buying / Cost Price (ETB)</label>
+              <label className="mb-1 block font-semibold text-zinc-700">{t("inventory.buyingCostPrice")}</label>
               <input
                 type="number"
                 step="0.01"
@@ -647,17 +650,17 @@ export function EditProductModal({
           {sellingNum > 0 && (
             <div className="flex items-center justify-between rounded-xl border border-zinc-200/90 bg-zinc-50/80 px-3.5 py-2.5">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Profit Analysis</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{t("inventory.profitAnalysis")}</span>
                 <div className="flex items-center gap-3 text-xs">
                   <span>
-                    Markup:{" "}
+                    {t("inventory.markup")}{" "}
                     <strong className={markupEtb >= 0 ? "text-emerald-700 font-mono" : "text-red-600 font-mono"}>
-                      {markupEtb >= 0 ? `+${markupEtb.toFixed(2)}` : markupEtb.toFixed(2)} ETB
+                      {markupEtb >= 0 ? `+${markupEtb.toFixed(2)}` : markupEtb.toFixed(2)} {t("shared.etb")}
                     </strong>
                   </span>
                   <span>•</span>
                   <span>
-                    Margin:{" "}
+                    {t("inventory.margin")}{" "}
                     <strong className={parseFloat(profitMarginPct) > 0 ? "text-emerald-700 font-mono" : "text-zinc-600 font-mono"}>
                       {profitMarginPct}%
                     </strong>
@@ -670,14 +673,14 @@ export function EditProductModal({
                   markupEtb >= 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"
                 }`}
               >
-                {parseFloat(profitMarginPct)}% Margin
+                {t("inventory.marginBadge", { pct: parseFloat(profitMarginPct) })}
               </div>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block font-medium text-zinc-600">Stock Quantity</label>
+              <label className="mb-1 block font-medium text-zinc-600">{t("inventory.stockQuantity")}</label>
               <div className="flex h-9 items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3">
                 <span className="font-mono font-semibold text-zinc-900 tabular-nums">
                   {formatQuantity(product.stockQuantity, product.unit || "pcs")}
@@ -691,20 +694,20 @@ export function EditProductModal({
                     }}
                     className="text-[11px] font-semibold text-[#5B4FE9] hover:underline"
                   >
-                    Adjust stock
+                    {t("inventory.adjustStock")}
                   </button>
                 )}
               </div>
-              <p className="mt-1 text-[10px] text-zinc-400">Stock changes go through Adjust stock so they are logged.</p>
+              <p className="mt-1 text-[10px] text-zinc-400">{t("inventory.stockChangesHint")}</p>
             </div>
             <div>
-              <label className="mb-1 block font-medium text-zinc-600">Category</label>
+              <label className="mb-1 block font-medium text-zinc-600">{t("shared.category")}</label>
               <select
                 value={form.categoryId}
                 onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
                 className="h-9 w-full rounded-lg border border-zinc-200 px-3 text-zinc-900 focus:border-zinc-900 focus:outline-none"
               >
-                <option value="">No Category</option>
+                <option value="">{t("inventory.noCategory")}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -716,7 +719,7 @@ export function EditProductModal({
 
           <div>
             <label className="mb-1 block font-medium text-zinc-600">
-              Expiry Date <span className="text-[10px] text-zinc-400 font-normal">(optional)</span>
+              {t("inventory.expiryDate")} <span className="text-[10px] text-zinc-400 font-normal">({t("shared.optional")})</span>
             </label>
             <input
               type="date"
@@ -741,14 +744,14 @@ export function EditProductModal({
               onClick={onClose}
               className="rounded-lg border border-zinc-200 px-4 py-2 font-medium text-zinc-600 hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || editPriceGuard.blocked}
               className="rounded-lg bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? t("shared.saving") : t("inventory.saveChanges")}
             </button>
           </div>
         </form>
@@ -771,6 +774,7 @@ export function DeleteProductDialog({
   onDeleted: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleConfirm() {
@@ -797,9 +801,9 @@ export function DeleteProductDialog({
         <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-red-50 text-red-600">
           <Trash2 className="size-5" />
         </div>
-        <h3 className="text-sm font-bold text-zinc-900">Delete Product</h3>
+        <h3 className="text-sm font-bold text-zinc-900">{t("inventory.deleteProductTitle")}</h3>
         <p className="mt-1 text-xs text-zinc-500">
-          Are you sure you want to delete <span className="font-semibold text-zinc-900">{product.name}</span>? This action cannot be undone.
+          {t("inventory.confirmDeleteProduct", { name: product.name })}
         </p>
 
         <div className="mt-5 flex justify-end gap-2 text-xs">
@@ -808,7 +812,7 @@ export function DeleteProductDialog({
             onClick={onClose}
             className="rounded-lg border border-zinc-200 px-3.5 py-1.5 font-medium text-zinc-600 hover:bg-zinc-50"
           >
-            Cancel
+            {t("shared.cancel")}
           </button>
           <button
             type="button"
@@ -816,7 +820,7 @@ export function DeleteProductDialog({
             onClick={handleConfirm}
             className="rounded-lg bg-red-600 px-4 py-1.5 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
           >
-            {isDeleting ? "Deleting..." : "Delete Permanently"}
+            {isDeleting ? t("inventory.deleting") : t("inventory.deletePermanently")}
           </button>
         </div>
       </div>

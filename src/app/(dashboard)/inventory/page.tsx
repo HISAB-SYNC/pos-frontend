@@ -35,6 +35,7 @@ import { useDismiss } from "@/hooks/use-dismiss";
 import { getCategories, getProducts } from "@/lib/api";
 import type { Category, Product } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
+import { useT } from "@/lib/i18n/use-t";
 import { cacheProducts, getCachedProducts, useOfflineStatus } from "@/lib/offline";
 import { exportToCsv } from "@/lib/utils/export";
 import { formatQuantity } from "@/lib/utils/units";
@@ -80,11 +81,12 @@ const toolbarButton =
 /* "More" menu: secondary tools kept out of the header row             */
 /* ------------------------------------------------------------------ */
 function MoreMenu({ onStockLog }: { onStockLog: () => void }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   return (
     <div className="relative" ref={ref}>
-      <button type="button" onClick={() => setOpen((o) => !o)} className={toolbarButton} aria-label="More tools">
+      <button type="button" onClick={() => setOpen((o) => !o)} className={toolbarButton} aria-label={t("inventory.moreTools")}>
         <MoreHorizontal className="size-4 text-zinc-500" />
       </button>
       {open && (
@@ -98,14 +100,14 @@ function MoreMenu({ onStockLog }: { onStockLog: () => void }) {
             className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-zinc-700 hover:bg-zinc-50"
           >
             <ReceiptText className="size-3.5 text-zinc-500" />
-            Stock log
+            {t("inventory.stockLog")}
           </button>
           <Link
             href="/reports?tab=products"
             className="flex items-center gap-2 px-3 py-2 font-medium text-zinc-700 hover:bg-zinc-50"
           >
             <BarChart3 className="size-3.5 text-zinc-500" />
-            Product report
+            {t("inventory.productReport")}
           </Link>
         </div>
       )}
@@ -117,6 +119,7 @@ function MoreMenu({ onStockLog }: { onStockLog: () => void }) {
 /* Inventory: products, stock and categories in one place              */
 /* ------------------------------------------------------------------ */
 function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: Tab; initialStatus: StatusFilter; openAdd: boolean }) {
+  const t = useT();
   const shopId = useShopStore((state) => state.activeShopId) ?? MOCK_IDS.shop;
   const user = useAuthStore((state) => state.user);
   const isCashier = user?.role === "SALES";
@@ -148,8 +151,8 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
   // Everything is loaded once and filtered here, so search is instant and works offline.
@@ -240,23 +243,23 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
 
   function handleExport() {
     exportToCsv("inventory", rows, [
-      { header: "Product", key: "name" },
-      { header: "SKU / Barcode", key: "sku" },
-      { header: "Category", formatter: (p) => p.category?.name || "General" },
-      { header: "Stock", formatter: (p) => formatQuantity(p.stockQuantity) },
-      { header: "Unit", formatter: (p) => p.unit || "pcs" },
-      { header: "Low stock alert at", formatter: (p) => p.lowStockThreshold || 5 },
-      ...(isCashier ? [] : [{ header: "Buying price (ETB)", formatter: (p: Product) => num(p.buyingPrice).toFixed(2) }]),
-      { header: "Selling price (ETB)", formatter: (p) => num(p.price).toFixed(2) },
+      { header: t("inventory.colProduct"), key: "name" },
+      { header: t("inventory.exportSku"), key: "sku" },
+      { header: t("shared.category"), formatter: (p) => p.category?.name || t("inventory.general") },
+      { header: t("inventory.colStock"), formatter: (p) => formatQuantity(p.stockQuantity) },
+      { header: t("inventory.exportUnit"), formatter: (p) => p.unit || "pcs" },
+      { header: t("inventory.exportAlertAt"), formatter: (p) => p.lowStockThreshold || 5 },
+      ...(isCashier ? [] : [{ header: t("inventory.exportBuyingPrice"), formatter: (p: Product) => num(p.buyingPrice).toFixed(2) }]),
+      { header: t("inventory.exportSellingPrice"), formatter: (p) => num(p.price).toFixed(2) },
       ...(isCashier
         ? []
-        : [{ header: "Stock value (ETB)", formatter: (p: Product) => ((p.stockQuantity || 0) * num(p.price)).toFixed(2) }]),
-      { header: "Expiry", formatter: (p) => (p.expiryDate ? new Date(p.expiryDate).toISOString().slice(0, 10) : "") },
+        : [{ header: t("inventory.exportStockValue"), formatter: (p: Product) => ((p.stockQuantity || 0) * num(p.price)).toFixed(2) }]),
+      { header: t("inventory.colExpiry"), formatter: (p) => (p.expiryDate ? new Date(p.expiryDate).toISOString().slice(0, 10) : "") },
       {
-        header: "Status",
+        header: t("shared.status"),
         formatter: (p) => {
           const s = stockState(p, now);
-          return s.out ? "Out of stock" : s.low ? "Low stock" : "In stock";
+          return s.out ? t("inventory.outOfStock") : s.low ? t("inventory.lowStock") : t("inventory.inStock");
         },
       },
     ]);
@@ -280,11 +283,11 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
 
   /* ---------------- Render ---------------- */
   const statusPills: Array<{ id: StatusFilter; label: string; count: number; active: string }> = [
-    { id: "ALL", label: "All", count: products.length, active: "bg-white text-zinc-900 shadow-2xs" },
-    { id: "LOW", label: "Low stock", count: metrics.low, active: "bg-amber-600 text-white" },
-    { id: "OUT", label: "Out of stock", count: metrics.out, active: "bg-rose-600 text-white" },
-    { id: "EXPIRING", label: "Expiring soon", count: metrics.expiring, active: "bg-purple-600 text-white" },
-    { id: "EXPIRED", label: "Expired", count: metrics.expired, active: "bg-zinc-800 text-white" },
+    { id: "ALL", label: t("shared.all"), count: products.length, active: "bg-white text-zinc-900 shadow-2xs" },
+    { id: "LOW", label: t("inventory.lowStock"), count: metrics.low, active: "bg-amber-600 text-white" },
+    { id: "OUT", label: t("inventory.outOfStock"), count: metrics.out, active: "bg-rose-600 text-white" },
+    { id: "EXPIRING", label: t("inventory.expiringSoon"), count: metrics.expiring, active: "bg-purple-600 text-white" },
+    { id: "EXPIRED", label: t("inventory.expired"), count: metrics.expired, active: "bg-zinc-800 text-white" },
   ];
   const sortProps = { activeField: sortKey, desc: sortDesc, onSort: toggleSort, className: "px-4 py-3" };
   const colCount = isCashier ? 6 : 8;
@@ -332,30 +335,30 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-zinc-900">Inventory</h1>
+              <h1 className="text-xl font-bold tracking-tight text-zinc-900">{t("inventory.title")}</h1>
               {!isOnline && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
                   <WifiOff className="size-2.5 text-amber-600" />
-                  Offline (cached)
+                  {t("inventory.offlineCached")}
                 </span>
               )}
               {pendingCount > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
                   <span className="size-1.5 animate-pulse rounded-full bg-indigo-500" />
-                  {pendingCount} offline queued
+                  {t("inventory.offlineQueued", { count: pendingCount })}
                 </span>
               )}
             </div>
             <p className="text-xs text-zinc-500">
               {isCashier
-                ? "Look up products, prices and what is in stock."
-                : "Your products, stock levels and categories in one place."}
+                ? t("inventory.subtitleCashier")
+                : t("inventory.subtitleOwner")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={handleExport} className={toolbarButton}>
               <Download className="size-3.5 text-zinc-500" />
-              Export
+              {t("shared.export")}
             </button>
             {!isCashier && <MoreMenu onStockLog={() => setShowStockLog(true)} />}
             {!isCashier && (
@@ -365,7 +368,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                 className="flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-3.5 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
               >
                 <Plus className="size-3.5 text-indigo-400" />
-                {tab === "categories" ? "Add Category" : "Add Product"}
+                {tab === "categories" ? t("inventory.addCategory") : t("inventory.addProduct")}
               </button>
             )}
           </div>
@@ -376,22 +379,22 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
           <div className="flex items-center gap-1 border-b border-zinc-200">
             {(
               [
-                { id: "products", label: "Products", icon: Package, count: products.length },
-                { id: "categories", label: "Categories", icon: Folder, count: categories.length },
+                { id: "products", label: t("inventory.tabProducts"), icon: Package, count: products.length },
+                { id: "categories", label: t("inventory.tabCategories"), icon: Folder, count: categories.length },
               ] as const
-            ).map((t) => (
+            ).map((tabItem) => (
               <button
-                key={t.id}
+                key={tabItem.id}
                 type="button"
-                onClick={() => setTab(t.id)}
+                onClick={() => setTab(tabItem.id)}
                 className={`-mb-px flex items-center gap-2 border-b-2 px-3.5 py-2.5 text-xs font-bold transition-colors ${
-                  tab === t.id ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-500 hover:text-zinc-800"
+                  tab === tabItem.id ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-500 hover:text-zinc-800"
                 }`}
               >
-                <t.icon className="size-3.5" />
-                {t.label}
+                <tabItem.icon className="size-3.5" />
+                {tabItem.label}
                 <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-zinc-600">
-                  {t.count}
+                  {tabItem.count}
                 </span>
               </button>
             ))}
@@ -404,10 +407,10 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
             {!isCashier && (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
-                  { label: "Units in stock", value: metrics.units.toLocaleString(), unit: "units", hint: `Across ${products.length} products`, icon: Package, tone: "bg-indigo-50 text-[#5B4FE9] ring-[#5B4FE9]/15", text: "text-zinc-900" },
-                  { label: "Stock value", value: etb(Math.round(metrics.value)), unit: "ETB", hint: "At selling prices", icon: PackageCheck, tone: "bg-emerald-50 text-emerald-700 ring-emerald-500/15", text: "text-zinc-900" },
-                  { label: "Low stock", value: String(metrics.low), unit: "items", hint: "At or below their alert level", icon: AlertTriangle, tone: "bg-amber-50 text-amber-700 ring-amber-500/15", text: "text-amber-900" },
-                  { label: "Out of stock", value: String(metrics.out), unit: "items", hint: "Nothing left on hand", icon: PackageX, tone: "bg-rose-50 text-rose-700 ring-rose-500/15", text: "text-rose-700" },
+                  { label: t("inventory.unitsInStock"), value: metrics.units.toLocaleString(), unit: t("inventory.units"), hint: t.n("inventory.across", products.length), icon: Package, tone: "bg-indigo-50 text-[#5B4FE9] ring-[#5B4FE9]/15", text: "text-zinc-900" },
+                  { label: t("inventory.stockValue"), value: etb(Math.round(metrics.value)), unit: t("shared.etb"), hint: t("inventory.atSellingPrices"), icon: PackageCheck, tone: "bg-emerald-50 text-emerald-700 ring-emerald-500/15", text: "text-zinc-900" },
+                  { label: t("inventory.lowStock"), value: String(metrics.low), unit: t("inventory.items"), hint: t("inventory.atAlertLevel"), icon: AlertTriangle, tone: "bg-amber-50 text-amber-700 ring-amber-500/15", text: "text-amber-900" },
+                  { label: t("inventory.outOfStock"), value: String(metrics.out), unit: t("inventory.items"), hint: t("inventory.nothingLeft"), icon: PackageX, tone: "bg-rose-50 text-rose-700 ring-rose-500/15", text: "text-rose-700" },
                 ].map((card) => (
                   <div key={card.label} className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs">
                     <div className="flex items-center justify-between">
@@ -449,7 +452,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search name or SKU"
+                      placeholder={t("inventory.searchPlaceholder")}
                       className="h-9 w-full rounded-md border border-zinc-200 bg-zinc-50/50 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:bg-white focus:outline-hidden"
                     />
                   </div>
@@ -458,7 +461,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                     onChange={(e) => setCategory(e.target.value)}
                     className="h-9 max-w-40 rounded-md border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-700 focus:border-[#5B4FE9] focus:outline-hidden"
                   >
-                    <option value="ALL">All categories</option>
+                    <option value="ALL">{t("inventory.allCategories")}</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.name}>
                         {c.name}
@@ -473,14 +476,14 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                 <table className="w-full min-w-[820px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                      <ReportSortTh label="Product" field="name" {...sortProps} className="px-5 py-3" />
-                      <th className="px-4 py-3 font-bold">Category</th>
-                      <ReportSortTh label="Price" field="price" right {...sortProps} />
-                      <ReportSortTh label="Stock" field="stock" right {...sortProps} />
-                      {!isCashier && <ReportSortTh label="Value" field="value" right {...sortProps} />}
-                      <ReportSortTh label="Expiry" field="expiry" {...sortProps} />
-                      <th className="px-4 py-3 font-bold">Status</th>
-                      {!isCashier && <th className="px-5 py-3 text-right font-bold">Actions</th>}
+                      <ReportSortTh label={t("inventory.colProduct")} field="name" {...sortProps} className="px-5 py-3" />
+                      <th className="px-4 py-3 font-bold">{t("shared.category")}</th>
+                      <ReportSortTh label={t("inventory.colPrice")} field="price" right {...sortProps} />
+                      <ReportSortTh label={t("inventory.colStock")} field="stock" right {...sortProps} />
+                      {!isCashier && <ReportSortTh label={t("inventory.colValue")} field="value" right {...sortProps} />}
+                      <ReportSortTh label={t("inventory.colExpiry")} field="expiry" {...sortProps} />
+                      <th className="px-4 py-3 font-bold">{t("shared.status")}</th>
+                      {!isCashier && <th className="px-5 py-3 text-right font-bold">{t("shared.actions")}</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -493,7 +496,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                     ) : pager.pageItems.length === 0 ? (
                       <tr>
                         <td colSpan={colCount} className="py-12 text-center text-zinc-400">
-                          {products.length === 0 ? "No products yet." : "No products match these filters."}
+                          {products.length === 0 ? t("inventory.noProducts") : t("inventory.noProductsMatch")}
                         </td>
                       </tr>
                     ) : (
@@ -515,16 +518,16 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-zinc-600">{p.category?.name || "General"}</td>
+                            <td className="px-4 py-3 text-zinc-600">{p.category?.name || t("inventory.general")}</td>
                             <td className="px-4 py-3 text-right font-mono tabular-nums">
-                              <p className="font-bold text-zinc-900">{etb(price)} ETB</p>
+                              <p className="font-bold text-zinc-900">{t("inventory.etbAmount", { amount: etb(price) })}</p>
                               {!isCashier && p.buyingPrice ? (
-                                <p className="text-[10px] text-zinc-400">cost {etb(num(p.buyingPrice))}</p>
+                                <p className="text-[10px] text-zinc-400">{t("inventory.cost", { amount: etb(num(p.buyingPrice)) })}</p>
                               ) : null}
                             </td>
                             <td className="px-4 py-3 text-right font-mono tabular-nums">
                               <p className="font-bold text-zinc-900">{formatQuantity(qty, p.unit || "pcs")}</p>
-                              <p className="text-[10px] text-zinc-400">alert at {p.lowStockThreshold || 5}</p>
+                              <p className="text-[10px] text-zinc-400">{t("inventory.alertAt", { count: p.lowStockThreshold || 5 })}</p>
                             </td>
                             {!isCashier && (
                               <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-zinc-700">
@@ -544,17 +547,17 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                                     type="button"
                                     disabled={!isOnline}
                                     onClick={() => setProductToAdjust(p)}
-                                    title={isOnline ? "Restock, remove or count stock" : "Not available offline"}
+                                    title={isOnline ? t("inventory.adjustHint") : t("inventory.notOffline")}
                                     className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-700 shadow-2xs transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                                   >
                                     <SlidersHorizontal className="size-3 text-zinc-500" />
-                                    Adjust stock
+                                    {t("inventory.adjustStock")}
                                   </button>
                                   <button
                                     type="button"
                                     disabled={!isOnline}
                                     onClick={() => setProductToEdit(p)}
-                                    title={isOnline ? "Edit product" : "Not available offline"}
+                                    title={isOnline ? t("inventory.editProduct") : t("inventory.notOffline")}
                                     className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
                                   >
                                     <Edit2 className="size-3.5" />
@@ -563,7 +566,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                                     type="button"
                                     disabled={!isOnline}
                                     onClick={() => setProductToDelete(p)}
-                                    title={isOnline ? "Delete product" : "Not available offline"}
+                                    title={isOnline ? t("inventory.deleteProduct") : t("inventory.notOffline")}
                                     className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
                                   >
                                     <Trash2 className="size-3.5" />
@@ -578,19 +581,19 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                   </tbody>
                 </table>
               </div>
-              <TablePagination pagination={pager} noun="products" />
+              <TablePagination pagination={pager} noun={t("inventory.productsNoun")} />
             </section>
           </>
         ) : (
           <section className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200/80 p-3">
-              <p className="text-xs text-zinc-500">Group products so they are easier to find in POS and reports.</p>
+              <p className="text-xs text-zinc-500">{t("inventory.groupHint")}</p>
               <div className="relative w-full sm:w-56">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
                 <input
                   value={catSearch}
                   onChange={(e) => setCatSearch(e.target.value)}
-                  placeholder="Search categories"
+                  placeholder={t("inventory.searchCategories")}
                   className="h-9 w-full rounded-md border border-zinc-200 bg-zinc-50/50 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:bg-white focus:outline-hidden"
                 />
               </div>
@@ -599,19 +602,19 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
               <table className="w-full min-w-[520px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                    <th className="px-5 py-3 font-bold">Category</th>
-                    <th className="px-4 py-3 font-bold">Products</th>
-                    <th className="px-4 py-3 font-bold">ID</th>
-                    <th className="px-5 py-3 text-right font-bold">Actions</th>
+                    <th className="px-5 py-3 font-bold">{t("shared.category")}</th>
+                    <th className="px-4 py-3 font-bold">{t("inventory.tabProducts")}</th>
+                    <th className="px-4 py-3 font-bold">{t("inventory.colId")}</th>
+                    <th className="px-5 py-3 text-right font-bold">{t("shared.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {catPager.pageItems.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-12 text-center">
-                        <p className="text-xs font-bold text-zinc-800">No categories found</p>
+                        <p className="text-xs font-bold text-zinc-800">{t("inventory.noCategories")}</p>
                         <p className="mt-1 text-[11px] text-zinc-400">
-                          {catSearch ? "No categories match your search." : "Create your first category to group products."}
+                          {catSearch ? t("inventory.noCategoriesSearch") : t("inventory.noCategoriesYet")}
                         </p>
                       </td>
                     </tr>
@@ -637,9 +640,9 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                                 setTab("products");
                               }}
                               className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-700 hover:border-[#5B4FE9] hover:text-[#5B4FE9]"
-                              title="Show these products"
+                              title={t("inventory.showProducts")}
                             >
-                              {count} {count === 1 ? "product" : "products"}
+                              {t.n("inventory.productCount", count)}
                             </button>
                           </td>
                           <td className="px-4 py-3 font-mono text-[11px] text-zinc-400">
@@ -650,7 +653,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                               <button
                                 type="button"
                                 onClick={() => setCategoryToEdit(cat)}
-                                title="Rename category"
+                                title={t("inventory.renameCategory")}
                                 className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
                               >
                                 <Edit2 className="size-3.5" />
@@ -658,7 +661,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                               <button
                                 type="button"
                                 onClick={() => setCategoryToDelete(cat)}
-                                title="Delete category"
+                                title={t("inventory.deleteCategory")}
                                 className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
                               >
                                 <Trash2 className="size-3.5" />
@@ -672,7 +675,7 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                 </tbody>
               </table>
             </div>
-            <TablePagination pagination={catPager} noun="categories" />
+            <TablePagination pagination={catPager} noun={t("inventory.categoriesNoun")} />
           </section>
         )}
       </div>

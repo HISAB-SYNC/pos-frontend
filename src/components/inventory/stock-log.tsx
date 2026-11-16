@@ -5,20 +5,24 @@ import { useEffect, useState } from "react";
 
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getStockAdjustments } from "@/lib/api";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { StockAdjustmentList, StockAdjustmentReason } from "@/lib/api/types";
 import { formatQuantity } from "@/lib/utils/units";
 
-export const REASON_LABELS: Record<StockAdjustmentReason, string> = {
-  DAMAGED: "Damaged",
-  EXPIRED: "Expired",
-  LOST: "Lost or stolen",
-  OWN_USE: "Used by the shop",
-  COUNT_CORRECTION: "Stock count correction",
-  CUSTOMER_RETURN: "Customer returned it",
-  FOUND: "Found extra stock",
-  TRANSFER_IN: "Moved in from another store",
-  TRANSFER_OUT: "Moved to another store",
-  OTHER: "Other",
+/** Message key for each reason; render with `t(REASON_LABELS[reason])`. */
+export const REASON_LABELS: Record<StockAdjustmentReason, MessageKey> = {
+  DAMAGED: "inventory.reasonDamaged",
+  EXPIRED: "inventory.reasonExpired",
+  LOST: "inventory.reasonLost",
+  OWN_USE: "inventory.reasonOwnUse",
+  COUNT_CORRECTION: "inventory.reasonCountCorrection",
+  CUSTOMER_RETURN: "inventory.reasonCustomerReturn",
+  FOUND: "inventory.reasonFound",
+  TRANSFER_IN: "inventory.reasonTransferIn",
+  TRANSFER_OUT: "inventory.reasonTransferOut",
+  OTHER: "inventory.reasonOther",
 };
 
 /** Reasons offered for each kind of change in the Adjust Stock form. */
@@ -32,10 +36,6 @@ function formatEtb(value: number) {
   return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
 function ChangeCell({ change, unit }: { change: number; unit?: string }) {
   return (
     <span className={`font-mono font-semibold tabular-nums ${change < 0 ? "text-rose-700" : "text-emerald-700"}`}>
@@ -47,6 +47,8 @@ function ChangeCell({ change, unit }: { change: number; unit?: string }) {
 
 /** The last few stock changes of one product, shown inside the Adjust Stock form. */
 export function RecentProductChanges({ shopId, productId, unit }: { shopId: string; productId: string; unit?: string }) {
+  const t = useT();
+  const { formatDate } = useFormat();
   const [data, setData] = useState<StockAdjustmentList | null>(null);
 
   useEffect(() => {
@@ -65,12 +67,12 @@ export function RecentProductChanges({ shopId, productId, unit }: { shopId: stri
 
   return (
     <div>
-      <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Recent stock changes</p>
+      <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("inventory.recentChanges")}</p>
       <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200/80">
         {data.items.map((a) => (
           <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-1.5">
             <span className="truncate text-zinc-600">
-              {REASON_LABELS[a.reason]}
+              {t(REASON_LABELS[a.reason])}
               <span className="ml-1.5 font-mono text-[10px] text-zinc-400">{formatDate(a.createdAt)}</span>
             </span>
             <ChangeCell change={a.change} unit={unit} />
@@ -83,6 +85,8 @@ export function RecentProductChanges({ shopId, productId, unit }: { shopId: stri
 
 /** Every stock change in the shop with its reason and value. */
 export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: () => void }) {
+  const t = useT();
+  const { formatDate } = useFormat();
   const [reason, setReason] = useState<StockAdjustmentReason | "">("");
   const [result, setResult] = useState<{ key: string; data: StockAdjustmentList | null; error: boolean } | null>(null);
 
@@ -112,8 +116,8 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
       >
         <div className="flex items-start justify-between border-b border-zinc-100 px-5 py-4">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Stock log</h2>
-            <p className="text-xs text-zinc-500">Every stock change that wasn&apos;t a sale or a paid restock, and why.</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("inventory.stockLog")}</h2>
+            <p className="text-xs text-zinc-500">{t("inventory.logSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -130,37 +134,37 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
             onChange={(e) => setReason(e.target.value as StockAdjustmentReason | "")}
             className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
           >
-            <option value="">All reasons</option>
+            <option value="">{t("inventory.allReasons")}</option>
             {(Object.keys(REASON_LABELS) as StockAdjustmentReason[]).map((r) => (
               <option key={r} value={r}>
-                {REASON_LABELS[r]}
+                {t(REASON_LABELS[r])}
               </option>
             ))}
           </select>
           {data && (
             <span className="text-xs text-zinc-500">
-              {data.count} {data.count === 1 ? "change" : "changes"} · Stock value lost{" "}
-              <span className="font-mono font-bold tabular-nums text-rose-700">{formatEtb(data.valueLost)} ETB</span>
+              {t.n("inventory.change", data.count)} · {t("inventory.valueLost")}{" "}
+              <span className="font-mono font-bold tabular-nums text-rose-700">{t("inventory.etbAmount", { amount: formatEtb(data.valueLost) })}</span>
             </span>
           )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <p className="py-12 text-center text-xs text-zinc-400">Loading…</p>
+            <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
           ) : result?.error ? (
-            <p className="py-12 text-center text-xs text-zinc-500">Couldn&apos;t load the stock log.</p>
+            <p className="py-12 text-center text-xs text-zinc-500">{t("inventory.logLoadError")}</p>
           ) : !data || data.items.length === 0 ? (
-            <p className="py-12 text-center text-xs text-zinc-500">No stock changes recorded yet.</p>
+            <p className="py-12 text-center text-xs text-zinc-500">{t("inventory.logEmpty")}</p>
           ) : (
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="sticky top-0 bg-zinc-50 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                  <th className="px-5 py-2 font-bold">Date</th>
-                  <th className="px-3 py-2 font-bold">Product</th>
-                  <th className="px-3 py-2 font-bold">Reason</th>
-                  <th className="px-3 py-2 text-right font-bold">Change</th>
-                  <th className="px-5 py-2 text-right font-bold">Value</th>
+                  <th className="px-5 py-2 font-bold">{t("shared.date")}</th>
+                  <th className="px-3 py-2 font-bold">{t("inventory.colProduct")}</th>
+                  <th className="px-3 py-2 font-bold">{t("inventory.colReason")}</th>
+                  <th className="px-3 py-2 text-right font-bold">{t("inventory.colChange")}</th>
+                  <th className="px-5 py-2 text-right font-bold">{t("inventory.colValue")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -174,7 +178,7 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
                       </span>
                     </td>
                     <td className="px-3 py-2 text-zinc-600">
-                      {REASON_LABELS[a.reason]}
+                      {t(REASON_LABELS[a.reason])}
                       {a.notes && <span className="block text-[10px] text-zinc-400">{a.notes}</span>}
                     </td>
                     <td className="px-3 py-2 text-right">
@@ -194,10 +198,10 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
             </table>
           )}
         </div>
-        <TablePagination pagination={pager} noun="changes" />
+        <TablePagination pagination={pager} noun={t("inventory.changesNoun")} />
         {data && data.count > data.items.length && (
           <p className="border-t border-zinc-100 px-5 py-2.5 text-[11px] text-zinc-500">
-            Showing the latest {data.items.length} of {data.count}.
+            {t("inventory.showingLatest", { shown: data.items.length, total: data.count })}
           </p>
         )}
       </div>

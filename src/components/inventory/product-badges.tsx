@@ -1,5 +1,8 @@
 "use client";
 
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
+
 /* ------------------------------------------------------------------ */
 /* Product Avatar: Professional Monogram Badge                         */
 /* ------------------------------------------------------------------ */
@@ -24,6 +27,8 @@ export function ProductAvatar({ name, className }: { name: string; className?: s
 }
 
 export function ExpiryBadge({ expiryDate }: { expiryDate?: string | null }) {
+  const t = useT();
+  const { formatDate } = useFormat();
   if (!expiryDate) {
     return <span className="text-zinc-400 text-[11px]">—</span>;
   }
@@ -40,7 +45,7 @@ export function ExpiryBadge({ expiryDate }: { expiryDate?: string | null }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
         <span className="size-1.5 rounded-full bg-red-600" />
-        Expired
+        {t("inventory.expired")}
       </span>
     );
   }
@@ -49,14 +54,14 @@ export function ExpiryBadge({ expiryDate }: { expiryDate?: string | null }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
         <span className="size-1.5 rounded-full bg-amber-600" />
-        {diffDays}d left
+        {t("inventory.daysLeft", { count: diffDays })}
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
-      {exp.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+      {formatDate(exp)}
     </span>
   );
 }
@@ -65,6 +70,7 @@ export function ExpiryBadge({ expiryDate }: { expiryDate?: string | null }) {
 /* Status badge                                                       */
 /* ------------------------------------------------------------------ */
 export function StatusBadge({ quantity, threshold }: { quantity: number; threshold: number }) {
+  const t = useT();
   const isOutOfStock = quantity <= 0;
   const isLow = quantity <= threshold;
 
@@ -72,7 +78,7 @@ export function StatusBadge({ quantity, threshold }: { quantity: number; thresho
     return (
       <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
         <span className="size-1.5 rounded-full bg-rose-600" />
-        Out of Stock
+        {t("inventory.outOfStock")}
       </span>
     );
   }
@@ -81,7 +87,7 @@ export function StatusBadge({ quantity, threshold }: { quantity: number; thresho
     return (
       <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
         <span className="size-1.5 rounded-full bg-amber-600" />
-        Low Stock
+        {t("inventory.lowStock")}
       </span>
     );
   }
@@ -89,7 +95,7 @@ export function StatusBadge({ quantity, threshold }: { quantity: number; thresho
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
       <span className="size-1.5 rounded-full bg-emerald-600" />
-      Available
+      {t("inventory.available")}
     </span>
   );
 }

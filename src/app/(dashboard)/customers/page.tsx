@@ -19,6 +19,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
@@ -51,6 +53,8 @@ function CustomerInfoModal({
   onClose: () => void;
   onRecordPayment: (customerId: string) => void;
 }) {
+  const t = useT();
+  const { formatDate } = useFormat();
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(initialCustomer);
 
   useEffect(() => {
@@ -76,14 +80,14 @@ function CustomerInfoModal({
   function handleDownloadCustomerDetails() {
     if (!customer) return;
     exportToCsv(`customer-${customer.name.toLowerCase().replace(/\s+/g, "-")}`, [customer], [
-      { header: "Customer Name", key: "name" },
-      { header: "Customer ID", formatter: (c) => c.customerId || `CUST-${c.id.slice(0, 6).toUpperCase()}` },
-      { header: "Phone Number", key: "phone" },
-      { header: "Address", key: "address" },
-      { header: "Total Debt (ETB)", formatter: () => debt.toFixed(2) },
-      { header: "Credit Limit (ETB)", formatter: () => limit.toFixed(2) },
-      { header: "Available Credit (ETB)", formatter: () => available.toFixed(2) },
-      { header: "Status", formatter: (c) => c.status || "Active" },
+      { header: t("customers.csvName"), key: "name" },
+      { header: t("customers.csvId"), formatter: (c) => c.customerId || `CUST-${c.id.slice(0, 6).toUpperCase()}` },
+      { header: t("shared.phone"), key: "phone" },
+      { header: t("shared.address"), key: "address" },
+      { header: t("customers.csvTotalDebt"), formatter: () => debt.toFixed(2) },
+      { header: t("customers.csvCreditLimit"), formatter: () => limit.toFixed(2) },
+      { header: t("customers.csvAvailable"), formatter: () => available.toFixed(2) },
+      { header: t("shared.status"), formatter: (c) => c.status || t("customers.statusActive") },
     ]);
   }
 
@@ -110,7 +114,7 @@ function CustomerInfoModal({
               className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
             >
               <Download className="size-3.5 text-zinc-500" />
-              <span>Statement</span>
+              <span>{t("customers.statement")}</span>
             </button>
             <button
               type="button"
@@ -127,26 +131,26 @@ function CustomerInfoModal({
           {/* Customer Details */}
           <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/50 p-3.5 space-y-2 text-xs">
             <h3 className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
-              Identity &amp; Contact
+              {t("customers.identityContact")}
             </h3>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Full Name</span>
+              <span className="text-zinc-500">{t("customers.fullName")}</span>
               <span className="font-semibold text-zinc-900">{customer.name}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Phone</span>
+              <span className="text-zinc-500">{t("shared.phone")}</span>
               <span className="font-mono text-zinc-900">{customer.phone || "—"}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Address</span>
-              <span className="text-zinc-900 truncate max-w-[150px]">{customer.address || "Addis Ababa"}</span>
+              <span className="text-zinc-500">{t("shared.address")}</span>
+              <span className="text-zinc-900 truncate max-w-[150px]">{customer.address || t("customers.defaultAddress")}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Status</span>
+              <span className="text-zinc-500">{t("shared.status")}</span>
               <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase ${
                 debt > 0 ? "border border-amber-200/70 bg-amber-50 text-amber-800" : "border border-emerald-200/70 bg-emerald-50 text-emerald-800"
               }`}>
-                {debt > 0 ? "With Debt" : "Zero Debt"}
+                {debt > 0 ? t("customers.withDebt") : t("customers.zeroDebt")}
               </span>
             </div>
           </div>
@@ -154,28 +158,28 @@ function CustomerInfoModal({
           {/* Credit Details */}
           <div className="rounded-lg border border-zinc-200/70 bg-zinc-50/50 p-3.5 space-y-2 text-xs">
             <h3 className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
-              Credit &amp; Ledger
+              {t("customers.creditLedger")}
             </h3>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Total Debt</span>
+              <span className="text-zinc-500">{t("customers.totalDebt")}</span>
               <span className={`font-mono font-bold tabular-nums ${debt > 0 ? "text-rose-700" : "text-emerald-700"}`}>
-                {debt.toLocaleString()} ETB
+                {debt.toLocaleString()} {t("shared.etb")}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Credit Limit</span>
-              <span className="font-mono text-zinc-900 tabular-nums">{limit.toLocaleString()} ETB</span>
+              <span className="text-zinc-500">{t("customers.creditLimit")}</span>
+              <span className="font-mono text-zinc-900 tabular-nums">{limit.toLocaleString()} {t("shared.etb")}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Available Credit</span>
+              <span className="text-zinc-500">{t("customers.availableCredit")}</span>
               <span className="font-mono font-semibold text-emerald-700 tabular-nums">
-                {available.toLocaleString()} ETB
+                {available.toLocaleString()} {t("shared.etb")}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Credit Health</span>
+              <span className="text-zinc-500">{t("customers.creditHealth")}</span>
               <span className="font-mono text-[10px] text-zinc-600">
-                {limit > 0 ? `${Math.round(((limit - debt) / limit) * 100)}% Headroom` : "100%"}
+                {limit > 0 ? t("customers.headroom", { pct: Math.round(((limit - debt) / limit) * 100) }) : "100%"}
               </span>
             </div>
           </div>
@@ -185,10 +189,10 @@ function CustomerInfoModal({
         <div className="py-4">
           <div className="mb-2.5 flex items-center justify-between">
             <h3 className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Recent Account Ledger
+              {t("customers.recentLedger")}
             </h3>
             <span className="font-mono text-[10px] text-zinc-400">
-              {(customer.sales?.length || 0) + (customer.debtHistory?.length || 0)} records
+              {t.n("customers.records", (customer.sales?.length || 0) + (customer.debtHistory?.length || 0))}
             </span>
           </div>
 
@@ -204,12 +208,12 @@ function CustomerInfoModal({
                       #RCP-{sale.id.slice(0, 8).toUpperCase()}
                     </p>
                     <p className="font-mono text-[10px] text-zinc-400 mt-0.5">
-                      {new Date(sale.createdAt).toLocaleDateString("en-GB")} • {sale.paymentMethod || "CASH"}
+                      {formatDate(sale.createdAt)} • {sale.paymentMethod || "CASH"}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-mono font-bold text-zinc-900 tabular-nums">
-                      {parseFloat(sale.totalAmount || "0").toLocaleString()} ETB
+                      {parseFloat(sale.totalAmount || "0").toLocaleString()} {t("shared.etb")}
                     </p>
                     <span className="inline-block rounded-md px-1.5 py-0.2 font-mono text-[9px] font-semibold uppercase text-emerald-800 bg-emerald-50 border border-emerald-200/60">
                       {sale.status}
@@ -226,22 +230,22 @@ function CustomerInfoModal({
                   <div>
                     <p className="font-semibold text-zinc-900">{tx.type} ({tx.reference})</p>
                     <p className="font-mono text-[10px] text-zinc-400 mt-0.5">
-                      {tx.date} • {tx.paymentMethod || "Credit"}
+                      {tx.date} • {tx.paymentMethod || t("customers.credit")}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className={`font-mono font-bold tabular-nums ${tx.amount > 0 ? "text-rose-700" : "text-emerald-700"}`}>
-                      {tx.amount > 0 ? `+${tx.amount.toLocaleString()}` : `${tx.amount.toLocaleString()}`} ETB
+                      {tx.amount > 0 ? `+${tx.amount.toLocaleString()}` : `${tx.amount.toLocaleString()}`} {t("shared.etb")}
                     </p>
                     <span className="font-mono text-[10px] text-zinc-400">
-                      Bal: {tx.remainingBalance.toLocaleString()} ETB
+                      {t("customers.balLine", { amount: tx.remainingBalance.toLocaleString() })}
                     </span>
                   </div>
                 </div>
               ))
             ) : (
               <div className="flex items-center justify-center rounded-md border border-zinc-200/60 bg-zinc-50/60 py-5 text-xs text-zinc-400">
-                No recent transactions recorded for this customer.
+                {t("customers.noTransactions")}
               </div>
             )}
           </div>
@@ -254,14 +258,14 @@ function CustomerInfoModal({
             onClick={onClose}
             className="flex-1 rounded-md border border-zinc-200/80 bg-white py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
           >
-            Close
+            {t("shared.close")}
           </button>
           <button
             type="button"
             onClick={() => onRecordPayment(customer.id)}
             className="flex-1 rounded-md bg-slate-900 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
           >
-            Record Debt Payment
+            {t("customers.recordDebtPayment")}
           </button>
         </div>
       </div>
@@ -285,6 +289,7 @@ function AddCustomerModal({
   shopId: string;
   isCashier?: boolean;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -331,7 +336,7 @@ function AddCustomerModal({
             <div className="flex size-7 items-center justify-center rounded-md bg-zinc-100 text-zinc-700">
               <Users className="size-4" />
             </div>
-            <h2 className="text-base font-bold text-zinc-900 tracking-tight">New Customer</h2>
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("customers.newCustomer")}</h2>
           </div>
           <button
             type="button"
@@ -344,34 +349,34 @@ function AddCustomerModal({
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-medium text-zinc-700">Customer Name *</label>
+            <label className="font-medium text-zinc-700">{t("customers.customerNameReq")}</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               required
-              placeholder="e.g. Almaz Kebede"
+              placeholder={t("customers.namePlaceholder")}
               className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:outline-none transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-medium text-zinc-700">Phone Number</label>
+              <label className="font-medium text-zinc-700">{t("shared.phone")}</label>
               <input
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                placeholder="e.g. +251 91 123 4567"
+                placeholder={t("customers.phonePlaceholder")}
                 className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:outline-none transition-colors"
               />
             </div>
             <div className="space-y-1">
-              <label className="font-medium text-zinc-700">Credit Limit (ETB)</label>
+              <label className="font-medium text-zinc-700">{t("customers.creditLimitEtb")}</label>
               {isCashier ? (
                 <div className="flex h-8.5 w-full items-center justify-between rounded-md border border-zinc-200/80 bg-zinc-50 px-3 text-xs font-mono text-zinc-500 cursor-not-allowed">
                   <span>5,000</span>
-                  <span className="font-sans text-[10px] text-zinc-400">Default limit</span>
+                  <span className="font-sans text-[10px] text-zinc-400">{t("customers.defaultLimit")}</span>
                 </div>
               ) : (
                 <input
@@ -387,12 +392,12 @@ function AddCustomerModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-zinc-700">Address / Location</label>
+            <label className="font-medium text-zinc-700">{t("customers.addressLocation")}</label>
             <input
               name="address"
               value={form.address}
               onChange={handleChange}
-              placeholder="e.g. Bole, Addis Ababa"
+              placeholder={t("customers.addressPlaceholder")}
               className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:outline-none transition-colors"
             />
           </div>
@@ -403,14 +408,14 @@ function AddCustomerModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Adding..." : "Add Customer"}
+              {isSubmitting ? t("customers.adding") : t("customers.addCustomer")}
             </button>
           </div>
         </form>
@@ -433,6 +438,7 @@ function EditCustomerModal({
   onUpdated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -484,7 +490,7 @@ function EditCustomerModal({
             <div className="flex size-7 items-center justify-center rounded-md bg-zinc-100 text-zinc-700">
               <Edit2 className="size-3.5" />
             </div>
-            <h2 className="text-base font-bold text-zinc-900 tracking-tight">Edit Customer</h2>
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("customers.editCustomer")}</h2>
           </div>
           <button
             type="button"
@@ -497,7 +503,7 @@ function EditCustomerModal({
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-medium text-zinc-700">Customer Name *</label>
+            <label className="font-medium text-zinc-700">{t("customers.customerNameReq")}</label>
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -507,7 +513,7 @@ function EditCustomerModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-zinc-700">Phone Number</label>
+            <label className="font-medium text-zinc-700">{t("shared.phone")}</label>
             <input
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
@@ -516,7 +522,7 @@ function EditCustomerModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-zinc-700">Email Address</label>
+            <label className="font-medium text-zinc-700">{t("shared.email")}</label>
             <input
               type="email"
               value={form.email}
@@ -526,7 +532,7 @@ function EditCustomerModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-medium text-zinc-700">Address / Location</label>
+            <label className="font-medium text-zinc-700">{t("customers.addressLocation")}</label>
             <input
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
@@ -540,14 +546,14 @@ function EditCustomerModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? t("shared.saving") : t("customers.saveChanges")}
             </button>
           </div>
         </form>
@@ -568,6 +574,7 @@ function DeleteCustomerDialog({
   onDeleted?: () => void;
   shopId?: string;
 }) {
+  const t = useT();
   if (!customer) return null;
 
   return (
@@ -576,9 +583,9 @@ function DeleteCustomerDialog({
         <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-amber-50 text-amber-700 border border-amber-200/60">
           <Trash2 className="size-4" />
         </div>
-        <h3 className="text-base font-bold text-zinc-900 tracking-tight">Customer Ledger Protected</h3>
+        <h3 className="text-base font-bold text-zinc-900 tracking-tight">{t("customers.ledgerProtected")}</h3>
         <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-          Customer <span className="font-semibold text-zinc-900">{customer.name}</span> cannot be deleted because the system enforces transactional and audit integrity across all historical sales and credit receipts.
+          <span className="font-semibold text-zinc-900">{customer.name}</span> {t("customers.cannotDelete")}
         </p>
 
         <div className="mt-5 flex justify-end text-xs">
@@ -587,7 +594,7 @@ function DeleteCustomerDialog({
             onClick={onClose}
             className="rounded-md bg-slate-900 px-4 py-2 font-semibold text-white shadow-2xs hover:bg-slate-800 transition-colors"
           >
-            Understood
+            {t("customers.understood")}
           </button>
         </div>
       </div>
@@ -609,6 +616,7 @@ function ReceivePaymentModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const t = useT();
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Mobile Payment">("Cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -632,7 +640,7 @@ function ReceivePaymentModal({
       onSuccess();
       onClose();
     } catch (err) {
-      setActionError(errorMessage(err, "Couldn't record the payment. Nothing was changed, please try again."));
+      setActionError(errorMessage(err, t("customers.errRecordPayment")));
     } finally {
       setIsSubmitting(false);
     }
@@ -643,7 +651,7 @@ function ReceivePaymentModal({
       <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold text-zinc-900 tracking-tight">Record Debt Repayment</h2>
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("customers.recordRepayment")}</h2>
             <p className="font-mono text-[10px] text-zinc-400 mt-0.5">{customer.name}</p>
           </div>
           <button
@@ -657,20 +665,20 @@ function ReceivePaymentModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 p-3 flex items-center justify-between">
-            <span className="font-medium text-amber-900">Current Outstanding Balance:</span>
+            <span className="font-medium text-amber-900">{t("customers.currentBalance")}</span>
             <span className="font-mono text-base font-bold text-rose-700 tabular-nums">
-              {currentDebt.toLocaleString()} ETB
+              {currentDebt.toLocaleString()} {t("shared.etb")}
             </span>
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-zinc-700">Amount to Pay (ETB) *</label>
+            <label className="mb-1 block font-medium text-zinc-700">{t("customers.amountToPay")}</label>
             <input
               type="number"
               step="any"
               value={payAmount}
               onChange={(e) => setPayAmount(e.target.value)}
-              placeholder={`e.g. ${currentDebt > 0 ? Math.min(500, currentDebt) : 500}`}
+              placeholder={t("customers.examplePlaceholder", { n: currentDebt > 0 ? Math.min(500, currentDebt) : 500 })}
               className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-3 font-mono font-semibold text-zinc-900 focus:border-zinc-800 focus:outline-none transition-colors"
               required
             />
@@ -681,7 +689,7 @@ function ReceivePaymentModal({
                   onClick={() => setPayAmount(String(currentDebt))}
                   className="rounded border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-700 hover:bg-zinc-100 transition-colors"
                 >
-                  Pay Full ({currentDebt} ETB)
+                  {t("customers.payFull", { amount: currentDebt })}
                 </button>
                 {currentDebt > 100 && (
                   <button
@@ -689,7 +697,7 @@ function ReceivePaymentModal({
                     onClick={() => setPayAmount(String(Math.round(currentDebt / 2)))}
                     className="rounded border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-700 hover:bg-zinc-100 transition-colors"
                   >
-                    Pay Half ({Math.round(currentDebt / 2)} ETB)
+                    {t("customers.payHalf", { amount: Math.round(currentDebt / 2) })}
                   </button>
                 )}
               </div>
@@ -697,16 +705,16 @@ function ReceivePaymentModal({
           </div>
 
           <div>
-            <label className="mb-1 block font-medium text-zinc-700">Payment Channel</label>
+            <label className="mb-1 block font-medium text-zinc-700">{t("customers.paymentChannel")}</label>
             <select
               value={payMethod}
               onChange={(e) => setPayMethod(e.target.value as any)}
               className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 focus:border-zinc-800 focus:outline-none transition-colors"
             >
-              <option value="Cash">Cash</option>
-              <option value="Bank Transfer">CBE / Bank Transfer</option>
-              <option value="Mobile Payment">Telebirr / Mobile Money</option>
-              <option value="Card">Card</option>
+              <option value="Cash">{t("customers.payCash")}</option>
+              <option value="Bank Transfer">{t("customers.payBank")}</option>
+              <option value="Mobile Payment">{t("customers.payMobile")}</option>
+              <option value="Card">{t("customers.payCard")}</option>
             </select>
           </div>
           {actionError && <ActionError message={actionError} />}
@@ -717,14 +725,14 @@ function ReceivePaymentModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Processing..." : "Confirm Payment"}
+              {isSubmitting ? t("customers.processing") : t("customers.confirmPayment")}
             </button>
           </div>
         </form>
@@ -737,6 +745,7 @@ function ReceivePaymentModal({
 /* Page Component                                                     */
 /* ------------------------------------------------------------------ */
 export default function CustomersPage() {
+  const t = useT();
   const authUser = useAuthStore((state) => state.user);
   const isCashier = authUser?.role === "SALES";
   const activeShopId = useShopStore((state) => state.activeShopId);
@@ -879,24 +888,24 @@ export default function CustomersPage() {
 
   function handleDownload() {
     exportToCsv("customers-ledger", filteredCustomers, [
-      { header: "Customer ID", formatter: (c) => c.customerId || `CUST-${c.id.slice(0, 6).toUpperCase()}` },
-      { header: "Customer Name", key: "name" },
-      { header: "Phone Number", key: "phone" },
-      { header: "Address", key: "address" },
+      { header: t("customers.csvId"), formatter: (c) => c.customerId || `CUST-${c.id.slice(0, 6).toUpperCase()}` },
+      { header: t("customers.csvName"), key: "name" },
+      { header: t("shared.phone"), key: "phone" },
+      { header: t("shared.address"), key: "address" },
       {
-        header: "Outstanding Debt (ETB)",
+        header: t("customers.csvOutstanding"),
         formatter: (c) => parseFloat(String(c.debtBalance || "0")).toFixed(2),
       },
       {
-        header: "Credit Limit (ETB)",
+        header: t("customers.csvCreditLimit"),
         formatter: (c) => parseFloat(String(c.creditLimit || "5000")).toFixed(2),
       },
-      { header: "Status", formatter: (c) => c.status || "Active" },
+      { header: t("shared.status"), formatter: (c) => c.status || t("customers.statusActive") },
     ]);
   }
 
   if (loadError && customers.length === 0) {
-    return <LoadError what="customers" onRetry={load} />;
+    return <LoadError what={t("customers.noun")} onRetry={load} />;
   }
 
   return (
@@ -948,56 +957,56 @@ export default function CustomersPage() {
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Total Customers
+              {t("customers.totalCustomers")}
             </p>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {totalCustomersCount}
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              Registered client directory
+              {t("customers.registeredDirectory")}
             </p>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Active Debtors
+              {t("customers.activeDebtors")}
             </p>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-amber-700 tabular-nums">
               {debtorsCount}
             </p>
             <p className="mt-1 text-xs text-zinc-500">
               {totalCustomersCount > 0
-                ? `${Math.round((debtorsCount / totalCustomersCount) * 100)}% of customer base`
-                : "Clients with balance"}
+                ? t("customers.pctOfBase", { pct: Math.round((debtorsCount / totalCustomersCount) * 100) })
+                : t("customers.clientsWithBalance")}
             </p>
           </div>
 
           <div className="rounded-xl border border-rose-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-800">
-                Outstanding Debt
+                {t("customers.outstandingDebt")}
               </p>
               <span className="flex items-center gap-1 rounded-md border border-rose-200/60 bg-rose-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-rose-800">
                 <CreditCard className="size-3" />
-                Ledger
+                {t("customers.ledger")}
               </span>
             </div>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-rose-700 tabular-nums">
               {Math.round(totalDebtSum).toLocaleString()}{" "}
-              <span className="text-xs font-semibold text-rose-600">ETB</span>
+              <span className="text-xs font-semibold text-rose-600">{t("shared.etb")}</span>
             </p>
-            <p className="mt-1 text-xs text-zinc-500">Uncollected credit balance</p>
+            <p className="mt-1 text-xs text-zinc-500">{t("customers.uncollected")}</p>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Total Credit Allowed
+              {t("customers.totalCreditAllowed")}
             </p>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {Math.round(totalCreditLimitSum).toLocaleString()}{" "}
-              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </p>
-            <p className="mt-1 text-xs text-zinc-500">Aggregate trust facility</p>
+            <p className="mt-1 text-xs text-zinc-500">{t("customers.aggregateTrust")}</p>
           </div>
         </div>
 
@@ -1008,7 +1017,7 @@ export default function CustomersPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-base font-bold text-zinc-900 tracking-tight">
-                  Customers Directory
+                  {t("customers.directory")}
                 </h1>
                 <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-600">
                   {filteredCustomers.length}
@@ -1023,7 +1032,7 @@ export default function CustomersPage() {
                   className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                 >
                   <Download className="size-3.5 text-zinc-500" />
-                  <span>Export CSV</span>
+                  <span>{t("customers.exportCsv")}</span>
                 </button>
 
                 <button
@@ -1032,7 +1041,7 @@ export default function CustomersPage() {
                   className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
                 >
                   <Plus className="size-3.5 text-indigo-400" />
-                  <span>Add Customer</span>
+                  <span>{t("customers.addCustomer")}</span>
                 </button>
               </div>
             </div>
@@ -1042,9 +1051,9 @@ export default function CustomersPage() {
               {/* Segmented Filter Pills */}
               <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
                 {[
-                  { id: "ALL", label: "All Customers" },
-                  { id: "WITH_DEBT", label: "With Outstanding Debt" },
-                  { id: "NO_DEBT", label: "Zero Balance" },
+                  { id: "ALL", label: t("customers.tabAll") },
+                  { id: "WITH_DEBT", label: t("customers.tabWithDebt") },
+                  { id: "NO_DEBT", label: t("customers.tabNoDebt") },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -1074,7 +1083,7 @@ export default function CustomersPage() {
                       setSearch(e.target.value);
                       setPage(1);
                     }}
-                    placeholder="Search name, phone, code..."
+                    placeholder={t("customers.searchPlaceholder")}
                     className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
                   />
                 </div>
@@ -1090,7 +1099,7 @@ export default function CustomersPage() {
                     }`}
                   >
                     <SlidersHorizontal className="size-3.5" />
-                    <span>Filters</span>
+                    <span>{t("shared.filters")}</span>
                     {statusFilter !== "ALL" && (
                       <span className="size-1.5 rounded-full bg-[#5B4FE9]" />
                     )}
@@ -1099,7 +1108,7 @@ export default function CustomersPage() {
                   {showFilterDropdown && (
                     <div className="absolute right-0 top-10 z-30 w-56 rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-xl text-xs space-y-3">
                       <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-                        <span className="font-bold text-zinc-900">Filter Customers</span>
+                        <span className="font-bold text-zinc-900">{t("customers.filterCustomers")}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -1109,20 +1118,20 @@ export default function CustomersPage() {
                           className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-900"
                         >
                           <RotateCcw className="size-3" />
-                          Reset
+                          {t("shared.reset")}
                         </button>
                       </div>
 
                       <div>
-                        <label className="mb-1 block font-medium text-zinc-600">Account Status</label>
+                        <label className="mb-1 block font-medium text-zinc-600">{t("customers.accountStatus")}</label>
                         <select
                           value={statusFilter}
                           onChange={(e) => setStatusFilter(e.target.value)}
                           className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2 text-xs text-zinc-900 focus:outline-none focus:border-zinc-800"
                         >
-                          <option value="ALL">All Statuses</option>
-                          <option value="Active">Active</option>
-                          <option value="Overdue">Overdue</option>
+                          <option value="ALL">{t("customers.allStatuses")}</option>
+                          <option value="Active">{t("customers.statusActive")}</option>
+                          <option value="Overdue">{t("customers.statusOverdue")}</option>
                         </select>
                       </div>
                     </div>
@@ -1142,7 +1151,7 @@ export default function CustomersPage() {
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
-                      <span>Customer &amp; Code</span>
+                      <span>{t("customers.colCustomerCode")}</span>
                       {sortField === "name" ? (
                         sortDirection === "asc" ? (
                           <ArrowUp className="size-3 text-zinc-900" />
@@ -1154,13 +1163,13 @@ export default function CustomersPage() {
                       )}
                     </div>
                   </th>
-                  <th className="px-5 py-3 font-bold">Contact &amp; Address</th>
+                  <th className="px-5 py-3 font-bold">{t("customers.colContact")}</th>
                   <th
                     className="px-5 py-3 cursor-pointer hover:text-zinc-900 transition-colors"
                     onClick={() => handleSort("debt")}
                   >
                     <div className="flex items-center gap-1">
-                      <span>Outstanding Debt</span>
+                      <span>{t("customers.outstandingDebt")}</span>
                       {sortField === "debt" ? (
                         sortDirection === "asc" ? (
                           <ArrowUp className="size-3 text-zinc-900" />
@@ -1177,7 +1186,7 @@ export default function CustomersPage() {
                     onClick={() => handleSort("limit")}
                   >
                     <div className="flex items-center gap-1">
-                      <span>Credit Limit</span>
+                      <span>{t("customers.creditLimit")}</span>
                       {sortField === "limit" ? (
                         sortDirection === "asc" ? (
                           <ArrowUp className="size-3 text-zinc-900" />
@@ -1189,8 +1198,8 @@ export default function CustomersPage() {
                       )}
                     </div>
                   </th>
-                  <th className="px-5 py-3 font-bold">Status</th>
-                  <th className="px-5 py-3 text-right font-bold">Actions</th>
+                  <th className="px-5 py-3 font-bold">{t("shared.status")}</th>
+                  <th className="px-5 py-3 text-right font-bold">{t("shared.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -1207,10 +1216,10 @@ export default function CustomersPage() {
                         <Users className="size-6" />
                       </div>
                       <p className="mt-3 text-xs font-bold text-zinc-800">
-                        No customers match your filters
+                        {t("customers.noMatch")}
                       </p>
                       <p className="mt-1 text-[11px] text-zinc-400">
-                        Try clearing search terms or adding a new customer account.
+                        {t("customers.noMatchHint")}
                       </p>
                       <button
                         type="button"
@@ -1218,7 +1227,7 @@ export default function CustomersPage() {
                         className="mt-3.5 inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
                       >
                         <Plus className="size-3.5" />
-                        <span>Add Customer</span>
+                        <span>{t("customers.addCustomer")}</span>
                       </button>
                     </td>
                   </tr>
@@ -1253,7 +1262,7 @@ export default function CustomersPage() {
                             {customer.phone || "—"}
                           </p>
                           <p className="text-[11px] text-zinc-400 truncate max-w-xs mt-0.5">
-                            {customer.address || "Addis Ababa"}
+                            {customer.address || t("customers.defaultAddress")}
                           </p>
                         </td>
                         <td className="px-5 py-3.5">
@@ -1262,27 +1271,27 @@ export default function CustomersPage() {
                               debt > 0 ? "text-rose-700" : "text-emerald-700"
                             }`}
                           >
-                            {debt.toLocaleString()} ETB
+                            {debt.toLocaleString()} {t("shared.etb")}
                           </span>
                         </td>
                         <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-zinc-700">
-                          {limit.toLocaleString()} ETB
+                          {limit.toLocaleString()} {t("shared.etb")}
                         </td>
                         <td className="px-5 py-3.5">
                           {customer.status === "Overdue" ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-red-200/70 bg-red-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-red-700">
                               <span className="size-1.5 rounded-full bg-red-600" />
-                              Overdue
+                              {t("customers.statusOverdue")}
                             </span>
                           ) : debt > 0 ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200/70 bg-amber-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800">
                               <span className="size-1.5 rounded-full bg-amber-600" />
-                              With Debt
+                              {t("customers.withDebt")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800">
                               <span className="size-1.5 rounded-full bg-emerald-600" />
-                              Zero Debt
+                              {t("customers.zeroDebt")}
                             </span>
                           )}
                         </td>
@@ -1294,16 +1303,16 @@ export default function CustomersPage() {
                             <button
                               type="button"
                               onClick={() => handleOpenCustomer(customer)}
-                              title="View Customer Profile"
+                              title={t("customers.viewProfile")}
                               className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                             >
                               <FileText className="size-3 text-zinc-500" />
-                              <span>Profile</span>
+                              <span>{t("customers.profile")}</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => setCustomerToEdit(customer)}
-                              title="Edit Customer"
+                              title={t("customers.editCustomer")}
                               className="rounded-md border border-zinc-200/80 bg-white p-1 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                             >
                               <Edit2 className="size-3.5" />
@@ -1312,7 +1321,7 @@ export default function CustomersPage() {
                               <button
                                 type="button"
                                 onClick={() => setCustomerToDelete(customer)}
-                                title="Delete Customer"
+                                title={t("customers.deleteCustomer")}
                                 className="rounded-md border border-zinc-200/80 bg-white p-1 text-zinc-500 hover:bg-red-50 hover:text-red-700 transition-colors shadow-2xs"
                               >
                                 <Trash2 className="size-3.5" />
@@ -1328,7 +1337,7 @@ export default function CustomersPage() {
             </table>
           </div>
 
-          <TablePagination pagination={pagination} noun="customers" />
+          <TablePagination pagination={pagination} noun={t("customers.noun")} />
         </div>
       </div>
     </>

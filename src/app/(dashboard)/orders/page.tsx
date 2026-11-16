@@ -25,6 +25,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 
 import { LoadingState } from "@/components/shared/loading-state";
 import { getSales, processSaleReturn } from "@/lib/api/app-data";
@@ -197,6 +199,7 @@ function SaleReturnModal({
   onClose: () => void;
   onSuccess: (updatedSale: Sale) => void;
 }) {
+  const t = useT();
   const [returnItems, setReturnItems] = useState<
     Array<{
       productId: string;
@@ -209,7 +212,7 @@ function SaleReturnModal({
   >(() => {
     return (sale.items || []).map((it) => ({
       productId: it.productId,
-      name: it.product?.name || it.name || "Item",
+      name: it.product?.name || it.name || t("orders.item"),
       soldQty: it.quantity,
       unitPrice: parseFloat(String(it.unitPrice || "0")),
       returnQty: 0,
@@ -256,7 +259,7 @@ function SaleReturnModal({
   async function handleConfirmReturn(e: React.FormEvent) {
     e.preventDefault();
     if (totalReturnQty === 0) {
-      setErrorMsg("Please select at least 1 item quantity to return.");
+      setErrorMsg(t("orders.errNoQty"));
       return;
     }
 
@@ -315,7 +318,7 @@ function SaleReturnModal({
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: unknown }).message)
-          : "Failed to process sale return. Please try again.";
+          : t("orders.errReturnFailed");
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -333,11 +336,13 @@ function SaleReturnModal({
             </div>
             <div>
               <h3 className="text-sm font-bold tracking-tight text-zinc-900">
-                Process Sale Return &amp; Refund
+                {t("orders.returnTitle")}
               </h3>
               <p className="font-mono text-[10px] text-zinc-500">
-                #RCP-{sale.id.slice(0, 8).toUpperCase()} • Customer:{" "}
-                {sale.customer?.name || "Walk-in"}
+                {t("orders.receiptCustomer", {
+                  id: sale.id.slice(0, 8).toUpperCase(),
+                  name: sale.customer?.name || t("orders.walkIn"),
+                })}
               </p>
             </div>
           </div>
@@ -360,7 +365,7 @@ function SaleReturnModal({
           {/* Items Selector */}
           <div className="space-y-2">
             <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Select Items to Return &amp; Restock:
+              {t("orders.selectItems")}
             </label>
             <div className="max-h-56 overflow-y-auto divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-zinc-50/50 p-2">
               {returnItems.map((item) => (
@@ -369,7 +374,7 @@ function SaleReturnModal({
                     <div>
                       <p className="font-semibold text-zinc-900">{item.name}</p>
                       <p className="font-mono text-[10px] text-zinc-500">
-                        Sold: {item.soldQty} pcs @ {item.unitPrice.toFixed(2)} ETB
+                        {t("orders.soldLine", { qty: item.soldQty, price: item.unitPrice.toFixed(2) })}
                       </p>
                     </div>
                     {/* Stepper */}
@@ -403,14 +408,14 @@ function SaleReturnModal({
                         onChange={(e) => updateItemReason(item.productId, e.target.value)}
                         className="h-7 rounded-md border border-zinc-200 bg-white px-2 text-[11px] text-zinc-800 focus:border-[#5B4FE9] focus:outline-hidden"
                       >
-                        <option value="Defective / Damaged">Defective / Damaged</option>
-                        <option value="Customer Changed Mind">Customer Changed Mind</option>
-                        <option value="Wrong Item Supplied">Wrong Item Supplied</option>
-                        <option value="Expired / Quality Issue">Expired / Quality Issue</option>
-                        <option value="Other">Other Reason</option>
+                        <option value="Defective / Damaged">{t("orders.reasonDefective")}</option>
+                        <option value="Customer Changed Mind">{t("orders.reasonChangedMind")}</option>
+                        <option value="Wrong Item Supplied">{t("orders.reasonWrongItem")}</option>
+                        <option value="Expired / Quality Issue">{t("orders.reasonExpired")}</option>
+                        <option value="Other">{t("orders.reasonOther")}</option>
                       </select>
                       <span className="font-mono font-bold text-[#5B4FE9] text-[11px] tabular-nums">
-                        Refund: {(item.returnQty * item.unitPrice).toFixed(2)} ETB
+                        {t("orders.refundLine", { amount: (item.returnQty * item.unitPrice).toFixed(2) })}
                       </span>
                     </div>
                   )}
@@ -422,13 +427,13 @@ function SaleReturnModal({
           {/* Refund Tender Method */}
           <div className="space-y-1.5">
             <label className="font-semibold text-zinc-700">
-              Refund Payment Tender:
+              {t("orders.refundTender")}
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { id: "CASH", label: "Cash Refund" },
-                { id: "BANK", label: "Bank Return" },
-                { id: "TELEBIRR", label: "Telebirr Return" },
+                { id: "CASH", label: t("orders.cashRefund") },
+                { id: "BANK", label: t("orders.bankReturn") },
+                { id: "TELEBIRR", label: t("orders.telebirrReturn") },
               ].map((m) => (
                 <button
                   key={m.id}
@@ -449,13 +454,13 @@ function SaleReturnModal({
           {/* Refund Notes */}
           <div className="space-y-1">
             <label className="font-semibold text-zinc-700">
-              Return Audit Notes (Optional):
+              {t("orders.returnNotes")}
             </label>
             <input
               type="text"
               value={generalNotes}
               onChange={(e) => setGeneralNotes(e.target.value)}
-              placeholder="e.g. Return approved by manager"
+              placeholder={t("orders.returnNotesPlaceholder")}
               className="h-8.5 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:outline-hidden"
             />
           </div>
@@ -464,14 +469,14 @@ function SaleReturnModal({
           <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3.5 flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-zinc-900 block">
-                Total Refund Payout
+                {t("orders.totalRefund")}
               </span>
               <span className="text-[10px] text-zinc-500">
-                {totalReturnQty} items returning to shop inventory
+                {t.n("orders.itemsReturning", totalReturnQty)}
               </span>
             </div>
             <span className="font-mono text-base font-bold text-zinc-900 tabular-nums">
-              {totalRefundAmount.toFixed(2)} ETB
+              {totalRefundAmount.toFixed(2)} {t("shared.etb")}
             </span>
           </div>
 
@@ -483,7 +488,7 @@ function SaleReturnModal({
               disabled={isSubmitting}
               className="rounded-md border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
@@ -491,7 +496,7 @@ function SaleReturnModal({
               className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
               <RotateCcw className="size-3.5 text-indigo-400" />
-              <span>{isSubmitting ? "Processing..." : "Confirm Return & Restock"}</span>
+              <span>{isSubmitting ? t("orders.processing") : t("orders.confirmReturn")}</span>
             </button>
           </div>
         </form>
@@ -516,6 +521,8 @@ function SaleReceiptModal({
   onClose: () => void;
   onOpenReturn?: (sale: Sale) => void;
 }) {
+  const t = useT();
+  const { formatDateTime } = useFormat();
   if (!sale) return null;
 
   const totalNum = parseFloat(String(sale.totalAmount || "0"));
@@ -532,10 +539,10 @@ function SaleReceiptModal({
   const method = (sale.paymentMethod || "CASH").toUpperCase();
   const paymentMethodLabel =
     method === "BANK" || method === "CARD" || method === "BANK_TRANSFER"
-      ? "Bank Transfer"
+      ? t("orders.payBank")
       : method === "TELEBIRR" || method === "MOBILE"
-      ? "Telebirr"
-      : "Cash";
+      ? t("orders.payTelebirr")
+      : t("orders.payCash");
 
   const financials = computeSaleFinancials(sale);
 
@@ -548,7 +555,7 @@ function SaleReceiptModal({
               <Receipt className="size-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold tracking-tight text-zinc-900">Digital Sale Receipt</h3>
+              <h3 className="text-sm font-bold tracking-tight text-zinc-900">{t("orders.receiptTitle")}</h3>
               <p className="font-mono text-[10px] text-zinc-400">
                 #RCP-{sale.id.slice(0, 8).toUpperCase()}
               </p>
@@ -567,22 +574,16 @@ function SaleReceiptModal({
         <div className="my-4 rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 text-xs space-y-3">
           <div className="text-center pb-2 border-b border-dashed border-zinc-200">
             <h4 className="font-bold text-sm text-zinc-900">{shopName}</h4>
-            <p className="text-[11px] text-zinc-500">Official Checkout Register</p>
+            <p className="text-[11px] text-zinc-500">{t("orders.registerName")}</p>
             <p className="mt-1 font-mono text-[10px] text-zinc-400">
-              {new Date(sale.createdAt).toLocaleString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatDateTime(sale.createdAt)}
             </p>
           </div>
 
           <div className="flex justify-between text-[11px]">
-            <span className="text-zinc-500">Customer:</span>
+            <span className="text-zinc-500">{t("orders.customerLabel")}</span>
             <span className="font-semibold text-zinc-800">
-              {sale.customer?.name || "Walk-in Customer"}
+              {sale.customer?.name || t("orders.walkInCustomer")}
             </span>
           </div>
 
@@ -596,27 +597,25 @@ function SaleReceiptModal({
                 >
                   <div>
                     <p className="font-medium text-zinc-800">
-                      {item.product?.name || item.name || `Item #${idx + 1}`}
+                      {item.product?.name || item.name || t("orders.itemN", { n: idx + 1 })}
                     </p>
                     <p className="font-mono text-[10px] text-zinc-400 tabular-nums">
                       {item.quantity} ×{" "}
-                      {parseFloat(String(item.unitPrice || "0")).toFixed(2)} ETB
+                      {parseFloat(String(item.unitPrice || "0")).toFixed(2)} {t("shared.etb")}
                     </p>
                   </div>
                   <span className="font-mono font-semibold text-zinc-900 tabular-nums">
                     {(
                       item.quantity *
                       (parseFloat(String(item.unitPrice || "0")) || 0)
-                    ).toFixed(2)}{" "}
-                    ETB
-                  </span>
+                    ).toFixed(2)}{" "} {t("shared.etb")}</span>
                 </div>
               ))
             ) : (
               <div className="flex justify-between text-[11px]">
-                <span className="text-zinc-600">General POS Checkout Sale</span>
+                <span className="text-zinc-600">{t("orders.generalSale")}</span>
                 <span className="font-mono font-semibold text-zinc-900 tabular-nums">
-                  {totalNum.toFixed(2)} ETB
+                  {totalNum.toFixed(2)} {t("shared.etb")}
                 </span>
               </div>
             )}
@@ -625,25 +624,25 @@ function SaleReceiptModal({
           {/* Financial Breakdown */}
           <div className="space-y-1 text-[11px] pt-1">
             <div className="flex justify-between text-zinc-500">
-              <span>Subtotal:</span>
-              <span className="font-mono tabular-nums">{subtotalNum.toFixed(2)} ETB</span>
+              <span>{t("shared.subtotal")}:</span>
+              <span className="font-mono tabular-nums">{subtotalNum.toFixed(2)} {t("shared.etb")}</span>
             </div>
             {taxNum > 0 && (
               <div className="flex justify-between text-zinc-500">
-                <span>VAT / Tax (15%):</span>
-                <span className="font-mono tabular-nums">{taxNum.toFixed(2)} ETB</span>
+                <span>{t("orders.vat")}:</span>
+                <span className="font-mono tabular-nums">{taxNum.toFixed(2)} {t("shared.etb")}</span>
               </div>
             )}
             {discountNum > 0 && (
               <div className="flex justify-between text-emerald-600">
-                <span>Discount:</span>
-                <span className="font-mono tabular-nums">-{discountNum.toFixed(2)} ETB</span>
+                <span>{t("orders.discount")}:</span>
+                <span className="font-mono tabular-nums">-{discountNum.toFixed(2)} {t("shared.etb")}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-zinc-200 pt-1.5 text-xs font-bold text-zinc-900">
-              <span>Total Amount:</span>
+              <span>{t("orders.totalAmount")}:</span>
               <span className="font-mono text-sm tabular-nums">
-                {totalNum.toLocaleString()} ETB
+                {totalNum.toLocaleString()} {t("shared.etb")}
               </span>
             </div>
           </div>
@@ -651,40 +650,40 @@ function SaleReceiptModal({
           {/* Payment & Channel Details */}
           <div className="pt-2 border-t border-dashed border-zinc-200 space-y-1 text-[11px]">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Payment Tender:</span>
+              <span className="text-zinc-500">{t("orders.paymentMethod")}:</span>
               <span className="font-semibold text-zinc-800">{paymentMethodLabel}</span>
             </div>
             {sale.bankName && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Bank / Channel:</span>
+                <span className="text-zinc-500">{t("orders.bankChannel")}:</span>
                 <span className="font-semibold text-zinc-800">{sale.bankName}</span>
               </div>
             )}
             {sale.paymentReference && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">TxID / Reference:</span>
+                <span className="text-zinc-500">{t("orders.txRef")}:</span>
                 <span className="font-mono font-semibold text-zinc-800">
                   {sale.paymentReference}
                 </span>
               </div>
             )}
             <div className="flex justify-between items-center">
-              <span className="text-zinc-500">Status:</span>
+              <span className="text-zinc-500">{t("shared.status")}:</span>
               {isSaleCancelled(sale.status) ? (
                 <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-rose-700">
-                  Voided
+                  {t("orders.statusVoided")}
                 </span>
               ) : isSaleReturned(sale.status) ? (
                 <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-purple-700">
-                  Refunded
+                  {t("orders.statusRefunded")}
                 </span>
               ) : isSalePartiallyReturned(sale.status) ? (
                 <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-amber-700">
-                  Part-Refunded
+                  {t("orders.statusPartRefunded")}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] uppercase font-bold text-emerald-700">
-                  Completed
+                  {t("orders.statusCompleted")}
                 </span>
               )}
             </div>
@@ -700,9 +699,9 @@ function SaleReceiptModal({
               }`}
             >
               <div className="flex justify-between font-semibold">
-                <span>Net Gross Margin:</span>
+                <span>{t("orders.netMargin")}:</span>
                 <span className="font-mono tabular-nums">
-                  {financials.netProfit >= 0 ? "+" : ""}{financials.netProfit.toFixed(2)} ETB ({financials.marginPct?.toFixed(1)}%)
+                  {financials.netProfit >= 0 ? "+" : ""}{financials.netProfit.toFixed(2)} {t("shared.etb")} ({financials.marginPct?.toFixed(1)}%)
                 </span>
               </div>
               <div
@@ -710,8 +709,8 @@ function SaleReceiptModal({
                   financials.netProfit < 0 ? "text-rose-700" : "text-emerald-700"
                 }`}
               >
-                <span>Cost of Goods (COGS):</span>
-                <span className="font-mono tabular-nums">{financials.cogs.toFixed(2)} ETB</span>
+                <span>{t("orders.cogs")}:</span>
+                <span className="font-mono tabular-nums">{financials.cogs.toFixed(2)} {t("shared.etb")}</span>
               </div>
             </div>
           )}
@@ -726,7 +725,7 @@ function SaleReceiptModal({
               className="inline-flex items-center gap-1.5 rounded-md border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors shadow-2xs"
             >
               <RotateCcw className="size-3.5" />
-              <span>Process Return</span>
+              <span>{t("orders.processReturn")}</span>
             </button>
           ) : (
             <div />
@@ -738,7 +737,7 @@ function SaleReceiptModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
             >
-              Close
+              {t("shared.close")}
             </button>
             <button
               type="button"
@@ -746,7 +745,7 @@ function SaleReceiptModal({
               className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 transition-all active:scale-95"
             >
               <Printer className="size-3.5" />
-              <span>Print Receipt</span>
+              <span>{t("orders.printReceipt")}</span>
             </button>
           </div>
         </div>
@@ -771,6 +770,8 @@ function FinancialAuditReportModal({
   isCashier: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
+  const { formatTime } = useFormat();
   const activeSales = sales.filter((s) => isSaleActive(s.status));
 
   const totalRevenue = activeSales.reduce(
@@ -815,10 +816,10 @@ function FinancialAuditReportModal({
             </div>
             <div>
               <h3 className="text-base font-bold tracking-tight text-zinc-900">
-                Financial Audit Report
+                {t("orders.auditTitle")}
               </h3>
               <p className="text-xs text-zinc-500">
-                {shopName} • Timeframe: {dateLabel}
+                {t("orders.auditTimeframe", { shop: shopName, period: dateLabel })}
               </p>
             </div>
           </div>
@@ -841,14 +842,14 @@ function FinancialAuditReportModal({
           >
             <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
               <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                Gross Revenue
+                {t("orders.grossRevenue")}
               </p>
               <p className="mt-1 font-mono text-xl font-bold text-zinc-900 tabular-nums">
                 {Math.round(totalRevenue).toLocaleString()}{" "}
-                <span className="text-xs font-normal text-zinc-500">ETB</span>
+                <span className="text-xs font-normal text-zinc-500">{t("shared.etb")}</span>
               </p>
               <p className="mt-0.5 text-[11px] text-zinc-500">
-                {activeSales.length} Transactions
+                {t.n("orders.transactions", activeSales.length)}
               </p>
             </div>
 
@@ -856,13 +857,13 @@ function FinancialAuditReportModal({
               <>
                 <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
                   <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    Cost of Goods (COGS)
+                    {t("orders.cogs")}
                   </p>
                   <p className="mt-1 font-mono text-xl font-bold text-zinc-700 tabular-nums">
                     {Math.round(totalCOGS).toLocaleString()}{" "}
-                    <span className="text-xs font-normal text-zinc-500">ETB</span>
+                    <span className="text-xs font-normal text-zinc-500">{t("shared.etb")}</span>
                   </p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">Wholesale cost base</p>
+                  <p className="mt-0.5 text-[11px] text-zinc-500">{t("orders.wholesaleBase")}</p>
                 </div>
 
                 <div
@@ -877,7 +878,7 @@ function FinancialAuditReportModal({
                       netGrossProfit < 0 ? "text-rose-800" : "text-emerald-800"
                     }`}
                   >
-                    Net Gross Profit
+                    {t("orders.netGrossProfit")}
                   </p>
                   <p
                     className={`mt-1 font-mono text-xl font-bold tabular-nums ${
@@ -891,7 +892,7 @@ function FinancialAuditReportModal({
                         netGrossProfit < 0 ? "text-rose-600" : "text-emerald-600"
                       }`}
                     >
-                      ETB
+                      {t("shared.etb")}
                     </span>
                   </p>
                   <p
@@ -899,7 +900,7 @@ function FinancialAuditReportModal({
                       netGrossProfit < 0 ? "text-rose-800" : "text-emerald-800"
                     }`}
                   >
-                    {overallMargin.toFixed(1)}% Margin
+                    {t("orders.marginPct", { pct: overallMargin.toFixed(1) })}
                   </p>
                 </div>
               </>
@@ -908,15 +909,15 @@ function FinancialAuditReportModal({
             {isCashier && (
               <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                  Average Ticket
+                  {t("orders.averageTicket")}
                 </p>
                 <p className="mt-1 font-mono text-xl font-bold text-zinc-900 tabular-nums">
                   {activeSales.length > 0
                     ? Math.round(totalRevenue / activeSales.length).toLocaleString()
                     : 0}{" "}
-                  <span className="text-xs font-normal text-zinc-500">ETB</span>
+                  <span className="text-xs font-normal text-zinc-500">{t("shared.etb")}</span>
                 </p>
-                <p className="mt-0.5 text-[11px] text-zinc-500">Per transaction</p>
+                <p className="mt-0.5 text-[11px] text-zinc-500">{t("orders.perTransaction")}</p>
               </div>
             )}
           </div>
@@ -924,36 +925,36 @@ function FinancialAuditReportModal({
           {/* Tender Settlement Breakdown */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4 space-y-2.5">
             <h4 className="font-mono font-bold text-zinc-900 text-[10px] uppercase tracking-wider">
-              Settlement Channels Breakdown
+              {t("orders.settlementBreakdown")}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-center justify-between rounded-lg border border-emerald-200/80 bg-emerald-50/60 p-2.5">
                 <div className="flex items-center gap-2">
                   <Banknote className="size-4 text-emerald-600" />
-                  <span className="font-semibold text-emerald-900">Cash Register</span>
+                  <span className="font-semibold text-emerald-900">{t("orders.cashRegister")}</span>
                 </div>
                 <span className="font-mono font-bold text-emerald-950 tabular-nums">
-                  {cashTotal.toLocaleString()} ETB
+                  {cashTotal.toLocaleString()} {t("shared.etb")}
                 </span>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border border-blue-200/80 bg-blue-50/60 p-2.5">
                 <div className="flex items-center gap-2">
                   <Landmark className="size-4 text-blue-600" />
-                  <span className="font-semibold text-blue-900">Bank Transfer</span>
+                  <span className="font-semibold text-blue-900">{t("orders.payBank")}</span>
                 </div>
                 <span className="font-mono font-bold text-blue-950 tabular-nums">
-                  {bankTotal.toLocaleString()} ETB
+                  {bankTotal.toLocaleString()} {t("shared.etb")}
                 </span>
               </div>
 
               <div className="flex items-center justify-between rounded-lg border border-indigo-200/80 bg-indigo-50/60 p-2.5">
                 <div className="flex items-center gap-2">
                   <Smartphone className="size-4 text-[#5B4FE9]" />
-                  <span className="font-semibold text-indigo-950">Telebirr Mobile</span>
+                  <span className="font-semibold text-indigo-950">{t("orders.telebirrMobile")}</span>
                 </div>
                 <span className="font-mono font-bold text-indigo-950 tabular-nums">
-                  {telebirrTotal.toLocaleString()} ETB
+                  {telebirrTotal.toLocaleString()} {t("shared.etb")}
                 </span>
               </div>
             </div>
@@ -963,10 +964,10 @@ function FinancialAuditReportModal({
           <div className="rounded-xl border border-zinc-200/80 overflow-hidden">
             <div className="bg-zinc-50/80 px-4 py-2 border-b border-zinc-200/80 flex justify-between items-center">
               <span className="font-mono font-bold text-zinc-800 text-[10px] uppercase tracking-wider">
-                Audited Transactions ({activeSales.length})
+                {t("orders.auditedTransactions", { count: activeSales.length })}
               </span>
               <span className="text-[10px] text-zinc-500 font-mono">
-                Printed: {new Date().toLocaleTimeString()}
+                {t("orders.printedAt", { time: formatTime(new Date()) })}
               </span>
             </div>
             <div className="max-h-60 overflow-y-auto divide-y divide-zinc-100 text-[11px]">
@@ -983,31 +984,28 @@ function FinancialAuditReportModal({
                           #RCP-{s.id.slice(0, 8).toUpperCase()}
                         </span>
                         <span className="text-zinc-600">
-                          {s.customer?.name || "Walk-in"}
+                          {s.customer?.name || t("orders.walkIn")}
                         </span>
                         <span className="rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-zinc-600">
                           {s.paymentMethod || "CASH"}
                         </span>
                       </div>
                       <p className="font-mono text-[10px] text-zinc-400 mt-0.5">
-                        {new Date(s.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
+                        {formatTime(s.createdAt)}{" "}
                         •{" "}
                         {s.items && s.items.length > 0
                           ? s.items
                               .map(
                                 (it) =>
-                                  `${it.quantity}x ${it.product?.name || it.name || "Item"}`,
+                                  `${it.quantity}x ${it.product?.name || it.name || t("orders.item")}`,
                               )
                               .join(", ")
-                          : "General Sale"}
+                          : t("orders.generalSale")}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-mono font-bold text-zinc-900 tabular-nums">
-                        {parseFloat(String(s.totalAmount || "0")).toFixed(2)} ETB
+                        {parseFloat(String(s.totalAmount || "0")).toFixed(2)} {t("shared.etb")}
                       </p>
                       {!isCashier && f.netProfit !== undefined && (
                         <p
@@ -1015,7 +1013,7 @@ function FinancialAuditReportModal({
                             f.netProfit < 0 ? "text-rose-600" : "text-emerald-600"
                           }`}
                         >
-                          Profit: {f.netProfit >= 0 ? "+" : ""}{f.netProfit.toFixed(2)} ETB
+                          {t("orders.profitLine", { amount: `${f.netProfit >= 0 ? "+" : ""}${f.netProfit.toFixed(2)}` })}
                         </p>
                       )}
                     </div>
@@ -1033,7 +1031,7 @@ function FinancialAuditReportModal({
             onClick={onClose}
             className="rounded-md border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
           >
-            Close
+            {t("shared.close")}
           </button>
           <button
             type="button"
@@ -1041,7 +1039,7 @@ function FinancialAuditReportModal({
             className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all"
           >
             <Printer className="size-3.5" />
-            <span>Print Audit Statement</span>
+            <span>{t("orders.printAudit")}</span>
           </button>
         </div>
       </div>
@@ -1053,8 +1051,10 @@ function FinancialAuditReportModal({
 /* Page Component: Sales History & Receipts Ledger                    */
 /* ------------------------------------------------------------------ */
 export default function SalesHistoryPage() {
+  const t = useT();
+  const { formatDateTime } = useFormat();
   const activeShopId = useShopStore((state) => state.activeShopId);
-  const activeShopName = useShopStore((state) => state.activeShopName) || "Shop";
+  const activeShopName = useShopStore((state) => state.activeShopName) || t("orders.shop");
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
   const authUser = useAuthStore((state) => state.user);
@@ -1125,7 +1125,7 @@ export default function SalesHistoryPage() {
       prev.map((s) => (s.id === updatedSale.id ? { ...s, ...updatedSale, status: updatedSale.status } : s)),
     );
     setNotificationToast(
-      `Return processed successfully for Receipt #RCP-${updatedSale.id.slice(0, 8).toUpperCase()}. Products restocked.`,
+      t("orders.returnSuccess", { id: updatedSale.id.slice(0, 8).toUpperCase() }),
     );
     setTimeout(() => {
       setNotificationToast("");
@@ -1255,77 +1255,80 @@ export default function SalesHistoryPage() {
   const dateLabel = useMemo(() => {
     switch (dateFilter) {
       case "TODAY":
-        return "Today";
+        return t("shared.today");
       case "THIS_WEEK":
-        return "This Past 7 Days";
+        return t("orders.rangeWeek");
       case "THIS_MONTH":
-        return "This Month";
+        return t("orders.rangeMonth");
       case "CUSTOM":
-        return `${customStartDate || "Start"} to ${customEndDate || "Now"}`;
+        return t("orders.rangeCustom", {
+          start: customStartDate || t("orders.rangeStart"),
+          end: customEndDate || t("orders.rangeNow"),
+        });
       default:
-        return "All Time";
+        return t("orders.rangeAll");
     }
-  }, [dateFilter, customStartDate, customEndDate]);
+  }, [dateFilter, customStartDate, customEndDate, t]);
 
   // Comprehensive Financial Export to CSV
   function handleDownload() {
     const columns: Parameters<typeof exportToCsv<Sale>>[2] = [
       {
-        header: "Receipt ID",
+        header: t("orders.csvReceiptId"),
         formatter: (s) => `#RCP-${s.id.slice(0, 8).toUpperCase()}`,
       },
       {
-        header: "Date & Time",
+        header: t("orders.csvDateTime"),
         formatter: (s) => new Date(s.createdAt).toLocaleString(),
       },
       {
-        header: "Customer",
-        formatter: (s) => s.customer?.name || "Walk-in Customer",
+        header: t("orders.customer"),
+        formatter: (s) => s.customer?.name || t("orders.walkInCustomer"),
       },
       {
-        header: "Items Sold",
+        header: t("orders.csvItemsSold"),
         formatter: (s) =>
           s.items && s.items.length > 0
             ? s.items
                 .map((it) => {
-                  const name = it.product?.name || it.name || "Item";
+                  const name = it.product?.name || it.name || t("orders.item");
                   const sp = it.unitPrice || it.product?.price;
                   const bp = it.product?.buyingPrice;
                   const priceDetails =
                     bp !== undefined && bp !== null
-                      ? ` (Buy: ${parseFloat(String(bp)).toFixed(2)} ETB, Sell: ${sp ? parseFloat(String(sp)).toFixed(2) : "—"} ETB)`
+                      ? ` ${t("orders.csvBuySell", { buy: parseFloat(String(bp)).toFixed(2), sell: sp ? parseFloat(String(sp)).toFixed(2) : "—" })}`
                       : sp
-                      ? ` (Sell: ${parseFloat(String(sp)).toFixed(2)} ETB)`
+                      ? ` ${t("orders.csvSellOnly", { sell: parseFloat(String(sp)).toFixed(2) })}`
                       : "";
                   return `${it.quantity}x ${name}${priceDetails}`;
                 })
                 .join("; ")
-            : "General Sale",
+            : t("orders.generalSale"),
       },
-      { header: "Payment Channel", key: "paymentMethod" },
-      { header: "Bank / Provider", formatter: (s) => s.bankName || "-" },
-      { header: "TxID Reference", formatter: (s) => s.paymentReference || "-" },
+      { header: t("orders.csvPaymentChannel"), key: "paymentMethod" },
+      { header: t("orders.csvBankProvider"), formatter: (s) => s.bankName || "-" },
+      { header: t("orders.csvTxRef"), formatter: (s) => s.paymentReference || "-" },
       {
-        header: "Subtotal (ETB)",
+        header: t("orders.csvSubtotal"),
         formatter: (s) =>
           s.subtotal
             ? parseFloat(String(s.subtotal)).toFixed(2)
             : (parseFloat(String(s.totalAmount || "0")) / 1.15).toFixed(2),
       },
       {
-        header: "Discount (ETB)",
+        header: t("orders.csvDiscount"),
         formatter: (s) =>
           s.discountAmount
             ? parseFloat(String(s.discountAmount)).toFixed(2)
             : "0.00",
       },
       {
-        header: "VAT (ETB)",
+        header: t("orders.csvVat"),
         formatter: (s) =>
           s.taxAmount ? parseFloat(String(s.taxAmount)).toFixed(2) : "0.00",
       },
       {
-        header: "Total Revenue (ETB)",
+        header: t("orders.csvTotalRevenue"),
         formatter: (s) => parseFloat(String(s.totalAmount || "0")).toFixed(2),
       },
     ];
@@ -1333,33 +1336,33 @@ export default function SalesHistoryPage() {
     if (!isCashier) {
       columns.push(
         {
-          header: "COGS (ETB)",
+          header: t("orders.csvCogs"),
           formatter: (s) => {
             const f = computeSaleFinancials(s);
-            return f.hasCostData ? f.cogs.toFixed(2) : "N/A";
+            return f.hasCostData ? f.cogs.toFixed(2) : t("orders.na");
           },
         },
         {
-          header: "Net Profit (ETB)",
+          header: t("orders.csvNetProfit"),
           formatter: (s) => {
             const f = computeSaleFinancials(s);
-            return f.netProfit !== undefined ? f.netProfit.toFixed(2) : "N/A";
+            return f.netProfit !== undefined ? f.netProfit.toFixed(2) : t("orders.na");
           },
         },
         {
-          header: "Profit Margin %",
+          header: t("orders.csvProfitMargin"),
           formatter: (s) => {
             const f = computeSaleFinancials(s);
             return f.marginPct !== undefined
               ? `${f.marginPct.toFixed(1)}%`
-              : "N/A";
+              : t("orders.na");
           },
         },
       );
     }
 
     columns.push({
-      header: "Status",
+      header: t("shared.status"),
       formatter: (s) => s.status || "COMPLETED",
     });
 
@@ -1420,27 +1423,27 @@ export default function SalesHistoryPage() {
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Total Revenue ({dateLabel})
+              {t("orders.totalRevenueRange", { range: dateLabel })}
             </p>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {Math.round(totalRevenue).toLocaleString()}{" "}
-              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              {completedCount} completed sales
+              {t.n("orders.completedSales", completedCount)}
             </p>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Today&apos;s Revenue
+              {t("orders.todayRevenue")}
             </p>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
               {Math.round(todayRevenue).toLocaleString()}{" "}
-              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              {todaySalesList.length} sales today
+              {t.n("orders.salesToday", todaySalesList.length)}
             </p>
           </div>
 
@@ -1457,7 +1460,7 @@ export default function SalesHistoryPage() {
                     totalNetProfit < 0 ? "text-rose-800" : "text-emerald-800"
                   }`}
                 >
-                  Net Gross Profit
+                  {t("orders.netGrossProfit")}
                 </p>
                 <span
                   className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-bold ${
@@ -1486,36 +1489,36 @@ export default function SalesHistoryPage() {
                     totalNetProfit < 0 ? "text-rose-600" : "text-emerald-600"
                   }`}
                 >
-                  ETB
+                  {t("shared.etb")}
                 </span>
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                COGS: {Math.round(totalCOGS).toLocaleString()} ETB
+                {t("orders.cogsShort")}: {Math.round(totalCOGS).toLocaleString()} {t("shared.etb")}
               </p>
             </div>
           ) : (
             <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
               <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                Completed Transactions
+                {t("orders.completedTransactions")}
               </p>
               <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {completedCount}
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                All registered checkout tickets
+                {t("orders.allTickets")}
               </p>
             </div>
           )}
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Average Ticket (AOV)
+              {t("orders.avgTicketAov")}
             </p>
             <p className="mt-2 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {avgTicket.toLocaleString()}{" "}
-              <span className="text-xs font-semibold text-zinc-500">ETB</span>
+              <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </p>
-            <p className="mt-1 text-xs text-zinc-500">Per checkout transaction</p>
+            <p className="mt-1 text-xs text-zinc-500">{t("orders.perCheckout")}</p>
           </div>
         </div>
 
@@ -1526,7 +1529,7 @@ export default function SalesHistoryPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-base font-bold text-zinc-900 tracking-tight">
-                  Sales History &amp; Ledger
+                  {t("orders.title")}
                 </h1>
                 <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-600">
                   {filteredSales.length}
@@ -1534,7 +1537,7 @@ export default function SalesHistoryPage() {
                 {!isOnline && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 border border-amber-300">
                     <WifiOff className="size-2.5 text-amber-600" />
-                    <span>Offline Mode</span>
+                    <span>{t("orders.offlineMode")}</span>
                   </span>
                 )}
                 {isOnline && showingSavedCopy && (
@@ -1544,13 +1547,13 @@ export default function SalesHistoryPage() {
                     className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-800 hover:bg-rose-100"
                   >
                     <WifiOff className="size-2.5 text-rose-600" />
-                    <span>Couldn&apos;t reach server · showing saved copy · Retry</span>
+                    <span>{t("orders.savedCopy")}</span>
                   </button>
                 )}
                 {pendingCount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
                     <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                    <span>{pendingCount} offline queued</span>
+                    <span>{t("orders.offlineQueued", { count: pendingCount })}</span>
                   </span>
                 )}
               </div>
@@ -1563,7 +1566,7 @@ export default function SalesHistoryPage() {
                   className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                 >
                   <FileText className="size-3.5 text-zinc-500" />
-                  <span>Audit Statement</span>
+                  <span>{t("orders.auditStatement")}</span>
                 </button>
 
                 <button
@@ -1572,7 +1575,7 @@ export default function SalesHistoryPage() {
                   className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                 >
                   <Download className="size-3.5 text-zinc-500" />
-                  <span>Export CSV</span>
+                  <span>{t("orders.exportCsv")}</span>
                 </button>
 
                 <Link
@@ -1580,7 +1583,7 @@ export default function SalesHistoryPage() {
                   className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
                 >
                   <ShoppingCart className="size-3.5 text-indigo-400" />
-                  <span>New Sale</span>
+                  <span>{t("orders.newSale")}</span>
                 </Link>
               </div>
             </div>
@@ -1591,11 +1594,11 @@ export default function SalesHistoryPage() {
               <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
                 {(
                   [
-                    { id: "ALL", label: "All Time" },
-                    { id: "TODAY", label: "Today" },
-                    { id: "THIS_WEEK", label: "This Week" },
-                    { id: "THIS_MONTH", label: "This Month" },
-                    { id: "CUSTOM", label: "Custom Range" },
+                    { id: "ALL", label: t("orders.presetAll") },
+                    { id: "TODAY", label: t("shared.today") },
+                    { id: "THIS_WEEK", label: t("orders.presetWeek") },
+                    { id: "THIS_MONTH", label: t("orders.presetMonth") },
+                    { id: "CUSTOM", label: t("orders.presetCustom") },
                   ] as const
                 ).map((preset) => (
                   <button
@@ -1626,7 +1629,7 @@ export default function SalesHistoryPage() {
                       setSearch(e.target.value);
                       setPage(1);
                     }}
-                    placeholder="Search receipt, item, customer, TxID..."
+                    placeholder={t("orders.searchPlaceholder")}
                     className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
                   />
                 </div>
@@ -1642,7 +1645,7 @@ export default function SalesHistoryPage() {
                     }`}
                   >
                     <Filter className="size-3.5" />
-                    <span>Filters</span>
+                    <span>{t("shared.filters")}</span>
                     {(selectedMethod !== "ALL" || selectedStatus !== "ALL") && (
                       <span className="size-1.5 rounded-full bg-[#5B4FE9]" />
                     )}
@@ -1652,7 +1655,7 @@ export default function SalesHistoryPage() {
                     <div className="absolute right-0 top-10 z-30 w-64 rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-xl text-xs space-y-3">
                       <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
                         <span className="font-bold text-zinc-900">
-                          Filter Transactions
+                          {t("orders.filterTransactions")}
                         </span>
                         <button
                           type="button"
@@ -1667,40 +1670,40 @@ export default function SalesHistoryPage() {
                           className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-900"
                         >
                           <RotateCcw className="size-3" />
-                          Reset
+                          {t("shared.reset")}
                         </button>
                       </div>
 
                       <div>
                         <label className="mb-1 block font-medium text-zinc-600">
-                          Payment Tender
+                          {t("orders.paymentTender")}
                         </label>
                         <select
                           value={selectedMethod}
                           onChange={(e) => setSelectedMethod(e.target.value)}
                           className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2 text-xs text-zinc-900 focus:outline-none focus:border-zinc-800"
                         >
-                          <option value="ALL">All Tenders</option>
-                          <option value="CASH">Cash</option>
-                          <option value="BANK">Bank Transfer / Card</option>
-                          <option value="TELEBIRR">Telebirr / Mobile</option>
+                          <option value="ALL">{t("orders.allTenders")}</option>
+                          <option value="CASH">{t("orders.payCash")}</option>
+                          <option value="BANK">{t("orders.filterBank")}</option>
+                          <option value="TELEBIRR">{t("orders.filterTelebirr")}</option>
                         </select>
                       </div>
 
                       <div>
                         <label className="mb-1 block font-medium text-zinc-600">
-                          Status
+                          {t("shared.status")}
                         </label>
                         <select
                           value={selectedStatus}
                           onChange={(e) => setSelectedStatus(e.target.value)}
                           className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2 text-xs text-zinc-900 focus:outline-none focus:border-zinc-800"
                         >
-                          <option value="ALL">All Statuses</option>
-                          <option value="COMPLETED">Completed</option>
-                          <option value="PARTIALLY_REFUNDED">Partially Refunded</option>
-                          <option value="REFUNDED">Refunded / Returned</option>
-                          <option value="CANCELLED">Voided / Cancelled</option>
+                          <option value="ALL">{t("orders.allStatuses")}</option>
+                          <option value="COMPLETED">{t("orders.statusCompleted")}</option>
+                          <option value="PARTIALLY_REFUNDED">{t("orders.filterPartRefunded")}</option>
+                          <option value="REFUNDED">{t("orders.filterRefunded")}</option>
+                          <option value="CANCELLED">{t("orders.filterVoided")}</option>
                         </select>
                       </div>
                     </div>
@@ -1713,14 +1716,14 @@ export default function SalesHistoryPage() {
             {dateFilter === "CUSTOM" && (
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-2 text-xs animate-in fade-in duration-150">
                 <CalendarDays className="size-4 text-zinc-500" />
-                <span className="font-semibold text-zinc-700">From:</span>
+                <span className="font-semibold text-zinc-700">{t("orders.from")}</span>
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
                   className="h-7 rounded-md border border-zinc-200/80 bg-white px-2 text-xs font-mono text-zinc-800 focus:outline-none focus:border-zinc-800"
                 />
-                <span className="font-semibold text-zinc-700 ml-1">To:</span>
+                <span className="font-semibold text-zinc-700 ml-1">{t("orders.to")}</span>
                 <input
                   type="date"
                   value={customEndDate}
@@ -1736,7 +1739,7 @@ export default function SalesHistoryPage() {
                     }}
                     className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-900 ml-2"
                   >
-                    Clear Dates
+                    {t("orders.clearDates")}
                   </button>
                 )}
               </div>
@@ -1748,18 +1751,18 @@ export default function SalesHistoryPage() {
             <table className="w-full text-left text-xs text-zinc-600">
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
-                  <th className="px-5 py-3 font-bold">Receipt #</th>
-                  <th className="px-5 py-3 font-bold">Date &amp; Time</th>
-                  <th className="px-5 py-3 font-bold">Customer &amp; Items</th>
-                  <th className="px-5 py-3 font-bold">Tender Channel</th>
-                  <th className="px-5 py-3 font-bold">Total Revenue</th>
+                  <th className="px-5 py-3 font-bold">{t("orders.colReceipt")}</th>
+                  <th className="px-5 py-3 font-bold">{t("orders.csvDateTime")}</th>
+                  <th className="px-5 py-3 font-bold">{t("orders.colCustomerItems")}</th>
+                  <th className="px-5 py-3 font-bold">{t("orders.colPaymentChannel")}</th>
+                  <th className="px-5 py-3 font-bold">{t("orders.colTotalRevenue")}</th>
                   {!isCashier && (
                     <th className="px-5 py-3 font-bold text-emerald-800">
-                      Est. Profit
+                      {t("orders.colEstProfit")}
                     </th>
                   )}
-                  <th className="px-5 py-3 font-bold">Status</th>
-                  <th className="px-5 py-3 text-right font-bold">Actions</th>
+                  <th className="px-5 py-3 font-bold">{t("shared.status")}</th>
+                  <th className="px-5 py-3 text-right font-bold">{t("shared.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -1779,17 +1782,17 @@ export default function SalesHistoryPage() {
                         <Receipt className="size-6" />
                       </div>
                       <p className="mt-3 text-xs font-bold text-zinc-800">
-                        No sales transactions match your filters
+                        {t("orders.noMatch")}
                       </p>
                       <p className="mt-1 text-[11px] text-zinc-400">
-                        Try clearing search keywords or selecting a broader date timeframe.
+                        {t("orders.noMatchHint")}
                       </p>
                       <Link
                         href="/pos"
                         className="mt-3.5 inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors shadow-2xs"
                       >
                         <Plus className="size-3.5" />
-                        <span>Go to POS Register</span>
+                        <span>{t("orders.goToPos")}</span>
                       </Link>
                     </td>
                   </tr>
@@ -1814,7 +1817,7 @@ export default function SalesHistoryPage() {
                           #RCP-{sale.id.slice(0, 8).toUpperCase()}
                         </td>
                         <td className="px-5 py-3.5 text-zinc-500 font-mono text-[11px]">
-                          {new Date(sale.createdAt).toLocaleString("en-US", {
+                          {formatDateTime(sale.createdAt, {
                             month: "short",
                             day: "numeric",
                             hour: "2-digit",
@@ -1823,17 +1826,17 @@ export default function SalesHistoryPage() {
                         </td>
                         <td className="px-5 py-3.5 max-w-xs">
                           <p className="font-semibold text-zinc-900 truncate">
-                            {sale.customer?.name || "Walk-in Customer"}
+                            {sale.customer?.name || t("orders.walkInCustomer")}
                           </p>
                           <p className="text-[11px] text-zinc-500 truncate mt-0.5">
                             {sale.items && sale.items.length > 0
                               ? sale.items
                                   .map(
                                     (it) =>
-                                      `${it.quantity}x ${it.product?.name || it.name || "Item"}`,
+                                      `${it.quantity}x ${it.product?.name || it.name || t("orders.item")}`,
                                   )
                                   .join(", ")
-                              : "Standard POS Sale"}
+                              : t("orders.generalSale")}
                           </p>
                         </td>
                         <td className="px-5 py-3.5">
@@ -1841,7 +1844,7 @@ export default function SalesHistoryPage() {
                             {isCash && (
                               <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800">
                                 <Banknote className="size-3 text-emerald-600" />
-                                Cash
+                                {t("orders.payCash")}
                               </span>
                             )}
                             {isBank && (
@@ -1849,29 +1852,29 @@ export default function SalesHistoryPage() {
                                 <Landmark className="size-3 text-blue-600" />
                                 {sale.bankName
                                   ? sale.bankName.slice(0, 18)
-                                  : "Bank Transfer"}
+                                  : t("orders.payBank")}
                               </span>
                             )}
                             {isTelebirr && (
                               <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-amber-200/70 bg-amber-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800">
                                 <Smartphone className="size-3 text-amber-600" />
-                                Telebirr
+                                {t("orders.payTelebirr")}
                               </span>
                             )}
                             {!isCash && !isBank && !isTelebirr && (
                               <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-zinc-700">
-                                {sale.paymentMethod || "Other"}
+                                {sale.paymentMethod || t("orders.payOther")}
                               </span>
                             )}
                             {sale.paymentReference && (
                               <span className="font-mono text-[10px] text-zinc-400">
-                                Ref: {sale.paymentReference}
+                                {t("orders.refLine", { ref: sale.paymentReference })}
                               </span>
                             )}
                           </div>
                         </td>
                         <td className="px-5 py-3.5 font-mono font-bold text-zinc-900 tabular-nums">
-                          {totalVal.toLocaleString()} ETB
+                          {totalVal.toLocaleString()} {t("shared.etb")}
                         </td>
                         {!isCashier && (
                           <td className="px-5 py-3.5 font-mono tabular-nums">
@@ -1885,14 +1888,14 @@ export default function SalesHistoryPage() {
                                   }`}
                                 >
                                   {f.netProfit >= 0 ? "+" : ""}
-                                  {f.netProfit.toFixed(2)} ETB
+                                  {f.netProfit.toFixed(2)} {t("shared.etb")}
                                 </span>
                                 <span
                                   className={`block font-mono text-[10px] ${
                                     f.netProfit < 0 ? "text-rose-700" : "text-emerald-800"
                                   }`}
                                 >
-                                  {f.marginPct?.toFixed(1)}% margin
+                                  {t("orders.marginPct", { pct: f.marginPct?.toFixed(1) ?? "0" })}
                                 </span>
                               </div>
                             ) : (
@@ -1904,27 +1907,27 @@ export default function SalesHistoryPage() {
                           {isSaleCancelled(sale.status) ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-red-200/70 bg-red-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-red-700">
                               <span className="size-1.5 rounded-full bg-red-600" />
-                              Voided
+                              {t("orders.statusVoided")}
                             </span>
                           ) : isSaleReturned(sale.status) ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-purple-200/70 bg-purple-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-purple-700">
                               <span className="size-1.5 rounded-full bg-purple-600" />
-                              Refunded
+                              {t("orders.statusRefunded")}
                             </span>
                           ) : isSalePartiallyReturned(sale.status) ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200/70 bg-amber-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-700">
                               <span className="size-1.5 rounded-full bg-amber-600" />
-                              Part-Refunded
+                              {t("orders.statusPartRefunded")}
                             </span>
                           ) : sale.status === "PENDING" ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800">
                               <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-                              Offline Pending
+                              {t("orders.statusPending")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-700">
                               <span className="size-1.5 rounded-full bg-emerald-600" />
-                              Completed
+                              {t("orders.statusCompleted")}
                             </span>
                           )}
                         </td>
@@ -1936,7 +1939,7 @@ export default function SalesHistoryPage() {
                               className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
                             >
                               <Eye className="size-3.5 text-zinc-500" />
-                              <span>Receipt</span>
+                              <span>{t("orders.receipt")}</span>
                             </button>
                             {!isCashier &&
                               !isSaleCancelled(sale.status) &&
@@ -1947,15 +1950,15 @@ export default function SalesHistoryPage() {
                                   onClick={() => setReturnTargetSale(sale)}
                                   title={
                                     !isOnline
-                                      ? "Returns require an active internet connection"
+                                      ? t("orders.returnNeedsInternet")
                                       : sale.status === "PENDING"
-                                      ? "Offline sale must sync before processing a return"
-                                      : "Process return / refund"
+                                      ? t("orders.returnNeedsSync")
+                                      : t("orders.returnTitleBtn")
                                   }
                                   className="inline-flex items-center gap-1 rounded-md border border-purple-200/80 bg-purple-50/70 px-2.5 py-1 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <RotateCcw className="size-3 text-purple-600" />
-                                  <span>Return</span>
+                                  <span>{t("orders.returnBtn")}</span>
                                 </button>
                               )}
                           </div>
@@ -1968,7 +1971,7 @@ export default function SalesHistoryPage() {
             </table>
           </div>
 
-          <TablePagination pagination={pagination} noun="receipts" />
+          <TablePagination pagination={pagination} noun={t("orders.receiptsNoun")} />
         </div>
       </div>
     </>

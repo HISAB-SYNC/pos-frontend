@@ -34,6 +34,8 @@ import { createDebt, getCustomers, getDebts, getDebtSummary, recordDebtPayment, 
 import type { Customer, Debt, DebtSummary } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
@@ -50,6 +52,43 @@ const POPULAR_BANKS = [
   "Other Bank / Custom",
 ];
 
+type TFn = ReturnType<typeof useT>;
+
+/** Display label for a stored payment method / bank name (the stored value stays as is). */
+function methodLabel(t: TFn, value?: string | null) {
+  const v = (value || "Cash").trim();
+  switch (v.toLowerCase()) {
+    case "cash":
+      return t("debts.method.cash");
+    case "card":
+      return t("debts.method.card");
+    case "bank transfer":
+      return t("debts.method.bankTransfer");
+    case "mobile payment":
+      return t("debts.method.mobilePayment");
+    case "other bank / custom":
+      return t("debts.method.otherBank");
+    default:
+      return v;
+  }
+}
+
+/** Display label for a debt status value sent by the API. */
+function statusLabel(t: TFn, status?: string | null) {
+  switch ((status || "").toUpperCase()) {
+    case "PAID":
+      return t("debts.statusPaid");
+    case "PARTIAL":
+      return t("debts.statusPartial");
+    case "OVERDUE":
+      return t("debts.statusOverdue");
+    case "PENDING":
+      return t("debts.statusPending");
+    default:
+      return status || "";
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Modal: Debt Specific Payment & History Details                     */
 /* ------------------------------------------------------------------ */
@@ -62,6 +101,9 @@ function DebtDetailModal({
   onClose: () => void;
   onOpenPayment: (debt: Debt) => void;
 }) {
+  const t = useT();
+  const { formatDate } = useFormat();
+  const etb = t("shared.etb");
   if (!debt) return null;
 
   const totalAmount = parseFloat(debt.amount || "0");
@@ -77,37 +119,38 @@ function DebtDetailModal({
         <div className="mb-5 flex items-start justify-between border-b border-zinc-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-zinc-900 tracking-tight">Debt Voucher Details</h2>
+              <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("debts.voucherDetails")}</h2>
               <span className="rounded-md border border-zinc-200/80 bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-700">
                 {debt.id}
               </span>
               {isPaid ? (
                 <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800 border border-emerald-200/70">
-                  <CheckCircle2 className="size-3" /> PAID
+                  <CheckCircle2 className="size-3" /> {t("debts.statusPaid")}
                 </span>
               ) : debt.status === "PARTIAL" ? (
                 <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-blue-800 border border-blue-200/70">
-                  <Clock className="size-3" /> PARTIALLY PAID
+                  <Clock className="size-3" /> {t("debts.statusPartiallyPaid")}
                 </span>
               ) : debt.status === "OVERDUE" ? (
                 <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-rose-800 border border-rose-200/70">
-                  <AlertCircle className="size-3" /> OVERDUE
+                  <AlertCircle className="size-3" /> {t("debts.statusOverdue")}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-amber-800 border border-amber-200/70">
-                  <Clock className="size-3" /> PENDING
+                  <Clock className="size-3" /> {t("debts.statusPending")}
                 </span>
               )}
             </div>
             <p className="mt-1 text-xs text-zinc-500">
-              Customer: <span className="font-semibold text-zinc-800">{debt.customerName || "Customer"}</span> • Phone:{" "}
+              {t("debts.customer")}: <span className="font-semibold text-zinc-800">{debt.customerName || t("debts.customer")}</span> • {t("shared.phone")}:{" "}
               <span className="font-mono text-zinc-800">{debt.customerPhone || "—"}</span>
-              {debt.dueDate && ` • Due: ${debt.dueDate}`}
+              {debt.dueDate && ` • ${t("debts.due")}: ${debt.dueDate}`}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="flex size-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -117,21 +160,21 @@ function DebtDetailModal({
         {/* Amount Breakdown Cards */}
         <div className="mb-5 grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3 shadow-2xs">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Original Debt</span>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("debts.originalDebt")}</span>
             <p className="mt-1 text-sm font-bold text-zinc-900 font-mono tabular-nums">
-              {totalAmount.toLocaleString()} ETB
+              {totalAmount.toLocaleString()} {etb}
             </p>
           </div>
           <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/50 p-3 shadow-2xs">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">Total Repaid</span>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">{t("debts.totalRepaid")}</span>
             <p className="mt-1 text-sm font-bold text-emerald-700 font-mono tabular-nums">
-              {paidAmount.toLocaleString()} ETB
+              {paidAmount.toLocaleString()} {etb}
             </p>
           </div>
           <div className="rounded-xl border border-rose-200/70 bg-rose-50/50 p-3 shadow-2xs">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-800">Remaining Balance</span>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-800">{t("debts.remainingBalance")}</span>
             <p className="mt-1 text-sm font-bold text-rose-700 font-mono tabular-nums">
-              {remaining.toLocaleString()} ETB
+              {remaining.toLocaleString()} {etb}
             </p>
           </div>
         </div>
@@ -140,7 +183,7 @@ function DebtDetailModal({
         {debt.items && debt.items.length > 0 && (
           <div className="mb-4 rounded-xl border border-zinc-200/80 overflow-hidden shadow-2xs">
             <div className="bg-zinc-50/70 px-3.5 py-2 border-b border-zinc-200/80 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-              Itemized Products ({debt.items.length})
+              {t("debts.itemizedProducts", { count: debt.items.length })}
             </div>
             <div className="divide-y divide-zinc-100 text-xs">
               {debt.items.map((item, idx) => (
@@ -150,7 +193,7 @@ function DebtDetailModal({
                     <span className="text-zinc-400 ml-2">× {item.quantity}</span>
                   </div>
                   <div className="font-mono font-medium text-zinc-800 tabular-nums">
-                    {(item.totalPrice || (item.unitPrice || 0) * item.quantity).toLocaleString()} ETB
+                    {(item.totalPrice || (item.unitPrice || 0) * item.quantity).toLocaleString()} {etb}
                   </div>
                 </div>
               ))}
@@ -160,7 +203,7 @@ function DebtDetailModal({
 
         {debt.notes && (
           <div className="mb-4 rounded-lg border border-zinc-200/80 bg-zinc-50/60 p-2.5 text-xs text-zinc-700">
-            <span className="font-semibold text-zinc-900">Notes / Purpose:</span> {debt.notes}
+            <span className="font-semibold text-zinc-900">{t("debts.notesPurpose")}:</span> {debt.notes}
           </div>
         )}
 
@@ -168,7 +211,7 @@ function DebtDetailModal({
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Payment Installments ({payments.length})
+              {t("debts.paymentInstallments", { count: payments.length })}
             </h3>
             {!isPaid && (
               <button
@@ -179,7 +222,7 @@ function DebtDetailModal({
                 }}
                 className="flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
               >
-                <Plus className="size-3" /> Record Payment
+                <Plus className="size-3" /> {t("debts.recordPayment")}
               </button>
             )}
           </div>
@@ -188,10 +231,10 @@ function DebtDetailModal({
             <table className="w-full text-left text-xs">
               <thead className="sticky top-0 border-b border-zinc-200/80 bg-zinc-50/70 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Method / Tender</th>
-                  <th className="px-4 py-2">Reference</th>
-                  <th className="px-4 py-2 text-right">Amount Paid</th>
+                  <th className="px-4 py-2">{t("shared.date")}</th>
+                  <th className="px-4 py-2">{t("debts.methodTender")}</th>
+                  <th className="px-4 py-2">{t("debts.reference")}</th>
+                  <th className="px-4 py-2 text-right">{t("debts.amountPaid")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -199,18 +242,18 @@ function DebtDetailModal({
                   payments.map((p, idx) => (
                     <tr key={p.id || idx} className="hover:bg-zinc-50/60">
                       <td className="whitespace-nowrap px-4 py-2.5 text-zinc-700 font-mono text-[11px]">
-                        {p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                        {p.paidAt ? formatDate(p.paidAt) : "—"}
                       </td>
                       <td className="px-4 py-2.5">
                         <span className="rounded-md border border-zinc-200/80 bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-zinc-800">
-                          {p.paymentMethod || "Cash"}
+                          {methodLabel(t, p.paymentMethod)}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 font-mono text-[11px] text-zinc-600">
                         {p.reference || `PAY-${idx + 1}`}
                       </td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono font-bold text-emerald-600 tabular-nums">
-                        +{parseFloat(String(p.amount || "0")).toLocaleString()} ETB
+                        +{parseFloat(String(p.amount || "0")).toLocaleString()} {etb}
                       </td>
                     </tr>
                   ))
@@ -221,11 +264,11 @@ function DebtDetailModal({
                         <div className="flex size-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
                           <Coins className="size-4" />
                         </div>
-                        <p className="font-semibold text-xs text-zinc-700">No repayment installments recorded yet</p>
+                        <p className="font-semibold text-xs text-zinc-700">{t("debts.noInstallments")}</p>
                         <p className="text-[11px] text-zinc-400 max-w-xs text-center">
                           {isPaid
-                            ? "This debt voucher is already settled in full."
-                            : "Installments will appear here automatically when payments are recorded."}
+                            ? t("debts.settledInFull")
+                            : t("debts.installmentsAuto")}
                         </p>
                       </div>
                     </td>
@@ -243,7 +286,7 @@ function DebtDetailModal({
             onClick={onClose}
             className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
           >
-            Close
+            {t("shared.close")}
           </button>
           {!isPaid && (
             <button
@@ -255,7 +298,7 @@ function DebtDetailModal({
               className="flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
             >
               <Coins className="size-3.5 text-indigo-400" />
-              Receive Payment
+              {t("debts.receivePayment")}
             </button>
           )}
         </div>
@@ -291,6 +334,9 @@ function CustomerDebtHistoryContent({
   onOpenAddDebt,
   isCashier = false,
 }: CustomerDebtHistoryProps & { customer: Customer }) {
+  const t = useT();
+  const { formatDate } = useFormat();
+  const etb = t("shared.etb");
 
   // Aggregate stats
   const totalOutstanding = customerDebts.reduce((sum, d) => {
@@ -321,24 +367,26 @@ function CustomerDebtHistoryContent({
 
   function handleCopyStatement() {
     const stmt =
-      `*Debt Statement - ${customer.name}*\n` +
-      `Customer ID: ${customer.customerId || "CUST-001"}\n` +
-      `Phone: ${customer.phone || "—"}\n` +
-      `Total Outstanding: ${totalOutstanding.toLocaleString()} ETB\n` +
-      `Open Vouchers: ${unpaidDebts.length}\n` +
-      `Credit Limit: ${creditLimit.toLocaleString()} ETB\n` +
-      `Date: ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}\n\n` +
+      `${t("debts.stmtTitle", { name: customer.name })}\n` +
+      `${t("debts.stmtCustomerId", { id: customer.customerId || "CUST-001" })}\n` +
+      `${t("debts.stmtPhone", { phone: customer.phone || "—" })}\n` +
+      `${t("debts.stmtOutstanding", { amount: totalOutstanding.toLocaleString() })}\n` +
+      `${t("debts.stmtOpenVouchers", { count: unpaidDebts.length })}\n` +
+      `${t("debts.stmtCreditLimit", { amount: creditLimit.toLocaleString() })}\n` +
+      `${t("debts.stmtDate", { date: formatDate(new Date()) })}\n\n` +
       (unpaidDebts.length > 0
-        ? `*Pending Vouchers:*\n` +
+        ? `${t("debts.stmtPendingHeader")}\n` +
           unpaidDebts
-            .map(
-              (d) =>
-                `• #${d.id.slice(-6).toUpperCase()} - Remaining: ${parseFloat(
-                  d.remainingAmount || d.amount || "0",
-                ).toLocaleString()} ETB${d.dueDate ? ` (Due: ${d.dueDate})` : ""}`,
-            )
+            .map((d) => {
+              const vars = {
+                id: d.id.slice(-6).toUpperCase(),
+                amount: parseFloat(d.remainingAmount || d.amount || "0").toLocaleString(),
+                due: d.dueDate || "",
+              };
+              return d.dueDate ? t("debts.stmtLineDue", vars) : t("debts.stmtLine", vars);
+            })
             .join("\n")
-        : `All debt vouchers currently settled in full.`);
+        : t("debts.stmtAllSettled"));
 
     navigator.clipboard.writeText(stmt);
     setCopiedStatement(true);
@@ -370,16 +418,16 @@ function CustomerDebtHistoryContent({
                 </span>
                 {totalOutstanding <= 0 ? (
                   <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-emerald-800 border border-emerald-200/70">
-                    <CheckCircle2 className="size-3" /> SETTLED
+                    <CheckCircle2 className="size-3" /> {t("debts.statusSettled")}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-red-800 border border-red-200/70">
-                    ACTIVE DEBT
+                    {t("debts.statusActiveDebt")}
                   </span>
                 )}
               </div>
               <p className="mt-0.5 text-xs text-zinc-500">
-                Phone: <span className="font-mono text-zinc-800">{customer.phone || "No phone"}</span>
+                {t("shared.phone")}: <span className="font-mono text-zinc-800">{customer.phone || t("debts.noPhone")}</span>
                 {customer.address && ` • ${customer.address}`}
               </p>
             </div>
@@ -390,17 +438,17 @@ function CustomerDebtHistoryContent({
               type="button"
               onClick={handleCopyStatement}
               className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs active:scale-95"
-              title="Copy customer debt statement"
+              title={t("debts.copyStatementTitle")}
             >
               {copiedStatement ? (
                 <>
                   <Check className="size-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Copied!</span>
+                  <span className="text-emerald-700">{t("debts.copied")}</span>
                 </>
               ) : (
                 <>
                   <Copy className="size-3.5 text-zinc-500" />
-                  <span>Copy Statement</span>
+                  <span>{t("debts.copyStatement")}</span>
                 </>
               )}
             </button>
@@ -411,7 +459,7 @@ function CustomerDebtHistoryContent({
                 className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-800 hover:bg-zinc-50 transition-colors shadow-2xs active:scale-95"
               >
                 <Plus className="size-3.5 text-zinc-500" />
-                Add Debt
+                {t("debts.addDebt")}
               </button>
             )}
             {totalOutstanding > 0 && (
@@ -421,12 +469,13 @@ function CustomerDebtHistoryContent({
                 className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
               >
                 <Coins className="size-3.5 text-indigo-400" />
-                Receive Payment
+                {t("debts.receivePayment")}
               </button>
             )}
             <button
               type="button"
               onClick={onClose}
+              aria-label={t("shared.close")}
               className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
             >
               <X className="size-4" />
@@ -437,27 +486,27 @@ function CustomerDebtHistoryContent({
         {/* 4 Financial Metric Cards */}
         <div className="my-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5">
-            <span className="text-[11px] font-medium text-zinc-500">Current Outstanding</span>
+            <span className="text-[11px] font-medium text-zinc-500">{t("debts.currentOutstanding")}</span>
             <p className="mt-1 font-mono text-base font-bold text-red-600 tabular-nums">
-              {totalOutstanding.toLocaleString()} ETB
+              {totalOutstanding.toLocaleString()} {etb}
             </p>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5">
-            <span className="text-[11px] font-medium text-zinc-500">Credit Limit</span>
+            <span className="text-[11px] font-medium text-zinc-500">{t("debts.creditLimit")}</span>
             <p className="mt-1 font-mono text-base font-bold text-zinc-900 tabular-nums">
-              {creditLimit.toLocaleString()} ETB
+              {creditLimit.toLocaleString()} {etb}
             </p>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5">
-            <span className="text-[11px] font-medium text-zinc-500">Total Credit Purchases</span>
+            <span className="text-[11px] font-medium text-zinc-500">{t("debts.totalCreditPurchases")}</span>
             <p className="mt-1 font-mono text-base font-bold text-blue-600 tabular-nums">
-              {totalOriginal.toLocaleString()} ETB
+              {totalOriginal.toLocaleString()} {etb}
             </p>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-emerald-50/40 p-3.5">
-            <span className="text-[11px] font-medium text-emerald-800">Total Repaid</span>
+            <span className="text-[11px] font-medium text-emerald-800">{t("debts.totalRepaid")}</span>
             <p className="mt-1 font-mono text-base font-bold text-emerald-700 tabular-nums">
-              {totalRepaid.toLocaleString()} ETB
+              {totalRepaid.toLocaleString()} {etb}
             </p>
           </div>
         </div>
@@ -468,7 +517,7 @@ function CustomerDebtHistoryContent({
             <div className="flex items-center gap-2">
               <Receipt className="size-4 text-zinc-700" />
               <h3 className="text-xs font-bold text-zinc-900">
-                Debt Vouchers &amp; Purchases ({displayedDebts.length})
+                {t("debts.vouchersPurchases", { count: displayedDebts.length })}
               </h3>
             </div>
             {/* Filter Pills */}
@@ -482,7 +531,7 @@ function CustomerDebtHistoryContent({
                     : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
-                All ({sortedDebts.length})
+                {t("debts.filterAllCount", { count: sortedDebts.length })}
               </button>
               <button
                 type="button"
@@ -493,7 +542,7 @@ function CustomerDebtHistoryContent({
                     : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
-                Unpaid Only ({unpaidDebts.length})
+                {t("debts.unpaidOnlyCount", { count: unpaidDebts.length })}
               </button>
             </div>
           </div>
@@ -511,11 +560,11 @@ function CustomerDebtHistoryContent({
                 className="text-[11px] font-semibold text-zinc-700 hover:text-zinc-950 underline"
               >
                 {selectedHistoryDebtIds.length === unpaidDebts.length
-                  ? "Deselect All"
-                  : `Select All Unpaid (${unpaidDebts.length})`}
+                  ? t("debts.deselectAll")
+                  : t("debts.selectAllUnpaid", { count: unpaidDebts.length })}
               </button>
             )}
-            <span className="text-[11px] text-zinc-400">All credit vouchers &amp; repayments</span>
+            <span className="text-[11px] text-zinc-400">{t("debts.allCreditVouchers")}</span>
           </div>
         </div>
 
@@ -524,8 +573,8 @@ function CustomerDebtHistoryContent({
           {displayedDebts.length === 0 ? (
             <div className="rounded-xl border border-dashed border-zinc-200 p-8 text-center text-zinc-400 text-xs">
               {historyFilter === "UNPAID"
-                ? `No unpaid vouchers for ${customer.name}. All debt accounts are settled!`
-                : `No debt vouchers recorded for ${customer.name}.`}
+                ? t("debts.emptyUnpaid", { name: customer.name })
+                : t("debts.emptyNone", { name: customer.name })}
             </div>
           ) : (
             displayedDebts.map((d) => {
@@ -536,9 +585,9 @@ function CustomerDebtHistoryContent({
                 const isOverdue = d.status === "OVERDUE" || (!isPaid && d.dueDate && new Date(d.dueDate) < new Date());
                 const debtPayments = d.payments || [];
 
-                const shortVoucherId = d.id.includes("-")
-                  ? `Voucher #${d.id.split("-").pop()?.toUpperCase()}`
-                  : `Voucher #${d.id.slice(-6).toUpperCase()}`;
+                const shortVoucherId = t("debts.voucherNo", {
+                  id: d.id.includes("-") ? d.id.split("-").pop()?.toUpperCase() ?? "" : d.id.slice(-6).toUpperCase(),
+                });
 
                 return (
                   <div
@@ -561,34 +610,34 @@ function CustomerDebtHistoryContent({
                               );
                             }}
                             className="size-4 rounded border-zinc-300 text-zinc-950 focus:ring-0 cursor-pointer"
-                            title="Select voucher for batch payment"
+                            title={t("debts.selectVoucherBatch")}
                           />
                         )}
                         <span
                           className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-xs font-bold text-zinc-800"
-                          title={`Full Debt ID: ${d.id}`}
+                          title={t("debts.fullDebtId", { id: d.id })}
                         >
                           <Receipt className="size-3 text-zinc-500" />
                           {shortVoucherId}
                         </span>
                         <span className="text-[11px] text-zinc-400">
-                          {d.createdAt ? new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                          {d.createdAt ? formatDate(d.createdAt) : "—"}
                         </span>
                         {isPaid ? (
-                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
-                            PAID
+                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700 border border-emerald-200/60">
+                            {t("debts.statusPaid")}
                           </span>
                         ) : d.status === "PARTIAL" ? (
-                          <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/60">
-                            PARTIAL
+                          <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 border border-blue-200/60">
+                            {t("debts.statusPartial")}
                           </span>
                         ) : isOverdue ? (
-                          <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200/60">
-                            OVERDUE
+                          <span className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-700 border border-rose-200/60">
+                            {t("debts.statusOverdue")}
                           </span>
                         ) : (
-                          <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200/60">
-                            PENDING
+                          <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700 border border-amber-200/60">
+                            {t("debts.statusPending")}
                           </span>
                         )}
                       </div>
@@ -596,7 +645,7 @@ function CustomerDebtHistoryContent({
                       <div className="flex items-center gap-2">
                         {d.dueDate && (
                           <span className="text-[11px] text-zinc-500">
-                            Due: <span className="font-semibold text-zinc-800">{new Date(d.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                            {t("debts.due")}: <span className="font-semibold text-zinc-800">{formatDate(d.dueDate)}</span>
                           </span>
                         )}
                         {!isPaid && (
@@ -606,7 +655,7 @@ function CustomerDebtHistoryContent({
                             className="flex h-7 items-center gap-1 rounded-lg bg-slate-900 px-2.5 text-[11px] font-bold text-white shadow-xs hover:bg-slate-800 active:scale-95"
                           >
                             <Coins className="size-3 text-indigo-400" />
-                            Pay This Debt
+                            {t("debts.payThisDebt")}
                           </button>
                         )}
                       </div>
@@ -615,17 +664,17 @@ function CustomerDebtHistoryContent({
                     {/* Financial details per debt voucher */}
                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <span className="text-[10px] font-medium text-zinc-400 uppercase">Original Amount</span>
-                        <p className="font-mono font-bold text-zinc-900">{totalAmt.toLocaleString()} ETB</p>
+                        <span className="text-[10px] font-medium text-zinc-400 uppercase">{t("debts.originalAmount")}</span>
+                        <p className="font-mono font-bold text-zinc-900">{totalAmt.toLocaleString()} {etb}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] font-medium text-zinc-400 uppercase">Repaid Amount</span>
-                        <p className="font-mono font-bold text-emerald-600">{paidAmt.toLocaleString()} ETB</p>
+                        <span className="text-[10px] font-medium text-zinc-400 uppercase">{t("debts.repaidAmount")}</span>
+                        <p className="font-mono font-bold text-emerald-600">{paidAmt.toLocaleString()} {etb}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] font-medium text-zinc-400 uppercase">Remaining Due</span>
+                        <span className="text-[10px] font-medium text-zinc-400 uppercase">{t("debts.remainingDue")}</span>
                         <p className={`font-mono font-bold ${remAmt > 0 ? "text-red-600" : "text-zinc-500"}`}>
-                          {remAmt.toLocaleString()} ETB
+                          {remAmt.toLocaleString()} {etb}
                         </p>
                       </div>
                     </div>
@@ -636,12 +685,12 @@ function CustomerDebtHistoryContent({
                         <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-zinc-700">
                           <span className="flex items-center gap-1.5">
                             <Package className="size-3.5 text-zinc-500" />
-                            <span>Purchased Items ({d.items.length})</span>
+                            <span>{t("debts.purchasedItems", { count: d.items.length })}</span>
                           </span>
                         </div>
                         <div className="divide-y divide-zinc-200/60 rounded-lg border border-zinc-200/70 bg-white text-xs">
                           {d.items.map((it, idx) => {
-                            const itemName = it.name && it.name !== "Product" ? it.name : (it as any).product?.name || it.name || "Item";
+                            const itemName = it.name && it.name !== "Product" ? it.name : (it as any).product?.name || it.name || t("debts.item");
                             const unitPrice = typeof it.unitPrice === "number" ? it.unitPrice : parseFloat(String(it.unitPrice || 0));
                             const lineTotal = typeof it.totalPrice === "number" ? it.totalPrice : (unitPrice * (it.quantity || 1));
                             return (
@@ -654,11 +703,11 @@ function CustomerDebtHistoryContent({
                                 </div>
                                 <div className="text-right">
                                   <span className="font-mono font-bold text-zinc-900">
-                                    {lineTotal > 0 ? `${lineTotal.toLocaleString()} ETB` : "—"}
+                                    {lineTotal > 0 ? `${lineTotal.toLocaleString()} ${etb}` : "—"}
                                   </span>
                                   {unitPrice > 0 && it.quantity > 1 && (
                                     <span className="block text-[10px] text-zinc-400">
-                                      (@ {unitPrice.toLocaleString()} ETB)
+                                      {t("debts.atPrice", { price: unitPrice.toLocaleString() })}
                                     </span>
                                   )}
                                 </div>
@@ -671,7 +720,7 @@ function CustomerDebtHistoryContent({
                       <div className="mt-3 rounded-xl border border-zinc-200/70 bg-zinc-50/60 p-2.5 text-xs text-zinc-700">
                         <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold text-zinc-700">
                           <Package className="size-3.5 text-zinc-500" />
-                          <span>Purchased Goods &amp; Notes</span>
+                          <span>{t("debts.purchasedGoodsNotes")}</span>
                         </div>
                         <p className="rounded-lg border border-zinc-200/60 bg-white p-2 font-mono text-[11px] text-zinc-800">
                           {d.notes}
@@ -687,7 +736,7 @@ function CustomerDebtHistoryContent({
                     {/* Payment Audit Trail per Debt */}
                     {debtPayments.length > 0 && (
                       <div className="mt-3 border-t border-zinc-100 pt-2.5">
-                        <span className="text-[11px] font-bold text-zinc-700">Repayment Installments:</span>
+                        <span className="text-[11px] font-bold text-zinc-700">{t("debts.repaymentInstallments")}</span>
                         <div className="mt-1 space-y-1">
                           {debtPayments.map((p, idx) => (
                             <div
@@ -697,12 +746,12 @@ function CustomerDebtHistoryContent({
                               <div className="flex items-center gap-2">
                                 <span className="font-mono text-zinc-500">{p.reference || `PAY-${idx + 1}`}</span>
                                 <span className="rounded bg-zinc-200/70 px-1.5 py-0.2 font-medium text-zinc-800">
-                                  {p.paymentMethod || "Cash"}
+                                  {methodLabel(t, p.paymentMethod)}
                                 </span>
-                                <span>{p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}</span>
+                                <span>{p.paidAt ? formatDate(p.paidAt, { month: "short", day: "numeric" }) : ""}</span>
                               </div>
                               <span className="font-mono font-bold text-emerald-600">
-                                +{parseFloat(String(p.amount || 0)).toLocaleString()} ETB
+                                +{parseFloat(String(p.amount || 0)).toLocaleString()} {etb}
                               </span>
                             </div>
                           ))}
@@ -723,10 +772,10 @@ function CustomerDebtHistoryContent({
                 {selectedHistoryDebtIds.length}
               </span>
               <span className="text-xs font-semibold">
-                {selectedHistoryDebtIds.length === 1 ? "1 voucher selected" : `${selectedHistoryDebtIds.length} vouchers selected`}
+                {t.n("debts.vouchersSelected", selectedHistoryDebtIds.length)}
               </span>
               <span className="font-mono text-xs font-bold text-indigo-400">
-                {selectedHistoryDebtsSum.toLocaleString()} ETB
+                {selectedHistoryDebtsSum.toLocaleString()} {etb}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -735,7 +784,7 @@ function CustomerDebtHistoryContent({
                 onClick={() => setSelectedHistoryDebtIds([])}
                 className="rounded-lg px-2.5 py-1 text-xs text-zinc-400 hover:text-white"
               >
-                Clear
+                {t("debts.clear")}
               </button>
               <button
                 type="button"
@@ -747,7 +796,7 @@ function CustomerDebtHistoryContent({
                 className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-bold text-zinc-950 shadow-xs hover:bg-zinc-100 active:scale-95 cursor-pointer"
               >
                 <Coins className="size-3.5 text-zinc-950" />
-                Pay Selected Debts
+                {t("debts.paySelected")}
               </button>
             </div>
           </div>
@@ -759,7 +808,7 @@ function CustomerDebtHistoryContent({
             onClick={onClose}
             className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
           >
-            Close
+            {t("shared.close")}
           </button>
         </div>
       </div>
@@ -782,6 +831,8 @@ function CreateDebtModal({
   onSuccess: () => void;
   shopId?: string;
 }) {
+  const t = useT();
+  const etb = t("shared.etb");
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const [customerId, setCustomerId] = useState(initialCustomerId || customers[0]?.id || "");
@@ -827,7 +878,7 @@ function CreateDebtModal({
     e.preventDefault();
     const finalAmount = parseFloat(amount);
     if (!customerId || !finalAmount || finalAmount <= 0) {
-      setErrorMsg("Please select a customer and enter a valid debt amount.");
+      setErrorMsg(t("debts.errSelectCustomerAmount"));
       return;
     }
 
@@ -858,7 +909,7 @@ function CreateDebtModal({
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as any).message)
-          : "Failed to record debt.";
+          : t("debts.errRecordDebt");
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -870,10 +921,10 @@ function CreateDebtModal({
       <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold text-zinc-900 tracking-tight">Add Debt Voucher for Customer</h2>
-            <p className="text-xs text-zinc-500">Record itemized credit goods or standalone customer debt</p>
+            <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("debts.createDebt.title")}</h2>
+            <p className="text-xs text-zinc-500">{t("debts.createDebt.subtitle")}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100">
+          <button type="button" onClick={onClose} aria-label={t("shared.close")} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100">
             <X className="size-4" />
           </button>
         </div>
@@ -887,7 +938,7 @@ function CreateDebtModal({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Customer Selection */}
           <div>
-            <label className="mb-1 block font-semibold text-zinc-700">Customer *</label>
+            <label className="mb-1 block font-semibold text-zinc-700">{t("debts.customer")} *</label>
             <select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
@@ -896,14 +947,18 @@ function CreateDebtModal({
             >
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.phone || "No phone"}) — Debt: {parseFloat(c.debtBalance || "0").toLocaleString()} ETB
+                  {t("debts.customerOption", {
+                    name: c.name,
+                    phone: c.phone || t("debts.noPhone"),
+                    amount: parseFloat(c.debtBalance || "0").toLocaleString(),
+                  })}
                 </option>
               ))}
             </select>
             {selectedCustomer && (
               <div className="mt-1.5 flex items-center justify-between text-[11px] text-zinc-500">
-                <span>Credit Limit: {parseFloat(String(selectedCustomer.creditLimit || "5000")).toLocaleString()} ETB</span>
-                <span>Current Debt: {parseFloat(selectedCustomer.debtBalance || "0").toLocaleString()} ETB</span>
+                <span>{t("debts.creditLimitAmt", { amount: parseFloat(String(selectedCustomer.creditLimit || "5000")).toLocaleString() })}</span>
+                <span>{t("debts.currentDebtAmt", { amount: parseFloat(selectedCustomer.debtBalance || "0").toLocaleString() })}</span>
               </div>
             )}
           </div>
@@ -911,13 +966,13 @@ function CreateDebtModal({
           {/* Itemized Goods Section */}
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-zinc-800">Itemized Goods / Products</span>
+              <span className="font-bold text-zinc-800">{t("debts.itemizedGoods")}</span>
               <button
                 type="button"
                 onClick={() => setIsItemized(!isItemized)}
                 className="text-[11px] font-semibold text-zinc-600 underline"
               >
-                {isItemized ? "Switch to Simple Amount" : "Itemize Products"}
+                {isItemized ? t("debts.switchSimple") : t("debts.itemizeProducts")}
               </button>
             </div>
 
@@ -927,7 +982,7 @@ function CreateDebtModal({
                   <div key={idx} className="flex items-center gap-2">
                     <input
                       type="text"
-                      placeholder="Item name (e.g. Bread)"
+                      placeholder={t("debts.itemNamePlaceholder")}
                       value={item.name}
                       onChange={(e) => handleItemChange(idx, "name", e.target.value)}
                       className="h-8 flex-1 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-zinc-900 focus:outline-none"
@@ -935,7 +990,7 @@ function CreateDebtModal({
                     <input
                       type="number"
                       min="1"
-                      placeholder="Qty"
+                      placeholder={t("debts.qty")}
                       value={item.quantity}
                       onChange={(e) => handleItemChange(idx, "quantity", parseInt(e.target.value, 10) || 1)}
                       className="h-8 w-14 rounded-lg border border-zinc-200 bg-white px-2 text-center text-xs font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
@@ -944,7 +999,7 @@ function CreateDebtModal({
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="Price"
+                      placeholder={t("debts.price")}
                       value={item.unitPrice}
                       onChange={(e) => handleItemChange(idx, "unitPrice", parseFloat(e.target.value) || 0)}
                       className="h-8 w-20 rounded-lg border border-zinc-200 bg-white px-2 text-right text-xs font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
@@ -953,6 +1008,7 @@ function CreateDebtModal({
                       type="button"
                       onClick={() => handleRemoveItem(idx)}
                       disabled={items.length <= 1}
+                      aria-label={t("shared.delete")}
                       className="text-zinc-400 hover:text-red-600 p-1 disabled:opacity-30"
                     >
                       <Trash2 className="size-3.5" />
@@ -965,7 +1021,7 @@ function CreateDebtModal({
                   onClick={handleAddItem}
                   className="flex items-center gap-1 text-[11px] font-bold text-zinc-800 hover:underline pt-1"
                 >
-                  <Plus className="size-3" /> Add Another Item
+                  <Plus className="size-3" /> {t("debts.addAnotherItem")}
                 </button>
               </div>
             ) : null}
@@ -973,7 +1029,7 @@ function CreateDebtModal({
 
           {/* Debt Amount Input */}
           <div>
-            <label className="mb-1 block font-semibold text-zinc-700">Total Debt Amount (ETB) *</label>
+            <label className="mb-1 block font-semibold text-zinc-700">{t("debts.totalDebtAmount")}</label>
             <div className="relative">
               <input
                 type="number"
@@ -986,7 +1042,7 @@ function CreateDebtModal({
                 className="h-10 w-full rounded-xl border border-zinc-200 px-3 pr-12 font-mono text-sm font-bold text-zinc-900 focus:border-zinc-900 focus:outline-none"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs font-semibold text-zinc-400">
-                ETB
+                {etb}
               </span>
             </div>
           </div>
@@ -994,7 +1050,7 @@ function CreateDebtModal({
           {/* Due Date & Purpose Notes */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block font-medium text-zinc-700">Due Date</label>
+              <label className="mb-1 block font-medium text-zinc-700">{t("debts.dueDate")}</label>
               <input
                 type="date"
                 value={dueDate}
@@ -1004,11 +1060,11 @@ function CreateDebtModal({
             </div>
 
             <div>
-              <label className="mb-1 block font-medium text-zinc-700">Notes / Agreement</label>
+              <label className="mb-1 block font-medium text-zinc-700">{t("debts.notesAgreement")}</label>
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Month-end repayment"
+                placeholder={t("debts.notesAgreementPh")}
                 className="h-9 w-full rounded-xl border border-zinc-200 px-3 text-zinc-900 focus:border-zinc-900 focus:outline-none"
               />
             </div>
@@ -1020,14 +1076,14 @@ function CreateDebtModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-1.5 font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Recording..." : "Record Debt Voucher"}
+              {isSubmitting ? t("debts.recording") : t("debts.recordVoucher")}
             </button>
           </div>
         </form>
@@ -1056,6 +1112,8 @@ function ReceivePaymentModal({
   onClose: () => void;
   onSuccess: (settledDebtIds?: string[], newBalance?: number, updatedDebts?: Debt[]) => void;
 }) {
+  const t = useT();
+  const etb = t("shared.etb");
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const defaultCustId =
@@ -1235,15 +1293,15 @@ function ReceivePaymentModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedCustId) {
-      setErrorMsg("Please select a customer.");
+      setErrorMsg(t("debts.errSelectCustomer"));
       return;
     }
     if (payVal <= 0) {
-      setErrorMsg("Payment amount must be greater than zero.");
+      setErrorMsg(t("debts.errAmountZero"));
       return;
     }
     if (payVal > targetCeiling + 0.05) {
-      setErrorMsg(`Payment cannot exceed the selected balance of ${targetCeiling.toLocaleString()} ETB.`);
+      setErrorMsg(t("debts.errExceed", { amount: targetCeiling.toLocaleString() }));
       return;
     }
 
@@ -1271,7 +1329,7 @@ function ReceivePaymentModal({
       });
       onSuccess(selectedDebtIds, newDebtBalance, payRes?.debts);
     } catch {
-      setErrorMsg("Failed to record debt payment. Please check values.");
+      setErrorMsg(t("debts.errRecordPayment"));
     } finally {
       setIsSubmitting(false);
     }
@@ -1290,10 +1348,10 @@ function ReceivePaymentModal({
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-zinc-900">
                   {targetDebt
-                    ? "Settle Debt Voucher"
+                    ? t("debts.settleVoucher")
                     : selectedDebtIds.length > 1
-                    ? `Settle Multiple Vouchers (${selectedDebtIds.length})`
-                    : "Receive Debt Payment"}
+                    ? t("debts.settleMultiple", { count: selectedDebtIds.length })
+                    : t("debts.receiveDebtPayment")}
                 </h2>
                 {targetDebt && (
                   <span className="rounded bg-zinc-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-zinc-700">
@@ -1303,14 +1361,18 @@ function ReceivePaymentModal({
               </div>
               <p className="text-xs text-zinc-500">
                 {selectedCustomer
-                  ? `${selectedCustomer.name} • ${selectedCustomer.phone || "No phone"} • ${customerOpenDebts.length} open vouchers`
-                  : "Choose customer to settle debt vouchers"}
+                  ? t.n("debts.customerOpenLine", customerOpenDebts.length, {
+                      name: selectedCustomer.name,
+                      phone: selectedCustomer.phone || t("debts.noPhone"),
+                    })
+                  : t("debts.chooseCustomerSettle")}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="flex size-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -1335,9 +1397,9 @@ function ReceivePaymentModal({
                 <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Debtor Profile</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t("debts.debtorProfile")}</span>
                       <h3 className="text-sm font-bold text-zinc-900">
-                        {selectedCustomer?.name || targetDebt?.customerName || targetDebts?.[0]?.customerName || "Customer"}
+                        {selectedCustomer?.name || targetDebt?.customerName || targetDebts?.[0]?.customerName || t("debts.customer")}
                       </h3>
                       <p className="font-mono text-[11px] text-zinc-500">
                         {selectedCustomer?.phone || targetDebt?.customerPhone || targetDebts?.[0]?.customerPhone || "—"}
@@ -1351,9 +1413,9 @@ function ReceivePaymentModal({
                   {/* Credit Utilization Bar */}
                   <div className="mt-3 border-t border-zinc-200/60 pt-2.5">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-zinc-500">Credit Limit Utilization</span>
+                      <span className="text-zinc-500">{t("debts.creditUtilizationLimit")}</span>
                       <span className="font-mono font-semibold text-zinc-800">
-                        {creditUtilizationPct}% ({totalCustomerDebt.toLocaleString()} / {creditLimit.toLocaleString()} ETB)
+                        {creditUtilizationPct}% ({totalCustomerDebt.toLocaleString()} / {creditLimit.toLocaleString()} {etb})
                       </span>
                     </div>
                     <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
@@ -1373,7 +1435,7 @@ function ReceivePaymentModal({
               ) : (
                 <div className="space-y-2 rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 shadow-2xs">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    Select Debtor Customer *
+                    {t("debts.selectDebtor")}
                   </label>
                   <select
                     value={selectedCustId}
@@ -1382,7 +1444,11 @@ function ReceivePaymentModal({
                   >
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} — {parseFloat(c.debtBalance || "0").toLocaleString()} ETB Debt ({c.phone || "No phone"})
+                        {t("debts.debtorOption", {
+                          name: c.name,
+                          amount: parseFloat(c.debtBalance || "0").toLocaleString(),
+                          phone: c.phone || t("debts.noPhone"),
+                        })}
                       </option>
                     ))}
                   </select>
@@ -1390,9 +1456,9 @@ function ReceivePaymentModal({
                   {selectedCustomer && (
                     <div className="pt-2">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-zinc-500">Credit Utilization</span>
+                        <span className="text-zinc-500">{t("debts.creditUtilization")}</span>
                         <span className="font-mono font-semibold text-zinc-800">
-                          {creditUtilizationPct}% ({totalCustomerDebt.toLocaleString()} / {creditLimit.toLocaleString()} ETB)
+                          {creditUtilizationPct}% ({totalCustomerDebt.toLocaleString()} / {creditLimit.toLocaleString()} {etb})
                         </span>
                       </div>
                       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
@@ -1419,7 +1485,7 @@ function ReceivePaymentModal({
                     <div className="flex items-center gap-1.5">
                       <Receipt className="size-3.5 text-zinc-600" />
                       <span className="font-bold text-zinc-900 text-xs">
-                        Open Vouchers ({selectedDebtIds.length}/{customerOpenDebts.length})
+                        {t("debts.openVouchersCount", { selected: selectedDebtIds.length, total: customerOpenDebts.length })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1428,7 +1494,7 @@ function ReceivePaymentModal({
                         onClick={handleSelectAllDebts}
                         className="text-[11px] font-bold text-zinc-900 underline hover:text-black"
                       >
-                        Select All
+                        {t("debts.selectAll")}
                       </button>
                       <span className="text-zinc-300">•</span>
                       <button
@@ -1436,7 +1502,7 @@ function ReceivePaymentModal({
                         onClick={handleDeselectAll}
                         className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-800"
                       >
-                        Clear
+                        {t("debts.clear")}
                       </button>
                     </div>
                   </div>
@@ -1473,11 +1539,11 @@ function ReceivePaymentModal({
                               <span className="font-mono font-bold text-zinc-900 text-xs">#{shortId}</span>
                               {isOverdue && (
                                 <span className="rounded bg-rose-50 px-1.5 py-0.2 text-[9px] font-bold text-rose-700 border border-rose-200/60">
-                                  OVERDUE
+                                  {t("debts.statusOverdue")}
                                 </span>
                               )}
                               {d.dueDate && (
-                                <span className="text-[10px] text-zinc-400">Due: {d.dueDate}</span>
+                                <span className="text-[10px] text-zinc-400">{t("debts.due")}: {d.dueDate}</span>
                               )}
                             </div>
 
@@ -1485,19 +1551,19 @@ function ReceivePaymentModal({
                             <div>
                               {!isSelected ? (
                                 <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400">
-                                  Not Selected
+                                  {t("debts.notSelected")}
                                 </span>
                               ) : alloc?.status === "FULLY_PAID" ? (
                                 <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                                  <Check className="size-2.5" /> Fully Paid
+                                  <Check className="size-2.5" /> {t("debts.fullyPaid")}
                                 </span>
                               ) : alloc?.status === "PARTIAL" ? (
                                 <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800">
-                                  Partial (+{alloc.allocated.toLocaleString()} ETB)
+                                  {t("debts.partialPlus", { amount: alloc.allocated.toLocaleString() })}
                                 </span>
                               ) : (
                                 <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
-                                  Unchanged
+                                  {t("debts.unchanged")}
                                 </span>
                               )}
                             </div>
@@ -1513,9 +1579,9 @@ function ReceivePaymentModal({
                           ) : null}
 
                           <div className="flex items-center justify-between border-t border-zinc-100 pt-1.5 pl-6 text-[11px]">
-                            <span className="text-zinc-400 font-mono">Orig: {total.toLocaleString()} ETB</span>
+                            <span className="text-zinc-400 font-mono">{t("debts.origAmount", { amount: total.toLocaleString() })}</span>
                             <span className="font-mono font-bold text-red-600">
-                              Due: {remaining.toLocaleString()} ETB
+                              {t("debts.dueAmount", { amount: remaining.toLocaleString() })}
                             </span>
                           </div>
                         </div>
@@ -1525,7 +1591,7 @@ function ReceivePaymentModal({
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-zinc-200 p-6 text-center text-zinc-400 text-xs">
-                  No open debt vouchers found for this customer.
+                  {t("debts.noOpenVouchers")}
                 </div>
               )}
             </div>
@@ -1538,14 +1604,14 @@ function ReceivePaymentModal({
               <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                    Payment Amount (ETB) *
+                    {t("debts.paymentAmountEtb")}
                   </label>
                   <button
                     type="button"
                     onClick={() => setAmount(String(targetCeiling))}
                     className="text-[11px] font-bold text-zinc-900 underline hover:text-black"
                   >
-                    Pay Full ({targetCeiling.toLocaleString()} ETB)
+                    {t("debts.payFull", { amount: targetCeiling.toLocaleString() })}
                   </button>
                 </div>
 
@@ -1561,7 +1627,7 @@ function ReceivePaymentModal({
                     required
                   />
                   <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-zinc-400">
-                    ETB
+                    {etb}
                   </span>
                 </div>
 
@@ -1582,7 +1648,7 @@ function ReceivePaymentModal({
                     onClick={() => setAmount(String(totalCustomerDebt))}
                     className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100 shadow-2xs transition-colors"
                   >
-                    Clear All Balance
+                    {t("debts.clearAllBalance")}
                   </button>
                 </div>
               </div>
@@ -1590,16 +1656,16 @@ function ReceivePaymentModal({
               {/* 1-Tap Tender Chips */}
               <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs space-y-2">
                 <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                  Payment Method / Tender
+                  {t("debts.paymentMethodTender")}
                 </label>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {(
                     [
-                      { id: "Cash", label: "Cash", icon: Banknote },
+                      { id: "Cash", label: t("debts.method.cash"), icon: Banknote },
                       { id: "Telebirr", label: "Telebirr", icon: Smartphone },
-                      { id: "CBE Bank", label: "CBE Bank", icon: Landmark },
-                      { id: "Card", label: "Card", icon: CreditCard },
-                      { id: "Other Bank", label: "Other Bank", icon: Landmark },
+                      { id: "CBE Bank", label: t("debts.tenderCbe"), icon: Landmark },
+                      { id: "Card", label: t("debts.method.card"), icon: CreditCard },
+                      { id: "Other Bank", label: t("debts.tenderOtherBank"), icon: Landmark },
                     ] as const
                   ).map((tender) => {
                     const Icon = tender.icon;
@@ -1625,7 +1691,7 @@ function ReceivePaymentModal({
                 {/* Bank dropdown for Other Bank */}
                 {activeTenderKey === "Other Bank" && (
                   <div className="pt-2">
-                    <label className="mb-1 block font-medium text-zinc-700 text-[11px]">Select Bank Name</label>
+                    <label className="mb-1 block font-medium text-zinc-700 text-[11px]">{t("debts.selectBankName")}</label>
                     <select
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
@@ -1633,7 +1699,7 @@ function ReceivePaymentModal({
                     >
                       {POPULAR_BANKS.map((b) => (
                         <option key={b} value={b}>
-                          {b}
+                          {methodLabel(t, b)}
                         </option>
                       ))}
                     </select>
@@ -1644,7 +1710,7 @@ function ReceivePaymentModal({
               {/* Reference & Notes */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block font-semibold text-zinc-700 text-[11px]">Reference / Txn ID</label>
+                  <label className="mb-1 block font-semibold text-zinc-700 text-[11px]">{t("debts.referenceTxn")}</label>
                   <input
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
@@ -1653,11 +1719,11 @@ function ReceivePaymentModal({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block font-semibold text-zinc-700 text-[11px]">Notes (Optional)</label>
+                  <label className="mb-1 block font-semibold text-zinc-700 text-[11px]">{t("debts.notesOptional")}</label>
                   <input
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Counter repayment"
+                    placeholder={t("debts.counterRepayment")}
                     className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-900 focus:border-slate-900 focus:outline-none"
                   />
                 </div>
@@ -1666,34 +1732,34 @@ function ReceivePaymentModal({
               {/* Financial Balance Ledger Summary */}
               <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4 space-y-2 shadow-2xs">
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Total Customer Debt:</span>
+                  <span className="text-zinc-500">{t("debts.totalCustomerDebt")}</span>
                   <span className="font-bold text-zinc-900 font-mono tabular-nums">
-                    {totalCustomerDebt.toLocaleString()} ETB
+                    {totalCustomerDebt.toLocaleString()} {etb}
                   </span>
                 </div>
                 {customerOpenDebts.length > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-zinc-500">Selected Vouchers Target:</span>
+                    <span className="text-zinc-500">{t("debts.selectedTarget")}</span>
                     <span className="font-bold text-rose-700 font-mono tabular-nums">
-                      {selectedDebtsSum.toLocaleString()} ETB ({selectedDebtIds.length} vouchers)
+                      {t.n("debts.selectedTargetValue", selectedDebtIds.length, { amount: selectedDebtsSum.toLocaleString() })}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Amount Paying:</span>
+                  <span className="text-zinc-500">{t("debts.amountPaying")}</span>
                   <span className="font-bold text-emerald-700 font-mono tabular-nums">
-                    -{payVal.toLocaleString()} ETB
+                    -{payVal.toLocaleString()} {etb}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-zinc-200/70 pt-2 font-bold text-xs">
-                  <span className="text-zinc-900">Remaining Customer Debt:</span>
+                  <span className="text-zinc-900">{t("debts.remainingCustomerDebt")}</span>
                   <span
                     className={`font-mono tabular-nums ${
                       newDebtBalance === 0 ? "text-emerald-700 font-bold" : "text-zinc-900"
                     }`}
                   >
-                    {newDebtBalance.toLocaleString()} ETB
-                    {newDebtBalance === 0 && " (PAID IN FULL ✓)"}
+                    {newDebtBalance.toLocaleString()} {etb}
+                    {newDebtBalance === 0 && ` ${t("debts.paidInFull")}`}
                   </span>
                 </div>
               </div>
@@ -1705,7 +1771,7 @@ function ReceivePaymentModal({
                   onClick={onClose}
                   className="rounded-md border border-zinc-200/80 bg-white px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
                 >
-                  Cancel
+                  {t("shared.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -1713,16 +1779,16 @@ function ReceivePaymentModal({
                   className="flex items-center gap-1.5 rounded-md bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
                 >
                   {isSubmitting ? (
-                    "Processing..."
+                    t("debts.processing")
                   ) : newDebtBalance === 0 ? (
                     <>
                       <CheckCircle2 className="size-4" />
-                      Settle &amp; Mark Paid
+                      {t("debts.settleMarkPaid")}
                     </>
                   ) : (
                     <>
                       <Coins className="size-4" />
-                      Record Repayment
+                      {t("debts.recordRepayment")}
                     </>
                   )}
                 </button>
@@ -1749,6 +1815,8 @@ function BatchSettleModal({
   onClose: () => void;
   onSuccess: (settledDebtIds?: string[]) => void;
 }) {
+  const t = useT();
+  const etb = t("shared.etb");
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const totalAmount = debts.reduce(
@@ -1801,7 +1869,7 @@ function BatchSettleModal({
       await recordBatchDebtPayments(activeShopId, batchPayload);
       onSuccess(debts.map((d) => d.id));
     } catch {
-      setErrorMsg("Failed to process batch settlement.");
+      setErrorMsg(t("debts.errBatch"));
     } finally {
       setIsSubmitting(false);
     }
@@ -1816,15 +1884,19 @@ function BatchSettleModal({
               <Coins className="size-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-zinc-900 tracking-tight">Batch Settle Debts</h2>
+              <h2 className="text-base font-bold text-zinc-900 tracking-tight">{t("debts.batchTitle")}</h2>
               <p className="text-[11px] text-zinc-500">
-                Settling {debts.length} vouchers across {groupedByCustomer.length} customers at once
+                {t("debts.batchSubtitle", {
+                  vouchers: t.n("debts.voucherCount", debts.length),
+                  customers: t.n("debts.customerCount", groupedByCustomer.length),
+                })}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="flex size-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -1839,7 +1911,7 @@ function BatchSettleModal({
           {/* Grouped Customer List */}
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
             <span className="mb-2 block font-semibold text-zinc-700 text-[11px]">
-              Customers &amp; Vouchers Included ({groupedByCustomer.length})
+              {t("debts.customersVouchersIncluded", { count: groupedByCustomer.length })}
             </span>
             <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
               {groupedByCustomer.map((grp, idx) => (
@@ -1849,14 +1921,14 @@ function BatchSettleModal({
                 >
                   <div>
                     <span className="font-semibold text-zinc-900">
-                      {grp.customer?.name || grp.debts[0].customerName || "Customer"}
+                      {grp.customer?.name || grp.debts[0].customerName || t("debts.customer")}
                     </span>
                     <span className="ml-2 font-mono text-[10px] text-zinc-400">
-                      ({grp.debts.length} {grp.debts.length === 1 ? "voucher" : "vouchers"})
+                      ({t.n("debts.voucherCount", grp.debts.length)})
                     </span>
                   </div>
                   <div className="font-mono font-bold text-red-600">
-                    {grp.subtotal.toLocaleString()} ETB
+                    {grp.subtotal.toLocaleString()} {etb}
                   </div>
                 </div>
               ))}
@@ -1865,15 +1937,15 @@ function BatchSettleModal({
 
           {/* Total Settlement Amount Card */}
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 flex items-center justify-between">
-            <span className="text-zinc-600 font-medium">Total Settlement Amount:</span>
+            <span className="text-zinc-600 font-medium">{t("debts.totalSettlement")}</span>
             <span className="font-mono font-bold text-base text-zinc-950">
-              {totalAmount.toLocaleString()} ETB
+              {totalAmount.toLocaleString()} {etb}
             </span>
           </div>
 
           {/* Tender Selector */}
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-700">Tender / Payment Method</label>
+            <label className="mb-1.5 block font-semibold text-zinc-700">{t("debts.paymentMethodTender")}</label>
             <div className="grid grid-cols-4 gap-1.5">
               {(["Cash", "Bank Transfer", "Mobile Payment", "Card"] as const).map((method) => (
                 <button
@@ -1886,7 +1958,13 @@ function BatchSettleModal({
                       : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                   }`}
                 >
-                  {method === "Cash" ? "Cash" : method === "Bank Transfer" ? "Bank" : method === "Mobile Payment" ? "Telebirr" : "Card"}
+                  {method === "Cash"
+                    ? t("debts.method.cash")
+                    : method === "Bank Transfer"
+                    ? t("debts.tenderBank")
+                    : method === "Mobile Payment"
+                    ? "Telebirr"
+                    : t("debts.method.card")}
                 </button>
               ))}
             </div>
@@ -1894,7 +1972,7 @@ function BatchSettleModal({
 
           {(paymentMethod === "Bank Transfer" || paymentMethod === "Mobile Payment") && (
             <div>
-              <label className="mb-1 block font-medium text-zinc-700">Bank / Provider</label>
+              <label className="mb-1 block font-medium text-zinc-700">{t("debts.bankProvider")}</label>
               <select
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
@@ -1902,7 +1980,7 @@ function BatchSettleModal({
               >
                 {POPULAR_BANKS.map((b) => (
                   <option key={b} value={b}>
-                    {b}
+                    {methodLabel(t, b)}
                   </option>
                 ))}
               </select>
@@ -1911,7 +1989,7 @@ function BatchSettleModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block font-medium text-zinc-700">Batch Reference</label>
+              <label className="mb-1 block font-medium text-zinc-700">{t("debts.batchReference")}</label>
               <input
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
@@ -1919,11 +1997,11 @@ function BatchSettleModal({
               />
             </div>
             <div>
-              <label className="mb-1 block font-medium text-zinc-700">Notes</label>
+              <label className="mb-1 block font-medium text-zinc-700">{t("shared.notes")}</label>
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Bulk settlement"
+                placeholder={t("debts.bulkSettlementPh")}
                 className="h-9 w-full rounded-xl border border-zinc-200 px-2.5 text-xs text-zinc-900 focus:border-zinc-900 focus:outline-none"
               />
             </div>
@@ -1935,7 +2013,7 @@ function BatchSettleModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-1.5 font-medium text-zinc-700 hover:bg-zinc-50 shadow-2xs transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
@@ -1943,11 +2021,11 @@ function BatchSettleModal({
               className="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? (
-                "Processing..."
+                t("debts.processing")
               ) : (
                 <>
                   <CheckCircle2 className="size-3.5" />
-                  Settle All ({totalAmount.toLocaleString()} ETB)
+                  {t("debts.settleAll", { amount: totalAmount.toLocaleString() })}
                 </>
               )}
             </button>
@@ -2019,6 +2097,9 @@ function compareValues(a: string | number, b: string | number, order: SortOrder)
 export default function DebtsPage() {
   const authUser = useAuthStore((state) => state.user);
   const isCashier = authUser?.role === "SALES";
+  const t = useT();
+  const { formatDate } = useFormat();
+  const etb = t("shared.etb");
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -2311,11 +2392,11 @@ export default function DebtsPage() {
 
   function handleExportCustomerLedger() {
     exportToCsv("customer-debt-ledger", filteredCustomers, [
-      { header: "Customer ID", formatter: (c) => c.customerId || "CUST-001" },
-      { header: "Customer Name", key: "name" },
-      { header: "Phone", key: "phone" },
+      { header: t("debts.csvCustomerId"), formatter: (c) => c.customerId || "CUST-001" },
+      { header: t("debts.csvCustomerName"), key: "name" },
+      { header: t("shared.phone"), key: "phone" },
       {
-        header: "Outstanding Balance (ETB)",
+        header: t("debts.csvOutstandingEtb"),
         formatter: (c) => {
           const cDebts = debtsByCustomerId[c.id] || [];
           const rem = cDebts.reduce((sum, d) => sum + parseFloat(d.remainingAmount || d.amount || "0"), 0);
@@ -2323,24 +2404,24 @@ export default function DebtsPage() {
         },
       },
       {
-        header: "Credit Limit (ETB)",
+        header: t("debts.csvCreditLimitEtb"),
         formatter: (c) => parseFloat(String(c.creditLimit || "5000")).toFixed(2),
       },
-      { header: "Status", formatter: (c) => c.status || "Active" },
+      { header: t("shared.status"), formatter: (c) => c.status || t("debts.statusActive") },
     ]);
   }
 
   function handleExportDebts() {
     exportToCsv("debt-records-ledger", sortedAndFilteredDebts, [
-      { header: "Debt ID", key: "id" },
-      { header: "Customer Name", formatter: (d) => d.customerName || "Customer" },
-      { header: "Phone", formatter: (d) => d.customerPhone || "—" },
-      { header: "Total Amount (ETB)", formatter: (d) => parseFloat(d.amount).toFixed(2) },
-      { header: "Paid (ETB)", formatter: (d) => parseFloat(d.paidAmount || "0").toFixed(2) },
-      { header: "Remaining Balance (ETB)", formatter: (d) => parseFloat(d.remainingAmount || d.amount).toFixed(2) },
-      { header: "Due Date", formatter: (d) => d.dueDate || "—" },
-      { header: "Status", formatter: (d) => d.status },
-      { header: "Notes", formatter: (d) => d.notes || "—" },
+      { header: t("debts.csvDebtId"), key: "id" },
+      { header: t("debts.csvCustomerName"), formatter: (d) => d.customerName || t("debts.customer") },
+      { header: t("shared.phone"), formatter: (d) => d.customerPhone || "—" },
+      { header: t("debts.csvTotalEtb"), formatter: (d) => parseFloat(d.amount).toFixed(2) },
+      { header: t("debts.csvPaidEtb"), formatter: (d) => parseFloat(d.paidAmount || "0").toFixed(2) },
+      { header: t("debts.csvRemainingEtb"), formatter: (d) => parseFloat(d.remainingAmount || d.amount).toFixed(2) },
+      { header: t("debts.dueDate"), formatter: (d) => d.dueDate || "—" },
+      { header: t("shared.status"), formatter: (d) => statusLabel(t, d.status) },
+      { header: t("shared.notes"), formatter: (d) => d.notes || "—" },
     ]);
   }
 
@@ -2351,7 +2432,7 @@ export default function DebtsPage() {
   if (loadError && debts.length === 0 && customers.length === 0) {
     return (
       <LoadError
-        what="debts"
+        what={t("debts.loadWhat")}
         onRetry={() => {
           setLoading(true);
           loadData();
@@ -2367,9 +2448,9 @@ export default function DebtsPage() {
       {/* ------------------------------------------------------------------ */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-900">Debt &amp; Credit Ledger</h1>
+          <h1 className="text-xl font-bold tracking-tight text-zinc-900">{t("debts.title")}</h1>
           <p className="text-xs text-zinc-500">
-            Customer-centric debt hierarchy, itemized vouchers, chronological records, and payment tracking.
+            {t("debts.subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -2379,7 +2460,7 @@ export default function DebtsPage() {
             className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-2xs"
           >
             <Download className="size-3.5 text-zinc-500" />
-            <span>Export CSV</span>
+            <span>{t("debts.exportCsv")}</span>
           </button>
           {!isCashier && (
             <button
@@ -2391,7 +2472,7 @@ export default function DebtsPage() {
               className="flex h-8 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-800 shadow-2xs transition-all hover:bg-zinc-50 hover:text-zinc-950 active:scale-95"
             >
               <Plus className="size-3.5 text-zinc-600" />
-              <span>Add Debt Voucher</span>
+              <span>{t("debts.addDebtVoucher")}</span>
             </button>
           )}
           <button
@@ -2404,7 +2485,7 @@ export default function DebtsPage() {
             className="flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
           >
             <Coins className="size-3.5 text-indigo-400" />
-            <span>Receive Payment</span>
+            <span>{t("debts.receivePayment")}</span>
           </button>
         </div>
       </div>
@@ -2417,7 +2498,7 @@ export default function DebtsPage() {
         <div className="rounded-xl border border-rose-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-800">
-              Total Outstanding Debt
+              {t("debts.totalOutstandingDebt")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md border border-rose-200/60 bg-rose-50 text-rose-700">
               <HandCoins className="size-3.5" />
@@ -2427,16 +2508,16 @@ export default function DebtsPage() {
             <span className="font-mono text-2xl font-bold tracking-tight text-rose-700 tabular-nums">
               {summary.totalOutstandingDebt.toLocaleString()}
             </span>
-            <span className="font-mono text-xs font-semibold text-rose-600">ETB</span>
+            <span className="font-mono text-xs font-semibold text-rose-600">{etb}</span>
           </div>
-          <span className="mt-1 block text-xs text-zinc-500">Across {summary.totalDebtors} active debtors</span>
+          <span className="mt-1 block text-xs text-zinc-500">{t.n("debts.acrossDebtors", summary.totalDebtors)}</span>
         </div>
 
         {/* Active Debtors */}
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Active Debtors
+              {t("debts.activeDebtors")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-100 text-zinc-700">
               <Users className="size-3.5" />
@@ -2446,16 +2527,16 @@ export default function DebtsPage() {
             <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
               {summary.totalDebtors}
             </span>
-            <span className="text-xs font-medium text-zinc-500">Customers</span>
+            <span className="text-xs font-medium text-zinc-500">{t("debts.customersNoun")}</span>
           </div>
-          <span className="mt-1 block text-xs text-zinc-500">Unsettled credit balances</span>
+          <span className="mt-1 block text-xs text-zinc-500">{t("debts.unsettledBalances")}</span>
         </div>
 
         {/* Collected Repayments */}
         <div className="rounded-xl border border-emerald-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-800">
-              Repayments Recovered
+              {t("debts.repaymentsRecovered")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md border border-emerald-200/60 bg-emerald-50 text-emerald-700">
               <CheckCircle2 className="size-3.5" />
@@ -2465,16 +2546,16 @@ export default function DebtsPage() {
             <span className="font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
               {summary.collectedThisMonth.toLocaleString()}
             </span>
-            <span className="font-mono text-xs font-semibold text-emerald-600">ETB</span>
+            <span className="font-mono text-xs font-semibold text-emerald-600">{etb}</span>
           </div>
-          <span className="mt-1 block text-xs text-zinc-500">Total recovered to date</span>
+          <span className="mt-1 block text-xs text-zinc-500">{t("debts.recoveredToDate")}</span>
         </div>
 
         {/* Overdue Accounts */}
         <div className="rounded-xl border border-amber-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-amber-800">
-              Overdue Debts
+              {t("debts.overdueDebts")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md border border-amber-200/60 bg-amber-50 text-amber-700">
               <Clock className="size-3.5" />
@@ -2484,9 +2565,9 @@ export default function DebtsPage() {
             <span className="font-mono text-2xl font-bold tracking-tight text-amber-700 tabular-nums">
               {summary.overdueCount}
             </span>
-            <span className="text-xs font-medium text-zinc-500">Vouchers</span>
+            <span className="text-xs font-medium text-zinc-500">{t("debts.vouchersNoun")}</span>
           </div>
-          <span className="mt-1 block text-xs text-zinc-500">Past payment due date</span>
+          <span className="mt-1 block text-xs text-zinc-500">{t("debts.pastDueDate")}</span>
         </div>
       </div>
 
@@ -2504,7 +2585,7 @@ export default function DebtsPage() {
           }`}
         >
           <Users className="size-3.5" />
-          <span>Customer Debt Ledger</span>
+          <span>{t("debts.tabCustomerLedger")}</span>
           <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.2 font-mono text-[10px] tabular-nums text-zinc-600">
             {customers.length}
           </span>
@@ -2520,7 +2601,7 @@ export default function DebtsPage() {
           }`}
         >
           <Receipt className="size-3.5" />
-          <span>All Debt Records</span>
+          <span>{t("debts.tabAllRecords")}</span>
           <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.2 font-mono text-[10px] tabular-nums text-zinc-600">
             {debts.length}
           </span>
@@ -2543,7 +2624,7 @@ export default function DebtsPage() {
                   customerFilter === "ALL" ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
-                All Customers
+                {t("debts.filterAllCustomers")}
               </button>
               <button
                 type="button"
@@ -2552,7 +2633,7 @@ export default function DebtsPage() {
                   customerFilter === "ACTIVE" ? "bg-white text-zinc-900 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
-                Active Debtors
+                {t("debts.activeDebtors")}
               </button>
               <button
                 type="button"
@@ -2561,7 +2642,7 @@ export default function DebtsPage() {
                   customerFilter === "OVERDUE" ? "bg-white text-rose-700 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
-                Overdue
+                {t("debts.statusOverdue")}
               </button>
               <button
                 type="button"
@@ -2570,7 +2651,7 @@ export default function DebtsPage() {
                   customerFilter === "PAID" ? "bg-white text-emerald-700 shadow-2xs border border-zinc-200/80 font-semibold" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50"
                 }`}
               >
-                Settled / Clear
+                {t("debts.filterSettledClear")}
               </button>
             </div>
 
@@ -2581,7 +2662,7 @@ export default function DebtsPage() {
                 type="text"
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
-                placeholder="Search customer, phone, code..."
+                placeholder={t("debts.searchCustomer")}
                 className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
               />
             </div>
@@ -2593,14 +2674,14 @@ export default function DebtsPage() {
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>
                   <th className="w-9 px-3 py-3.5"></th>
-                  <SortableTh label="Customer Profile" field="name" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} />
-                  <th className="px-5 py-3.5">Phone Number</th>
-                  <SortableTh label="Open Debts" field="openDebts" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="center" />
-                  <SortableTh label="Outstanding Balance" field="balance" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
-                  <SortableTh label="Credit Limit" field="creditLimit" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
-                  <SortableTh label="Total Repaid" field="repaid" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
-                  <SortableTh label="Status" field="status" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} />
-                  <th className="px-5 py-3.5 text-right">Ledger Actions</th>
+                  <SortableTh label={t("debts.customerProfile")} field="name" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} />
+                  <th className="px-5 py-3.5">{t("debts.phoneNumber")}</th>
+                  <SortableTh label={t("debts.openDebts")} field="openDebts" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="center" />
+                  <SortableTh label={t("debts.outstandingBalance")} field="balance" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
+                  <SortableTh label={t("debts.creditLimit")} field="creditLimit" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
+                  <SortableTh label={t("debts.totalRepaid")} field="repaid" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} align="right" />
+                  <SortableTh label={t("shared.status")} field="status" activeField={ledgerSortField} order={ledgerSortOrder} onSort={handleLedgerSort} />
+                  <th className="px-5 py-3.5 text-right">{t("debts.ledgerActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -2661,7 +2742,7 @@ export default function DebtsPage() {
                             <button
                               type="button"
                               className="flex size-6 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-200/60 hover:text-zinc-900 transition-colors cursor-pointer"
-                              title={isExpanded ? "Collapse vouchers" : "Expand vouchers peek"}
+                              title={isExpanded ? t("debts.collapseVouchers") : t("debts.expandVouchers")}
                             >
                               <ChevronRight
                                 className={`size-4 transition-transform duration-200 ${
@@ -2691,52 +2772,52 @@ export default function DebtsPage() {
                           <td className="px-5 py-3.5 text-center">
                             {activeDebtCount > 0 ? (
                               <span className="inline-flex rounded-md bg-amber-50 px-2 py-0.5 font-mono text-[11px] font-bold text-amber-800 border border-amber-200/60">
-                                {activeDebtCount} {activeDebtCount === 1 ? "voucher" : "vouchers"}
+                                {t.n("debts.voucherCount", activeDebtCount)}
                               </span>
                             ) : (
-                              <span className="text-[11px] text-zinc-400">None</span>
+                              <span className="text-[11px] text-zinc-400">{t("shared.none")}</span>
                             )}
                           </td>
 
                           {/* Outstanding Balance */}
                           <td className="px-5 py-3.5 text-right font-mono font-bold tabular-nums">
                             <span className={debt > 0 ? (isOverdue ? "text-rose-600 font-bold" : "text-red-600") : "text-emerald-600"}>
-                              {debt.toLocaleString()} ETB
+                              {debt.toLocaleString()} {etb}
                             </span>
                           </td>
 
                           {/* Credit Limit */}
                           <td className="px-5 py-3.5 text-right font-mono font-medium text-zinc-600 tabular-nums">
-                            {creditLimit.toLocaleString()} ETB
+                            {creditLimit.toLocaleString()} {etb}
                           </td>
 
                           {/* Total Repaid */}
                           <td className="px-5 py-3.5 text-right font-mono font-medium text-emerald-600 tabular-nums">
-                            {paidDisplay.toLocaleString()} ETB
+                            {paidDisplay.toLocaleString()} {etb}
                           </td>
 
                           {/* Status */}
                           <td className="px-5 py-3.5">
                             {debt === 0 ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
-                                <Check className="size-3" /> SETTLED
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700 border border-emerald-200/60">
+                                <Check className="size-3" /> {t("debts.statusSettled")}
                               </span>
                             ) : isOverdue ? (
                               <div className="flex flex-col gap-0.5">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200/60">
-                                  <AlertCircle className="size-3" /> {oldestOverdueDays > 0 ? `${oldestOverdueDays}d OVERDUE` : "OVERDUE"}
+                                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-rose-700 border border-rose-200/60">
+                                  <AlertCircle className="size-3" /> {oldestOverdueDays > 0 ? t("debts.overdueDays", { days: oldestOverdueDays }) : t("debts.statusOverdue")}
                                 </span>
                                 {oldestDueDate && (
-                                  <span className="text-[10px] text-zinc-400 font-mono">Due: {oldestDueDate}</span>
+                                  <span className="text-[10px] text-zinc-400 font-mono">{t("debts.due")}: {oldestDueDate}</span>
                                 )}
                               </div>
                             ) : paidDisplay > 0 ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/60">
-                                <Clock className="size-3" /> PARTIAL
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-blue-700 border border-blue-200/60">
+                                <Clock className="size-3" /> {t("debts.statusPartial")}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200/60">
-                                <Clock className="size-3" /> PENDING
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-700 border border-amber-200/60">
+                                <Clock className="size-3" /> {t("debts.statusPending")}
                               </span>
                             )}
                           </td>
@@ -2755,10 +2836,10 @@ export default function DebtsPage() {
                                     setIsCreateDebtModalOpen(true);
                                   }}
                                   className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
-                                  title="Add Debt Voucher"
+                                  title={t("debts.addDebtVoucher")}
                                 >
                                   <Plus className="size-3" />
-                                  Debt
+                                  {t("debts.addDebtShort")}
                                 </button>
                               )}
 
@@ -2771,10 +2852,10 @@ export default function DebtsPage() {
                                     setIsPaymentModalOpen(true);
                                   }}
                                   className="flex h-7 items-center gap-1 rounded-lg bg-slate-900 px-2.5 text-[11px] font-bold text-white shadow-2xs hover:bg-slate-800"
-                                  title="Receive Payment"
+                                  title={t("debts.receivePayment")}
                                 >
                                   <Coins className="size-3 text-indigo-400" />
-                                  Pay All
+                                  {t("debts.payAll")}
                                 </button>
                               )}
 
@@ -2782,10 +2863,10 @@ export default function DebtsPage() {
                                 type="button"
                                 onClick={() => setCustomerHistory(cust)}
                                 className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-50"
-                                title="Chronological Customer Ledger"
+                                title={t("debts.chronologicalLedger")}
                               >
                                 <Receipt className="size-3 text-zinc-500" />
-                                Ledger
+                                {t("debts.ledger")}
                               </button>
                             </div>
                           </td>
@@ -2800,24 +2881,24 @@ export default function DebtsPage() {
                                 <div className="rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-2xs">
                                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xs font-bold text-zinc-900">Credit Health &amp; Limit</span>
+                                      <span className="text-xs font-bold text-zinc-900">{t("debts.creditHealthLimit")}</span>
                                       <span className="rounded-md bg-zinc-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-zinc-700">
-                                        {utilizationPct}% Utilized
+                                        {t("debts.utilized", { percent: utilizationPct })}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-3 text-xs">
                                       <span className="text-zinc-500">
-                                        Outstanding: <strong className="font-mono text-red-600">{debt.toLocaleString()} ETB</strong>
+                                        {t("debts.outstandingLabel")}: <strong className="font-mono text-red-600">{debt.toLocaleString()} {etb}</strong>
                                       </span>
                                       <span className="text-zinc-300">•</span>
                                       <span className="text-zinc-500">
-                                        Limit: <strong className="font-mono text-zinc-800">{creditLimit.toLocaleString()} ETB</strong>
+                                        {t("debts.limit")}: <strong className="font-mono text-zinc-800">{creditLimit.toLocaleString()} {etb}</strong>
                                       </span>
                                       <span className="text-zinc-300">•</span>
                                       <span className="text-zinc-500">
-                                        Available:{" "}
+                                        {t("debts.available")}:{" "}
                                         <strong className="font-mono text-emerald-600">
-                                          {Math.max(0, creditLimit - debt).toLocaleString()} ETB
+                                          {Math.max(0, creditLimit - debt).toLocaleString()} {etb}
                                         </strong>
                                       </span>
                                     </div>
@@ -2842,7 +2923,7 @@ export default function DebtsPage() {
                                     <div className="flex items-center gap-1.5">
                                       <Receipt className="size-3.5 text-zinc-500" />
                                       <span className="text-xs font-bold text-zinc-900">
-                                        Open Debt Vouchers ({openCustDebts.length})
+                                        {t("debts.openDebtVouchers", { count: openCustDebts.length })}
                                       </span>
                                     </div>
                                     <button
@@ -2850,7 +2931,7 @@ export default function DebtsPage() {
                                       onClick={() => setCustomerHistory(cust)}
                                       className="text-[11px] font-semibold text-zinc-700 hover:text-zinc-950 underline"
                                     >
-                                      View Complete History ({custDebts.length} records)
+                                      {t.n("debts.viewHistory", custDebts.length)}
                                     </button>
                                   </div>
 
@@ -2859,13 +2940,13 @@ export default function DebtsPage() {
                                       <table className="w-full text-left text-xs">
                                         <thead className="border-b border-zinc-200 bg-zinc-50 font-semibold text-zinc-600">
                                           <tr>
-                                            <th className="px-4 py-2">Voucher ID</th>
-                                            <SortableTh label="Created" field="createdAt" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} className="px-4 py-2" />
-                                            <SortableTh label="Due Date" field="dueDate" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} className="px-4 py-2" />
-                                            <th className="px-4 py-2">Items / Notes</th>
-                                            <SortableTh label="Original" field="amount" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} align="right" className="px-4 py-2" />
-                                            <SortableTh label="Remaining Due" field="remaining" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} align="right" className="px-4 py-2" />
-                                            <th className="px-4 py-2 text-right">Action</th>
+                                            <th className="px-4 py-2">{t("debts.voucherId")}</th>
+                                            <SortableTh label={t("debts.created")} field="createdAt" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} className="px-4 py-2" />
+                                            <SortableTh label={t("debts.dueDate")} field="dueDate" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} className="px-4 py-2" />
+                                            <th className="px-4 py-2">{t("debts.itemsNotes")}</th>
+                                            <SortableTh label={t("debts.original")} field="amount" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} align="right" className="px-4 py-2" />
+                                            <SortableTh label={t("debts.remainingDue")} field="remaining" activeField={voucherSortField} order={voucherSortOrder} onSort={handleVoucherSort} align="right" className="px-4 py-2" />
+                                            <th className="px-4 py-2 text-right">{t("debts.action")}</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100">
@@ -2882,12 +2963,12 @@ export default function DebtsPage() {
                                                   #{shortId}
                                                 </td>
                                                 <td className="px-4 py-2.5 text-zinc-500 whitespace-nowrap">
-                                                  {d.createdAt ? new Date(d.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                                                  {d.createdAt ? formatDate(d.createdAt, { month: "short", day: "numeric" }) : "—"}
                                                 </td>
                                                 <td className="px-4 py-2.5 whitespace-nowrap">
                                                   {d.dueDate ? (
                                                     <span className={isVoucherOverdue ? "font-semibold text-rose-600" : "text-zinc-600"}>
-                                                      {d.dueDate} {isVoucherOverdue && "(OVERDUE)"}
+                                                      {d.dueDate} {isVoucherOverdue && `(${t("debts.statusOverdue")})`}
                                                     </span>
                                                   ) : (
                                                     <span className="text-zinc-400">—</span>
@@ -2899,10 +2980,10 @@ export default function DebtsPage() {
                                                     : d.notes || "—"}
                                                 </td>
                                                 <td className="px-4 py-2.5 text-right font-mono text-zinc-500">
-                                                  {total.toLocaleString()} ETB
+                                                  {total.toLocaleString()} {etb}
                                                 </td>
                                                 <td className="px-4 py-2.5 text-right font-mono font-bold text-red-600">
-                                                  {remaining.toLocaleString()} ETB
+                                                  {remaining.toLocaleString()} {etb}
                                                 </td>
                                                 <td className="px-4 py-2.5 text-right">
                                                   <button
@@ -2914,7 +2995,7 @@ export default function DebtsPage() {
                                                     }}
                                                     className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95"
                                                   >
-                                                    <Coins className="size-3 text-indigo-400" /> Pay Voucher
+                                                    <Coins className="size-3 text-indigo-400" /> {t("debts.payVoucher")}
                                                   </button>
                                                 </td>
                                               </tr>
@@ -2925,7 +3006,7 @@ export default function DebtsPage() {
                                     </div>
                                   ) : (
                                     <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-4 text-center text-xs text-zinc-400">
-                                      All debt vouchers for {cust.name} are fully settled!
+                                      {t("debts.allSettledFor", { name: cust.name })}
                                     </div>
                                   )}
                                 </div>
@@ -2939,14 +3020,14 @@ export default function DebtsPage() {
                 ) : (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-xs text-zinc-400">
-                      No customers found matching the search and status filter.
+                      {t("debts.noCustomersFound")}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          <TablePagination pagination={ledgerPager} noun="customers" />
+          <TablePagination pagination={ledgerPager} noun={t("debts.customersLower")} />
         </div>
       )}
 
@@ -2960,12 +3041,12 @@ export default function DebtsPage() {
             <div className="inline-flex rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 flex-wrap items-center gap-1 text-xs">
               {(
                 [
-                  { id: "ALL", label: "All Debts" },
-                  { id: "OVERDUE", label: "Overdue" },
-                  { id: "DUE_THIS_WEEK", label: "Due This Week" },
-                  { id: "PENDING", label: "Pending" },
-                  { id: "PARTIAL", label: "Partial" },
-                  { id: "PAID", label: "Settled" },
+                  { id: "ALL", label: t("debts.allDebts") },
+                  { id: "OVERDUE", label: t("debts.statusOverdue") },
+                  { id: "DUE_THIS_WEEK", label: t("debts.dueThisWeek") },
+                  { id: "PENDING", label: t("debts.statusPending") },
+                  { id: "PARTIAL", label: t("debts.statusPartial") },
+                  { id: "PAID", label: t("debts.statusSettled") },
                 ] as const
               ).map((tab) => (
                 <button
@@ -2990,7 +3071,7 @@ export default function DebtsPage() {
                 type="text"
                 value={debtSearch}
                 onChange={(e) => setDebtSearch(e.target.value)}
-                placeholder="Search debt ID, customer, items, note..."
+                placeholder={t("debts.searchDebt")}
                 className="h-8 w-full rounded-md border border-zinc-200/80 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none transition-colors"
               />
             </div>
@@ -3018,7 +3099,7 @@ export default function DebtsPage() {
                         }
                       }}
                       className="size-4 rounded border-zinc-300 text-zinc-950 focus:ring-0 cursor-pointer"
-                      title="Select all visible unpaid vouchers"
+                      title={t("debts.selectAllVisibleUnpaid")}
                     />
                   </th>
                   <th className="px-5 py-3.5">
@@ -3027,7 +3108,7 @@ export default function DebtsPage() {
                       onClick={() => handleDebtSort("createdAt")}
                       className="flex items-center gap-1.5 font-semibold text-zinc-600 hover:text-zinc-950"
                     >
-                      <span>Debt Reference</span>
+                      <span>{t("debts.debtReference")}</span>
                       {debtSortField === "createdAt" ? (
                         debtSortOrder === "asc" ? <ChevronUp className="size-3 text-zinc-900" /> : <ChevronDown className="size-3 text-zinc-900" />
                       ) : (
@@ -3041,7 +3122,7 @@ export default function DebtsPage() {
                       onClick={() => handleDebtSort("customerName")}
                       className="flex items-center gap-1.5 font-semibold text-zinc-600 hover:text-zinc-950"
                     >
-                      <span>Customer</span>
+                      <span>{t("debts.customer")}</span>
                       {debtSortField === "customerName" ? (
                         debtSortOrder === "asc" ? <ChevronUp className="size-3 text-zinc-900" /> : <ChevronDown className="size-3 text-zinc-900" />
                       ) : (
@@ -3055,7 +3136,7 @@ export default function DebtsPage() {
                       onClick={() => handleDebtSort("amount")}
                       className="ml-auto flex items-center gap-1.5 font-semibold text-zinc-600 hover:text-zinc-950"
                     >
-                      <span>Original Amount</span>
+                      <span>{t("debts.originalAmount")}</span>
                       {debtSortField === "amount" ? (
                         debtSortOrder === "asc" ? <ChevronUp className="size-3 text-zinc-900" /> : <ChevronDown className="size-3 text-zinc-900" />
                       ) : (
@@ -3063,14 +3144,14 @@ export default function DebtsPage() {
                       )}
                     </button>
                   </th>
-                  <SortableTh label="Amount Paid" field="paidAmount" activeField={debtSortField} order={debtSortOrder} onSort={handleDebtSort} align="right" className="px-5 py-3.5 text-zinc-600" />
+                  <SortableTh label={t("debts.amountPaid")} field="paidAmount" activeField={debtSortField} order={debtSortOrder} onSort={handleDebtSort} align="right" className="px-5 py-3.5 text-zinc-600" />
                   <th className="px-5 py-3.5 text-right">
                     <button
                       type="button"
                       onClick={() => handleDebtSort("remainingAmount")}
                       className="ml-auto flex items-center gap-1.5 font-semibold text-zinc-600 hover:text-zinc-950"
                     >
-                      <span>Remaining Due</span>
+                      <span>{t("debts.remainingDue")}</span>
                       {debtSortField === "remainingAmount" ? (
                         debtSortOrder === "asc" ? <ChevronUp className="size-3 text-zinc-900" /> : <ChevronDown className="size-3 text-zinc-900" />
                       ) : (
@@ -3084,7 +3165,7 @@ export default function DebtsPage() {
                       onClick={() => handleDebtSort("dueDate")}
                       className="flex items-center gap-1.5 font-semibold text-zinc-600 hover:text-zinc-950"
                     >
-                      <span>Due Date</span>
+                      <span>{t("debts.dueDate")}</span>
                       {debtSortField === "dueDate" ? (
                         debtSortOrder === "asc" ? <ChevronUp className="size-3 text-zinc-900" /> : <ChevronDown className="size-3 text-zinc-900" />
                       ) : (
@@ -3092,8 +3173,8 @@ export default function DebtsPage() {
                       )}
                     </button>
                   </th>
-                  <SortableTh label="Status" field="status" activeField={debtSortField} order={debtSortOrder} onSort={handleDebtSort} className="px-5 py-3.5 text-zinc-600" />
-                  <th className="px-5 py-3.5 text-right font-semibold text-zinc-600">Actions</th>
+                  <SortableTh label={t("shared.status")} field="status" activeField={debtSortField} order={debtSortOrder} onSort={handleDebtSort} className="px-5 py-3.5 text-zinc-600" />
+                  <th className="px-5 py-3.5 text-right font-semibold text-zinc-600">{t("shared.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -3145,18 +3226,18 @@ export default function DebtsPage() {
 
                         {/* Customer */}
                         <td className="px-5 py-3.5">
-                          <div className="font-semibold text-zinc-900">{debt.customerName || "Customer"}</div>
+                          <div className="font-semibold text-zinc-900">{debt.customerName || t("debts.customer")}</div>
                           <div className="font-mono text-[11px] text-zinc-500">{debt.customerPhone || "—"}</div>
                         </td>
 
                         {/* Original Debt */}
                         <td className="px-5 py-3.5 text-right font-mono font-semibold text-zinc-800 tabular-nums">
-                          {totalAmount.toLocaleString()} ETB
+                          {totalAmount.toLocaleString()} {etb}
                         </td>
 
                         {/* Amount Paid */}
                         <td className="px-5 py-3.5 text-right font-mono font-semibold text-emerald-600 tabular-nums">
-                          {paid.toLocaleString()} ETB
+                          {paid.toLocaleString()} {etb}
                         </td>
 
                         {/* Remaining Balance */}
@@ -3166,18 +3247,18 @@ export default function DebtsPage() {
                               isPaid ? "text-zinc-400" : "text-red-600"
                             }`}
                           >
-                            {remaining.toLocaleString()} ETB
+                            {remaining.toLocaleString()} {etb}
                           </span>
                         </td>
 
                         {/* Due Date */}
                         <td className="px-5 py-3.5 text-zinc-600">
                           <div>
-                            {debt.dueDate ? new Date(debt.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                            {debt.dueDate ? formatDate(debt.dueDate) : "—"}
                           </div>
                           {isOverdue && !isPaid && (
                             <span className="mt-0.5 inline-block rounded bg-red-100 px-1.5 py-0.2 text-[10px] font-bold text-red-700">
-                              Overdue
+                              {t("debts.statusOverdue")}
                             </span>
                           )}
                         </td>
@@ -3185,20 +3266,20 @@ export default function DebtsPage() {
                         {/* Status Badge */}
                         <td className="px-5 py-3.5">
                           {isPaid ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200/60">
-                              <CheckCircle2 className="size-3" /> PAID
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold uppercase text-emerald-700 border border-emerald-200/60">
+                              <CheckCircle2 className="size-3" /> {t("debts.statusPaid")}
                             </span>
                           ) : debt.status === "PARTIAL" ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">
-                              <Clock className="size-3" /> PARTIAL
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase text-blue-700 border border-blue-200/60">
+                              <Clock className="size-3" /> {t("debts.statusPartial")}
                             </span>
                           ) : isOverdue ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-rose-700 border border-rose-200/60">
-                              <AlertCircle className="size-3" /> OVERDUE
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold uppercase text-rose-700 border border-rose-200/60">
+                              <AlertCircle className="size-3" /> {t("debts.statusOverdue")}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200/60">
-                              <Clock className="size-3" /> PENDING
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold uppercase text-amber-700 border border-amber-200/60">
+                              <Clock className="size-3" /> {t("debts.statusPending")}
                             </span>
                           )}
                         </td>
@@ -3210,10 +3291,10 @@ export default function DebtsPage() {
                               type="button"
                               onClick={() => setSelectedDebtDetail(debt)}
                               className="flex h-7 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
-                              title="Audit Trail / Payment History"
+                              title={t("debts.auditTrail")}
                             >
                               <Receipt className="size-3.5 text-zinc-500" />
-                              History
+                              {t("debts.history")}
                             </button>
 
                             {!isPaid ? (
@@ -3225,14 +3306,14 @@ export default function DebtsPage() {
                                   setIsPaymentModalOpen(true);
                                 }}
                                 className="flex h-7 items-center gap-1 rounded-lg bg-slate-900 px-2.5 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
-                                title="Settle or Receive Payment"
+                                title={t("debts.settleOrReceive")}
                               >
                                 <Coins className="size-3 text-indigo-400" />
-                                Pay
+                                {t("debts.pay")}
                               </button>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 text-[11px] font-bold text-emerald-600">
-                                <Check className="size-3.5" /> Settled
+                                <Check className="size-3.5" /> {t("debts.statusSettled")}
                               </span>
                             )}
                           </div>
@@ -3243,14 +3324,14 @@ export default function DebtsPage() {
                 ) : (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-xs text-zinc-400">
-                      No debt records found matching your filters.
+                      {t("debts.noDebtRecords")}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          <TablePagination pagination={debtsPager} noun="debts" />
+          <TablePagination pagination={debtsPager} noun={t("debts.loadWhat")} />
 
           {/* Floating Batch Action Bar when ≥1 debt is selected */}
           {selectedTableDebtIds.length > 0 && (
@@ -3260,14 +3341,12 @@ export default function DebtsPage() {
                   {selectedTableDebtIds.length}
                 </span>
                 <span className="text-xs font-semibold">
-                  {selectedTableDebtIds.length === 1
-                    ? "1 debt voucher selected"
-                    : `${selectedTableDebtIds.length} debt vouchers selected`}
+                  {t.n("debts.debtVouchersSelected", selectedTableDebtIds.length)}
                 </span>
               </div>
 
               <div className="font-mono text-xs font-bold text-indigo-400 tabular-nums">
-                {selectedTableSum.toLocaleString()} ETB
+                {selectedTableSum.toLocaleString()} {etb}
               </div>
 
               <div className="flex items-center gap-2">
@@ -3276,7 +3355,7 @@ export default function DebtsPage() {
                   onClick={() => setSelectedTableDebtIds([])}
                   className="rounded-md px-2.5 py-1 text-xs text-zinc-400 hover:text-white cursor-pointer"
                 >
-                  Clear
+                  {t("debts.clear")}
                 </button>
                 <button
                   type="button"
@@ -3293,7 +3372,7 @@ export default function DebtsPage() {
                   className="flex items-center gap-1.5 rounded-md bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-950 shadow-2xs hover:bg-zinc-100 active:scale-95 cursor-pointer"
                 >
                   <Coins className="size-3.5 text-zinc-950" />
-                  Settle Selected ({selectedTableSum.toLocaleString()} ETB)
+                  {t("debts.settleSelected", { amount: selectedTableSum.toLocaleString() })}
                 </button>
               </div>
             </div>

@@ -16,6 +16,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDismiss } from "@/hooks/use-dismiss";
 
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { LoadError } from "@/components/shared/load-error";
@@ -35,6 +37,20 @@ import { useShopStore } from "@/stores/shop-store";
 /* ------------------------------------------------------------------ */
 /* Modal: Add Expense                                                 */
 /* ------------------------------------------------------------------ */
+function paymentLabel(t: ReturnType<typeof useT>, method?: string) {
+  switch ((method || "Cash").toLowerCase()) {
+    case "cash":
+      return t("expenses.cashTill");
+    case "bank":
+    case "bank transfer":
+      return t("expenses.bank");
+    case "telebirr":
+      return t("expenses.telebirr");
+    default:
+      return method as string;
+  }
+}
+
 function getTodayDateString(): string {
   const now = new Date();
   const year = now.getFullYear();
@@ -54,6 +70,7 @@ function AddExpenseModal({
   onCreated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     date: getTodayDateString(),
     description: "",
@@ -118,8 +135,8 @@ function AddExpenseModal({
       <div className="w-full max-w-[480px] rounded-xl border border-zinc-200/80 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-start justify-between border-b border-zinc-100 pb-4">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Record New Expense</h2>
-            <p className="mt-0.5 text-xs text-zinc-500">Log operational expenditure, utilities, or supplier payouts</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("expenses.addTitle")}</h2>
+            <p className="mt-0.5 text-xs text-zinc-500">{t("expenses.addSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -133,14 +150,14 @@ function AddExpenseModal({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Description <span className="text-rose-500">*</span>
+              {t("expenses.description")} <span className="text-rose-500">*</span>
             </label>
             <input
               name="description"
               value={form.description}
               onChange={handleChange}
               required
-              placeholder="e.g. Office Electricity Bill or Packaging Materials"
+              placeholder={t("expenses.descriptionPlaceholder")}
               className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
             />
           </div>
@@ -148,20 +165,20 @@ function AddExpenseModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Category
+                {t("shared.category")}
               </label>
               <input
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                placeholder="e.g. Utility, Rent, Supplies"
+                placeholder={t("expenses.categoryPlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Amount (ETB) <span className="text-rose-500">*</span>
+                {t("expenses.amountEtb")} <span className="text-rose-500">*</span>
               </label>
               <input
                 name="amount"
@@ -171,7 +188,7 @@ function AddExpenseModal({
                 required
                 min="0"
                 step="any"
-                placeholder="e.g. 1500"
+                placeholder={t("expenses.amountPlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
@@ -180,7 +197,7 @@ function AddExpenseModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Paid From
+                {t("expenses.paidFrom")}
               </label>
               <select
                 name="paymentMethod"
@@ -188,15 +205,15 @@ function AddExpenseModal({
                 onChange={handleChange}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                <option value="Cash">Cash Till</option>
-                <option value="Bank">Bank (transfer or card)</option>
-                <option value="Telebirr">Telebirr</option>
+                <option value="Cash">{t("expenses.cashTill")}</option>
+                <option value="Bank">{t("expenses.bankOption")}</option>
+                <option value="Telebirr">{t("expenses.telebirr")}</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Status
+                {t("shared.status")}
               </label>
               <select
                 name="status"
@@ -204,20 +221,20 @@ function AddExpenseModal({
                 onChange={handleChange}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Overdue">Overdue</option>
+                <option value="Paid">{t("expenses.statusPaid")}</option>
+                <option value="Pending">{t("expenses.statusPending")}</option>
+                <option value="Overdue">{t("expenses.statusOverdue")}</option>
               </select>
-              <p className="text-[10px] text-zinc-500">Only Paid expenses come out of Money Left.</p>
+              <p className="text-[10px] text-zinc-500">{t("expenses.statusHint")}</p>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Expense Date
+                {t("expenses.expenseDate")}
               </label>
-              <span className="font-mono text-[10px] text-zinc-400">Defaults to today</span>
+              <span className="font-mono text-[10px] text-zinc-400">{t("expenses.defaultsToday")}</span>
             </div>
             <input
               name="date"
@@ -234,14 +251,14 @@ function AddExpenseModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Add Expense"}
+              {isSubmitting ? t("shared.saving") : t("expenses.addExpense")}
             </button>
           </div>
         </form>
@@ -264,6 +281,7 @@ function EditExpenseModal({
   onUpdated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     date: "",
     description: "",
@@ -318,8 +336,8 @@ function EditExpenseModal({
       <div className="w-full max-w-[480px] rounded-xl border border-zinc-200/80 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-5 flex items-start justify-between border-b border-zinc-100 pb-4">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Edit Expense</h2>
-            <p className="mt-0.5 text-xs text-zinc-500">Update expense particulars, amount, or settlement status</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("expenses.editTitle")}</h2>
+            <p className="mt-0.5 text-xs text-zinc-500">{t("expenses.editSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -333,7 +351,7 @@ function EditExpenseModal({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Description <span className="text-rose-500">*</span>
+              {t("expenses.description")} <span className="text-rose-500">*</span>
             </label>
             <input
               value={form.description}
@@ -346,7 +364,7 @@ function EditExpenseModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Category
+                {t("shared.category")}
               </label>
               <input
                 value={form.category}
@@ -357,7 +375,7 @@ function EditExpenseModal({
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Amount (ETB) <span className="text-rose-500">*</span>
+                {t("expenses.amountEtb")} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="number"
@@ -374,39 +392,39 @@ function EditExpenseModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Paid From
+                {t("expenses.paidFrom")}
               </label>
               <select
                 value={form.paymentMethod}
                 onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                <option value="Cash">Cash Till</option>
-                <option value="Bank">Bank (transfer or card)</option>
-                <option value="Telebirr">Telebirr</option>
+                <option value="Cash">{t("expenses.cashTill")}</option>
+                <option value="Bank">{t("expenses.bankOption")}</option>
+                <option value="Telebirr">{t("expenses.telebirr")}</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Status
+                {t("shared.status")}
               </label>
               <select
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               >
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Overdue">Overdue</option>
+                <option value="Paid">{t("expenses.statusPaid")}</option>
+                <option value="Pending">{t("expenses.statusPending")}</option>
+                <option value="Overdue">{t("expenses.statusOverdue")}</option>
               </select>
-              <p className="text-[10px] text-zinc-500">Only Paid expenses come out of Money Left.</p>
+              <p className="text-[10px] text-zinc-500">{t("expenses.statusHint")}</p>
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Date
+              {t("shared.date")}
             </label>
             <input
               type="date"
@@ -422,14 +440,14 @@ function EditExpenseModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? t("shared.saving") : t("expenses.saveChanges")}
             </button>
           </div>
         </form>
@@ -452,6 +470,7 @@ function DeleteExpenseDialog({
   onDeleted: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [isDeleting, setIsDeleting] = useState(false);
 
   if (!expense) return null;
@@ -477,9 +496,12 @@ function DeleteExpenseDialog({
         <div className="mb-3.5 flex size-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600">
           <Trash2 className="size-4.5" />
         </div>
-        <h3 className="text-base font-bold tracking-tight text-zinc-900">Delete Expense</h3>
+        <h3 className="text-base font-bold tracking-tight text-zinc-900">{t("expenses.deleteTitle")}</h3>
         <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-          Are you sure you want to delete expense <span className="font-semibold text-zinc-900">{expense.description}</span> (<span className="font-mono font-medium text-zinc-800">{Number(expense.amount).toLocaleString()} ETB</span>)? This action cannot be undone.
+          {t("expenses.deleteConfirm", {
+            description: expense.description,
+            amount: Number(expense.amount).toLocaleString(),
+          })}
         </p>
 
         <div className="mt-5 flex items-center justify-end gap-2.5 text-xs">
@@ -488,7 +510,7 @@ function DeleteExpenseDialog({
             onClick={onClose}
             className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50"
           >
-            Cancel
+            {t("shared.cancel")}
           </button>
           <button
             type="button"
@@ -496,7 +518,7 @@ function DeleteExpenseDialog({
             onClick={handleConfirm}
             className="rounded-md bg-rose-600 px-3.5 py-2 font-semibold text-white shadow-2xs hover:bg-rose-700 disabled:opacity-50"
           >
-            {isDeleting ? "Deleting..." : "Delete Permanently"}
+            {isDeleting ? t("expenses.deleting") : t("expenses.deletePermanently")}
           </button>
         </div>
       </div>
@@ -508,26 +530,27 @@ function DeleteExpenseDialog({
 /* Status Badge Component                                             */
 /* ------------------------------------------------------------------ */
 function ExpenseStatusBadge({ status }: { status: string }) {
+  const t = useT();
   switch (status) {
     case "Paid":
       return (
         <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
           <span className="size-1 rounded-full bg-emerald-600" />
-          Paid
+          {t("expenses.statusPaid")}
         </span>
       );
     case "Pending":
       return (
         <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-700">
           <span className="size-1 rounded-full bg-amber-500" />
-          Pending
+          {t("expenses.statusPending")}
         </span>
       );
     case "Overdue":
       return (
         <span className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-rose-700">
           <span className="size-1 rounded-full bg-rose-600" />
-          Overdue
+          {t("expenses.statusOverdue")}
         </span>
       );
     default:
@@ -550,6 +573,8 @@ type SortOrder = "asc" | "desc";
 export default function ExpensesPage() {
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
+  const t = useT();
+  const { formatDate } = useFormat();
 
   const [summary, setSummary] = useState<ExpensesSummary | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -633,12 +658,12 @@ export default function ExpensesPage() {
 
   function handleDownload() {
     exportToCsv("shop-expenses", filteredExpenses, [
-      { header: "Date", key: "date" },
-      { header: "Description", key: "description" },
-      { header: "Category", key: "category" },
-      { header: "Amount (ETB)", key: "amount" },
-      { header: "Payment Method", key: "paymentMethod" },
-      { header: "Status", key: "status" },
+      { header: t("shared.date"), key: "date" },
+      { header: t("expenses.description"), key: "description" },
+      { header: t("shared.category"), key: "category" },
+      { header: t("expenses.csvAmount"), key: "amount" },
+      { header: t("expenses.paymentMethod"), key: "paymentMethod" },
+      { header: t("shared.status"), key: "status" },
     ]);
   }
 
@@ -654,7 +679,7 @@ export default function ExpensesPage() {
   const activeFiltersCount = (statusFilter !== "ALL" ? 1 : 0) + (categoryFilter !== "ALL" ? 1 : 0);
 
   if (loadError && expenses.length === 0) {
-    return <LoadError what="expenses" onRetry={loadData} />;
+    return <LoadError what={t("expenses.whatExpenses")} onRetry={loadData} />;
   }
 
   return (
@@ -687,10 +712,10 @@ export default function ExpensesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
-              Expenses & Disbursements
+              {t("expenses.title")}
             </h1>
             <p className="mt-1 text-xs text-zinc-500">
-              Track operational overhead, utility bills, rent, and vendor payouts
+              {t("expenses.subtitle")}
             </p>
           </div>
 
@@ -701,7 +726,7 @@ export default function ExpensesPage() {
               className="inline-flex h-8.5 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-3 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900"
             >
               <Download className="size-3.5 text-zinc-400" />
-              <span>Export CSV</span>
+              <span>{t("expenses.exportCsv")}</span>
             </button>
 
             <button
@@ -710,7 +735,7 @@ export default function ExpensesPage() {
               className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95"
             >
               <Plus className="size-3.5 text-indigo-400" />
-              <span>Record Expense</span>
+              <span>{t("expenses.record")}</span>
             </button>
           </div>
         </div>
@@ -723,19 +748,19 @@ export default function ExpensesPage() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                Total Expenses
+                {t("expenses.totalExpenses")}
               </span>
               <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-zinc-600">
-                {summary?.totalExpenses?.count ?? 0} bills
+                {t.n("expenses.bills", summary?.totalExpenses?.count ?? 0)}
               </span>
             </div>
             <div className="mt-3">
               <p className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {(summary?.totalExpenses?.cost ?? summary?.totalExpenses?.amount ?? 0).toLocaleString()}
-                <span className="ml-1 text-xs font-medium text-zinc-400">ETB</span>
+                <span className="ml-1 text-xs font-medium text-zinc-400">{t("shared.etb")}</span>
               </p>
               <p className="mt-1 font-mono text-[11px] text-zinc-400">
-                {summary?.totalExpenses?.subtext ?? "Total operational expenditures"}
+                {summary?.totalExpenses?.subtext ?? t("expenses.totalHint")}
               </p>
             </div>
           </div>
@@ -744,19 +769,19 @@ export default function ExpensesPage() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-                Settled / Paid
+                {t("expenses.paidTitle")}
               </span>
               <span className="rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-emerald-700">
-                {summary?.totalPaid?.count ?? 0} settled
+                {t.n("expenses.paidCount", summary?.totalPaid?.count ?? 0)}
               </span>
             </div>
             <div className="mt-3">
               <p className="font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
                 {(summary?.totalPaid?.cost ?? 0).toLocaleString()}
-                <span className="ml-1 text-xs font-medium text-emerald-600/70">ETB</span>
+                <span className="ml-1 text-xs font-medium text-emerald-600/70">{t("shared.etb")}</span>
               </p>
               <p className="mt-1 font-mono text-[11px] text-zinc-400">
-                {summary?.totalPaid?.subtext ?? "Paid and cleared invoices"}
+                {summary?.totalPaid?.subtext ?? t("expenses.paidHint")}
               </p>
             </div>
           </div>
@@ -765,19 +790,19 @@ export default function ExpensesPage() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                Pending Approval
+                {t("expenses.pendingTitle")}
               </span>
               <span className="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-amber-700">
-                {summary?.totalPending?.count ?? 0} pending
+                {t.n("expenses.pendingCount", summary?.totalPending?.count ?? 0)}
               </span>
             </div>
             <div className="mt-3">
               <p className="font-mono text-2xl font-bold tracking-tight text-amber-600 tabular-nums">
                 {(summary?.totalPending?.cost ?? summary?.pendingPayment?.amount ?? 0).toLocaleString()}
-                <span className="ml-1 text-xs font-medium text-amber-500/70">ETB</span>
+                <span className="ml-1 text-xs font-medium text-amber-500/70">{t("shared.etb")}</span>
               </p>
               <p className="mt-1 font-mono text-[11px] text-zinc-400">
-                {summary?.totalPending?.subtext ?? "Awaiting authorization or settlement"}
+                {summary?.totalPending?.subtext ?? t("expenses.pendingHint")}
               </p>
             </div>
           </div>
@@ -786,19 +811,19 @@ export default function ExpensesPage() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-rose-700">
-                Overdue Obligations
+                {t("expenses.overdueTitle")}
               </span>
               <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-rose-700">
-                {summary?.totalOverdue?.count ?? 0} overdue
+                {t.n("expenses.overdueCount", summary?.totalOverdue?.count ?? 0)}
               </span>
             </div>
             <div className="mt-3">
               <p className="font-mono text-2xl font-bold tracking-tight text-rose-600 tabular-nums">
                 {(summary?.totalOverdue?.cost ?? 0).toLocaleString()}
-                <span className="ml-1 text-xs font-medium text-rose-500/70">ETB</span>
+                <span className="ml-1 text-xs font-medium text-rose-500/70">{t("shared.etb")}</span>
               </p>
               <p className="mt-1 font-mono text-[11px] text-zinc-400">
-                {summary?.totalOverdue?.subtext ?? "Requires immediate settlement"}
+                {summary?.totalOverdue?.subtext ?? t("expenses.overdueHint")}
               </p>
             </div>
           </div>
@@ -820,7 +845,7 @@ export default function ExpensesPage() {
                     setSearchQuery(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="Search by description, category, or payment..."
+                  placeholder={t("expenses.searchPlaceholder")}
                   className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
                 {searchQuery && (
@@ -849,7 +874,7 @@ export default function ExpensesPage() {
                   }`}
                 >
                   <SlidersHorizontal className="size-3.5 text-zinc-400" />
-                  <span>Filters</span>
+                  <span>{t("shared.filters")}</span>
                   {activeFiltersCount > 0 && (
                     <span className="flex size-4 items-center justify-center rounded-full bg-white font-mono text-[9px] font-bold text-zinc-900">
                       {activeFiltersCount}
@@ -862,7 +887,7 @@ export default function ExpensesPage() {
                   <div className="absolute left-0 sm:left-auto sm:right-0 top-10 z-30 w-64 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xl text-xs space-y-3.5 animate-in fade-in zoom-in-95 duration-100">
                     <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
                       <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-700">
-                        Filter Criteria
+                        {t("expenses.filterCriteria")}
                       </span>
                       <button
                         type="button"
@@ -875,13 +900,13 @@ export default function ExpensesPage() {
                         className="flex items-center gap-1 font-mono text-[10px] text-zinc-500 hover:text-zinc-900"
                       >
                         <RotateCcw className="size-3" />
-                        Reset
+                        {t("shared.reset")}
                       </button>
                     </div>
 
                     <div className="space-y-1">
                       <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                        Status
+                        {t("shared.status")}
                       </label>
                       <select
                         value={statusFilter}
@@ -891,16 +916,16 @@ export default function ExpensesPage() {
                         }}
                         className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-900 focus:border-zinc-900 focus:outline-none"
                       >
-                        <option value="ALL">All Statuses</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Overdue">Overdue</option>
+                        <option value="ALL">{t("expenses.allStatuses")}</option>
+                        <option value="Paid">{t("expenses.statusPaid")}</option>
+                        <option value="Pending">{t("expenses.statusPending")}</option>
+                        <option value="Overdue">{t("expenses.statusOverdue")}</option>
                       </select>
                     </div>
 
                     <div className="space-y-1">
                       <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                        Category
+                        {t("shared.category")}
                       </label>
                       <select
                         value={categoryFilter}
@@ -910,7 +935,7 @@ export default function ExpensesPage() {
                         }}
                         className="h-8 w-full rounded-md border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-900 focus:border-zinc-900 focus:outline-none"
                       >
-                        <option value="ALL">All Categories</option>
+                        <option value="ALL">{t("expenses.allCategories")}</option>
                         {availableCategories.map((c) => (
                           <option key={c} value={c}>
                             {c}
@@ -924,7 +949,7 @@ export default function ExpensesPage() {
                       onClick={() => setShowFilterDropdown(false)}
                       className="w-full rounded-md bg-zinc-900 py-1.5 font-mono text-[11px] font-semibold text-white shadow-2xs hover:bg-zinc-800"
                     >
-                      Apply Filter
+                      {t("expenses.applyFilter")}
                     </button>
                   </div>
                 )}
@@ -933,8 +958,7 @@ export default function ExpensesPage() {
 
             <div className="flex items-center gap-3">
               <span className="font-mono text-xs text-zinc-500">
-                Showing <span className="font-bold text-zinc-900">{filteredExpenses.length}</span>{" "}
-                {filteredExpenses.length === 1 ? "expense" : "expenses"}
+                {t.n("expenses.showing", filteredExpenses.length)}
               </span>
             </div>
           </div>
@@ -949,24 +973,24 @@ export default function ExpensesPage() {
                     onClick={() => toggleSort("date")}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Date</span>
+                      <span>{t("shared.date")}</span>
                       <ArrowDownUp className="size-3 text-zinc-400" />
                     </div>
                   </th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">{t("expenses.description")}</th>
+                  <th className="px-4 py-3">{t("shared.category")}</th>
                   <th
                     className="cursor-pointer px-4 py-3 transition-colors hover:text-zinc-900"
                     onClick={() => toggleSort("amount")}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Amount</span>
+                      <span>{t("expenses.amount")}</span>
                       <ArrowDownUp className="size-3 text-zinc-400" />
                     </div>
                   </th>
-                  <th className="px-4 py-3">Payment Method</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3">{t("expenses.paymentMethod")}</th>
+                  <th className="px-4 py-3">{t("shared.status")}</th>
+                  <th className="px-5 py-3 text-right">{t("shared.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -982,9 +1006,9 @@ export default function ExpensesPage() {
                       <div className="mx-auto flex size-10 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-zinc-400">
                         <Wallet className="size-5" />
                       </div>
-                      <p className="mt-2.5 text-xs font-medium text-zinc-700">No expenses found</p>
+                      <p className="mt-2.5 text-xs font-medium text-zinc-700">{t("expenses.emptyTitle")}</p>
                       <p className="mt-0.5 text-[11px] text-zinc-400">
-                        Try clearing filter criteria or record a new expense
+                        {t("expenses.emptyHint")}
                       </p>
                     </td>
                   </tr>
@@ -992,25 +1016,25 @@ export default function ExpensesPage() {
                   currentExpenses.map((exp) => (
                     <tr key={exp.id} className="transition-colors hover:bg-zinc-50/70">
                       <td className="px-5 py-3 font-mono text-xs text-zinc-600 tabular-nums">
-                        {exp.date}
+                        {formatDate(exp.date)}
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-semibold text-zinc-900">{exp.description}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] text-zinc-600">
-                          {exp.category || "General"}
+                          {exp.category || t("expenses.general")}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs font-bold text-zinc-900 tabular-nums">
                           {Number(exp.amount).toLocaleString()}
                         </span>
-                        <span className="ml-1 font-mono text-[10px] text-zinc-400">ETB</span>
+                        <span className="ml-1 font-mono text-[10px] text-zinc-400">{t("shared.etb")}</span>
                       </td>
                       <td className="px-4 py-3 text-zinc-600">
                         <span className="rounded-md border border-zinc-200/60 bg-white px-2 py-0.5 font-mono text-[10px] text-zinc-700">
-                          {exp.paymentMethod || "Cash"}
+                          {paymentLabel(t, exp.paymentMethod)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -1021,7 +1045,7 @@ export default function ExpensesPage() {
                           <button
                             type="button"
                             onClick={() => setExpenseToEdit(exp)}
-                            title="Edit Expense"
+                            title={t("expenses.editTooltip")}
                             className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-white text-zinc-600 shadow-2xs transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
                           >
                             <Edit2 className="size-3.5" />
@@ -1029,7 +1053,7 @@ export default function ExpensesPage() {
                           <button
                             type="button"
                             onClick={() => setExpenseToDelete(exp)}
-                            title="Delete Expense"
+                            title={t("expenses.deleteTooltip")}
                             className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-white text-zinc-600 shadow-2xs transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                           >
                             <Trash2 className="size-3.5" />
@@ -1043,7 +1067,7 @@ export default function ExpensesPage() {
             </table>
           </div>
 
-          <TablePagination pagination={pagination} noun="expenses" />
+          <TablePagination pagination={pagination} noun={t("expenses.noun")} />
         </div>
       </div>
     </RouteGuard>

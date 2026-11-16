@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
+import { useT } from "@/lib/i18n/use-t";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { RouteGuard } from "@/components/shared/route-guard";
@@ -48,6 +49,7 @@ function AddSupplierModal({
   onCreated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: "",
     product: "",
@@ -112,8 +114,8 @@ function AddSupplierModal({
       <div className="w-full max-w-[480px] rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Add New Supplier</h2>
-            <p className="text-xs text-zinc-500">Register vendor details and return policies</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("suppliers.addTitle")}</h2>
+            <p className="text-xs text-zinc-500">{t("suppliers.addSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -136,7 +138,7 @@ function AddSupplierModal({
             {previewImage ? (
               <img
                 src={previewImage}
-                alt="Supplier"
+                alt={t("suppliers.logoAlt")}
                 className="size-full rounded-lg object-cover"
               />
             ) : (
@@ -145,71 +147,71 @@ function AddSupplierModal({
           </label>
 
           <div className="text-left text-xs">
-            <p className="font-semibold text-zinc-800">Supplier Logo / Brand Photo</p>
-            <p className="text-[11px] text-zinc-500">PNG, JPG up to 2MB (Optional)</p>
+            <p className="font-semibold text-zinc-800">{t("suppliers.logoTitle")}</p>
+            <p className="text-[11px] text-zinc-500">{t("suppliers.logoHint")}</p>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">Supplier Name *</label>
+            <label className="font-semibold text-zinc-700">{t("suppliers.nameRequired")}</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               required
-              placeholder="e.g. BGI Ethiopia"
+              placeholder={t("suppliers.namePlaceholder")}
               className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">Product Line</label>
+              <label className="font-semibold text-zinc-700">{t("suppliers.productLine")}</label>
               <input
                 name="product"
                 value={form.product}
                 onChange={handleChange}
-                placeholder="e.g. Beverages"
+                placeholder={t("suppliers.productPlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">Contact Number</label>
+              <label className="font-semibold text-zinc-700">{t("suppliers.contactNumber")}</label>
               <input
                 name="contactInfo"
                 value={form.contactInfo}
                 onChange={handleChange}
-                placeholder="e.g. +251 91 123 4567"
+                placeholder={t("suppliers.phonePlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">Email Address</label>
+            <label className="font-semibold text-zinc-700">{t("shared.email")}</label>
             <input
               name="email"
               type="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="e.g. supplier@domain.com"
+              placeholder={t("suppliers.emailPlaceholder")}
               className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">Return Policy</label>
+            <label className="font-semibold text-zinc-700">{t("suppliers.returnPolicy")}</label>
             <select
               name="type"
               value={form.type}
               onChange={handleChange}
               className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             >
-              <option value="Taking Return">Taking Return (Accepts returns of damaged/expired stock)</option>
-              <option value="Not Taking Return">Not Taking Return (Final sale / no return)</option>
+              <option value="Taking Return">{t("suppliers.policyTakingOption")}</option>
+              <option value="Not Taking Return">{t("suppliers.policyNotOption")}</option>
             </select>
           </div>
 
@@ -219,14 +221,14 @@ function AddSupplierModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
-              Discard
+              {t("suppliers.discard")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-slate-900 px-5 py-2 font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
-              {isSubmitting ? "Adding..." : "Add Supplier"}
+              {isSubmitting ? t("suppliers.adding") : t("suppliers.addSupplier")}
             </button>
           </div>
         </form>
@@ -249,6 +251,7 @@ function EditSupplierModal({
   onUpdated: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [form, setForm] = useState({
     name: "",
     product: "",
@@ -300,8 +303,8 @@ function EditSupplierModal({
       <div className="w-full max-w-[480px] rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Edit Supplier</h2>
-            <p className="text-xs text-zinc-500">Update vendor contact details and return policies</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("suppliers.editTitle")}</h2>
+            <p className="text-xs text-zinc-500">{t("suppliers.editSubtitle")}</p>
           </div>
           <button
             type="button"
@@ -314,7 +317,7 @@ function EditSupplierModal({
 
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">Supplier Name *</label>
+            <label className="font-semibold text-zinc-700">{t("suppliers.nameRequired")}</label>
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -325,7 +328,7 @@ function EditSupplierModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">Product Line</label>
+              <label className="font-semibold text-zinc-700">{t("suppliers.productLine")}</label>
               <input
                 value={form.product}
                 onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
@@ -333,7 +336,7 @@ function EditSupplierModal({
               />
             </div>
             <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">Contact Number</label>
+              <label className="font-semibold text-zinc-700">{t("suppliers.contactNumber")}</label>
               <input
                 value={form.contactInfo}
                 onChange={(e) => setForm((f) => ({ ...f, contactInfo: e.target.value }))}
@@ -343,7 +346,7 @@ function EditSupplierModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">Email Address</label>
+            <label className="font-semibold text-zinc-700">{t("shared.email")}</label>
             <input
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
@@ -352,14 +355,14 @@ function EditSupplierModal({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">Return Policy</label>
+            <label className="font-semibold text-zinc-700">{t("suppliers.returnPolicy")}</label>
             <select
               value={form.type}
               onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as any }))}
               className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
             >
-              <option value="Taking Return">Taking Return (Accepts returns of damaged/expired stock)</option>
-              <option value="Not Taking Return">Not Taking Return (Final sale / no return)</option>
+              <option value="Taking Return">{t("suppliers.policyTakingOption")}</option>
+              <option value="Not Taking Return">{t("suppliers.policyNotOption")}</option>
             </select>
           </div>
 
@@ -369,14 +372,14 @@ function EditSupplierModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-slate-900 px-5 py-2 font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? t("shared.saving") : t("suppliers.saveChanges")}
             </button>
           </div>
         </form>
@@ -399,6 +402,7 @@ function DeleteSupplierDialog({
   onDeleted: () => void;
   shopId: string;
 }) {
+  const t = useT();
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleConfirm() {
@@ -424,9 +428,9 @@ function DeleteSupplierDialog({
         <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-rose-50 text-rose-600 ring-1 ring-rose-500/15">
           <Trash2 className="size-5" />
         </div>
-        <h3 className="text-base font-bold tracking-tight text-zinc-900">Delete Supplier</h3>
+        <h3 className="text-base font-bold tracking-tight text-zinc-900">{t("suppliers.deleteTitle")}</h3>
         <p className="mt-1 text-xs text-zinc-500">
-          Are you sure you want to delete supplier <span className="font-semibold text-zinc-800">{supplier.name}</span>? This action cannot be undone.
+          {t("suppliers.deleteConfirm", { name: supplier.name })}
         </p>
 
         <div className="mt-5 flex justify-end gap-2.5 text-xs">
@@ -435,7 +439,7 @@ function DeleteSupplierDialog({
             onClick={onClose}
             className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
-            Cancel
+            {t("shared.cancel")}
           </button>
           <button
             type="button"
@@ -443,7 +447,7 @@ function DeleteSupplierDialog({
             onClick={handleConfirm}
             className="rounded-md bg-rose-600 px-4 py-2 font-bold text-white shadow-2xs hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-50"
           >
-            {isDeleting ? "Deleting..." : "Delete Permanently"}
+            {isDeleting ? t("suppliers.deleting") : t("suppliers.deletePermanently")}
           </button>
         </div>
       </div>
@@ -459,6 +463,7 @@ const PAGE_SIZE = 9;
 export default function SuppliersPage() {
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
+  const t = useT();
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -542,12 +547,12 @@ export default function SuppliersPage() {
 
   function handleDownload() {
     exportToCsv("suppliers-directory", filteredSuppliers, [
-      { header: "Supplier Name", key: "name" },
-      { header: "Product Supplied", key: "product" },
-      { header: "Contact Number", key: "contactInfo" },
-      { header: "Email Address", key: "email" },
-      { header: "Return Policy", key: "type" },
-      { header: "Shipments On The Way", key: "onTheWay" },
+      { header: t("suppliers.supplierName"), key: "name" },
+      { header: t("suppliers.productSupplied"), key: "product" },
+      { header: t("suppliers.contactNumber"), key: "contactInfo" },
+      { header: t("shared.email"), key: "email" },
+      { header: t("suppliers.returnPolicy"), key: "type" },
+      { header: t("suppliers.shipmentsOnTheWay"), key: "onTheWay" },
     ]);
   }
 
@@ -593,10 +598,10 @@ export default function SuppliersPage() {
               <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-indigo-400 shadow-2xs">
                 <Building2 className="size-4 text-indigo-400" />
               </span>
-              <h1 className="text-xl font-bold tracking-tight text-zinc-900">Vendors &amp; Suppliers</h1>
+              <h1 className="text-xl font-bold tracking-tight text-zinc-900">{t("suppliers.title")}</h1>
             </div>
             <p className="text-xs text-zinc-500 mt-1">
-              Manage product distributors, return policies, contact directory, and incoming supply lines.
+              {t("suppliers.subtitle")}
             </p>
           </div>
 
@@ -607,7 +612,7 @@ export default function SuppliersPage() {
               className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 active:scale-95"
             >
               <Download className="size-3.5 text-zinc-500" />
-              Export Directory
+              {t("suppliers.exportDirectory")}
             </button>
             {payables && payables.totalOwed > 0 && (
               <button
@@ -615,8 +620,8 @@ export default function SuppliersPage() {
                 onClick={() => setPayKey("")}
                 className="flex h-9 items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3.5 text-xs font-semibold text-amber-900 shadow-2xs transition-colors hover:bg-amber-100 active:scale-95"
               >
-                Pay supplier
-                <span className="font-mono tabular-nums">· {payables.totalOwed.toLocaleString("en-US")} owed</span>
+                {t("payments.title")}
+                <span className="font-mono tabular-nums">· {t("suppliers.owedAmount", { amount: payables.totalOwed.toLocaleString("en-US") })}</span>
               </button>
             )}
             <button
@@ -625,7 +630,7 @@ export default function SuppliersPage() {
               className="flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-4 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
             >
               <Plus className="size-3.5 text-indigo-400" />
-              Add Supplier
+              {t("suppliers.addSupplier")}
             </button>
           </div>
         </div>
@@ -636,54 +641,54 @@ export default function SuppliersPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Suppliers</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("suppliers.totalSuppliers")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/15">
                 <Building2 className="size-4" />
               </div>
             </div>
             <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
-              {metrics.total} <span className="font-sans text-xs font-normal text-zinc-500">vendors</span>
+              <span className="font-sans text-xs font-normal text-zinc-500">{t.n("suppliers.count", metrics.total)}</span>
             </p>
-            <p className="mt-1 text-[11px] text-zinc-500">Registered supply partners</p>
+            <p className="mt-1 text-[11px] text-zinc-500">{t("suppliers.registeredHint")}</p>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Accepting Returns</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("suppliers.acceptingReturns")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/15">
                 <ShieldCheck className="size-4" />
               </div>
             </div>
             <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-emerald-800 tabular-nums">
-              {metrics.takingReturns} <span className="font-sans text-xs font-normal text-zinc-500">vendors</span>
+              <span className="font-sans text-xs font-normal text-zinc-500">{t.n("suppliers.count", metrics.takingReturns)}</span>
             </p>
-            <p className="mt-1 text-[11px] font-medium text-emerald-600">Damage / expired stock returnable</p>
+            <p className="mt-1 text-[11px] font-medium text-emerald-600">{t("suppliers.acceptingHint")}</p>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strict / No Returns</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("suppliers.noReturns")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200">
                 <ShieldAlert className="size-4" />
               </div>
             </div>
             <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-800 tabular-nums">
-              {metrics.noReturns} <span className="font-sans text-xs font-normal text-zinc-500">vendors</span>
+              <span className="font-sans text-xs font-normal text-zinc-500">{t.n("suppliers.count", metrics.noReturns)}</span>
             </p>
-            <p className="mt-1 text-[11px] text-zinc-500">Final sale policies</p>
+            <p className="mt-1 text-[11px] text-zinc-500">{t("suppliers.noReturnsHint")}</p>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Product Categories</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("suppliers.productCategories")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200">
                 <PackageCheck className="size-4" />
               </div>
             </div>
             <p className="mt-2.5 font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
-              {metrics.productLines} <span className="font-sans text-xs font-normal text-zinc-500">categories</span>
+              <span className="font-sans text-xs font-normal text-zinc-500">{t.n("suppliers.categories", metrics.productLines)}</span>
             </p>
-            <p className="mt-1 text-[11px] text-zinc-500">Covered product lines</p>
+            <p className="mt-1 text-[11px] text-zinc-500">{t("suppliers.categoriesHint")}</p>
           </div>
         </div>
 
@@ -695,11 +700,11 @@ export default function SuppliersPage() {
           <div className="flex flex-col gap-3 border-b border-zinc-200/80 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-3.5">
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs font-semibold text-zinc-900">
-                Directory ({filteredSuppliers.length})
+                {t("suppliers.directory", { count: filteredSuppliers.length })}
               </span>
               {typeFilter !== "ALL" && (
                 <span className="rounded-md border border-[#5B4FE9]/30 bg-indigo-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#5B4FE9]">
-                  {typeFilter}
+                  {typeFilter === "Not Taking Return" ? t("suppliers.policyNot") : t("suppliers.policyTaking")}
                 </span>
               )}
             </div>
@@ -711,7 +716,7 @@ export default function SuppliersPage() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search suppliers / products..."
+                  placeholder={t("suppliers.searchPlaceholder")}
                   className="h-9 w-full sm:w-56 rounded-md border border-zinc-200 bg-zinc-50/50 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:bg-white focus:outline-hidden"
                 />
               </div>
@@ -728,7 +733,7 @@ export default function SuppliersPage() {
                   }`}
                 >
                   <SlidersHorizontal className="size-3.5 text-zinc-500" />
-                  Filter Policy
+                  {t("suppliers.filterPolicy")}
                   {typeFilter !== "ALL" && (
                     <span className="size-1.5 rounded-full bg-[#5B4FE9]" />
                   )}
@@ -737,7 +742,7 @@ export default function SuppliersPage() {
                 {showFilterDropdown && (
                   <div className="absolute right-0 top-11 z-30 w-56 rounded-xl border border-zinc-200 bg-white p-4 shadow-xl text-xs space-y-3 animate-in fade-in zoom-in-95 duration-100">
                     <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-                      <span className="font-bold text-zinc-900">Return Policy</span>
+                      <span className="font-bold text-zinc-900">{t("suppliers.returnPolicy")}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -747,7 +752,7 @@ export default function SuppliersPage() {
                         className="flex items-center gap-1 font-mono text-[10px] text-zinc-500 hover:text-zinc-900 transition-colors"
                       >
                         <RotateCcw className="size-3" />
-                        Reset
+                        {t("shared.reset")}
                       </button>
                     </div>
 
@@ -757,9 +762,9 @@ export default function SuppliersPage() {
                         onChange={(e) => setTypeFilter(e.target.value)}
                         className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-zinc-900 focus:border-[#5B4FE9] focus:outline-hidden"
                       >
-                        <option value="ALL">All Policies</option>
-                        <option value="Taking Return">Taking Return</option>
-                        <option value="Not Taking Return">Not Taking Return</option>
+                        <option value="ALL">{t("suppliers.allPolicies")}</option>
+                        <option value="Taking Return">{t("suppliers.policyTaking")}</option>
+                        <option value="Not Taking Return">{t("suppliers.policyNot")}</option>
                       </select>
                     </div>
 
@@ -768,7 +773,7 @@ export default function SuppliersPage() {
                       onClick={() => setShowFilterDropdown(false)}
                       className="w-full rounded-md bg-slate-900 py-1.5 font-bold text-white shadow-2xs hover:bg-slate-800 transition-colors"
                     >
-                      Apply
+                      {t("suppliers.apply")}
                     </button>
                   </div>
                 )}
@@ -781,14 +786,14 @@ export default function SuppliersPage() {
             <table className="w-full min-w-[720px] text-xs">
               <thead>
                 <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left">
-                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Supplier Name</th>
-                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Product Line</th>
-                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Contact Number</th>
-                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Email Address</th>
-                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Return Policy</th>
-                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">Incoming Supply</th>
-                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">Owed</th>
-                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">Actions</th>
+                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">{t("suppliers.supplierName")}</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">{t("suppliers.productLine")}</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">{t("suppliers.contactNumber")}</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">{t("shared.email")}</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">{t("suppliers.returnPolicy")}</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">{t("suppliers.incomingSupply")}</th>
+                  <th className="px-4 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">{t("suppliers.owed")}</th>
+                  <th className="px-6 py-3 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500 text-right">{t("shared.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -801,7 +806,7 @@ export default function SuppliersPage() {
                 ) : currentSuppliers.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center text-zinc-400">
-                      No suppliers found matching filters.
+                      {t("suppliers.empty")}
                     </td>
                   </tr>
                 ) : (
@@ -841,7 +846,7 @@ export default function SuppliersPage() {
                                 : "bg-zinc-100 text-zinc-600 border border-zinc-200/80"
                             }`}
                           >
-                            {supplier.type || "Taking Return"}
+                            {isTakingReturn ? t("suppliers.policyTaking") : t("suppliers.policyNot")}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 font-mono text-zinc-600">
@@ -850,7 +855,7 @@ export default function SuppliersPage() {
                         <td className="px-4 py-3.5 text-right font-mono tabular-nums">
                           {owedBySupplierId.get(supplier.id) ? (
                             <span className="font-semibold text-amber-800">
-                              {owedBySupplierId.get(supplier.id)!.toLocaleString("en-US")} ETB
+                              {owedBySupplierId.get(supplier.id)!.toLocaleString("en-US")} {t("shared.etb")}
                             </span>
                           ) : (
                             <span className="text-zinc-400">—</span>
@@ -864,13 +869,13 @@ export default function SuppliersPage() {
                                 onClick={() => setPayKey(supplierKey({ supplierId: supplier.id, supplierName: supplier.name }))}
                                 className="rounded-md bg-slate-900 px-2.5 py-1 text-[11px] font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
                               >
-                                Pay
+                                {t("suppliers.pay")}
                               </button>
                             ) : null}
                             <button
                               type="button"
                               onClick={() => setSupplierToEdit(supplier)}
-                              title="Edit Supplier"
+                              title={t("suppliers.editTooltip")}
                               className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 shadow-2xs hover:border-zinc-300 hover:text-zinc-900 transition-colors"
                             >
                               <Edit2 className="size-3.5" />
@@ -878,7 +883,7 @@ export default function SuppliersPage() {
                             <button
                               type="button"
                               onClick={() => setSupplierToDelete(supplier)}
-                              title="Delete Supplier"
+                              title={t("suppliers.deleteTooltip")}
                               className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 shadow-2xs hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                             >
                               <Trash2 className="size-3.5" />
@@ -893,7 +898,7 @@ export default function SuppliersPage() {
             </table>
           </div>
 
-          <TablePagination pagination={pagination} noun="suppliers" />
+          <TablePagination pagination={pagination} noun={t("suppliers.noun")} />
         </div>
       </div>
     </RouteGuard>

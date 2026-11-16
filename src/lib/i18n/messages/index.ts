@@ -11,17 +11,45 @@ import { common } from "./common";
 import { dashboard } from "./dashboard";
 import { nav } from "./nav";
 import { pos } from "./pos";
+import { auth } from "./auth";
+import { landing } from "./landing";
+import { inventory } from "./inventory";
+import { orders } from "./orders";
+import { customers } from "./customers";
+import { debts } from "./debts";
+import { suppliers } from "./suppliers";
+import { expenses } from "./expenses";
+import { funds } from "./funds";
+import { reports } from "./reports";
+import { users } from "./users";
+import { notifications } from "./notifications";
+import { settings } from "./settings";
+import { shared } from "./shared";
 import type { Language } from "./types";
 
 export type { Language } from "./types";
 
-const areas = [common, nav, dashboard, pos] as const;
+const areas = [common, nav, dashboard, pos, auth, landing, inventory, orders, customers, debts, suppliers, expenses, funds, reports, users, notifications, settings, shared] as const;
 
 export const en = {
   ...common.en,
   ...nav.en,
   ...dashboard.en,
   ...pos.en,
+  ...auth.en,
+  ...landing.en,
+  ...inventory.en,
+  ...orders.en,
+  ...customers.en,
+  ...debts.en,
+  ...suppliers.en,
+  ...expenses.en,
+  ...funds.en,
+  ...reports.en,
+  ...users.en,
+  ...notifications.en,
+  ...settings.en,
+  ...shared.en,
 } as const;
 
 export type MessageKey = keyof typeof en;

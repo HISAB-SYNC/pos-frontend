@@ -1,10 +1,11 @@
 "use client";
 
-import { ArrowLeftRight, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { formatEtb } from "@/components/funds/funds-shared";
+import { AddMoneyModal } from "@/components/funds/add-money-modal";
 import { ActivityList, EMPTY_FILTER, type LedgerFilter } from "@/components/funds/activity-list";
 import { BalanceOverview } from "@/components/funds/balance-overview";
 import { PaySupplierModal } from "@/components/funds/pay-supplier-modal";
@@ -46,6 +47,7 @@ function FundsPageContent() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [payKey, setPayKey] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
   const load = useCallback(
@@ -122,6 +124,14 @@ function FundsPageContent() {
         <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
+          onClick={() => setIsAdding(true)}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
+        >
+          <Plus className="size-3.5 text-zinc-500" />
+          {t("fundsPage.addMoney")}
+        </button>
+        <button
+          type="button"
           onClick={() => setIsMoving(true)}
           className="inline-flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-semibold text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
         >
@@ -187,6 +197,10 @@ function FundsPageContent() {
         <ActivityList key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       )}
       {tab === "suppliers" && <SuppliersOwed payables={payables} payments={payments} onPay={setPayKey} />}
+
+      {isAdding && funds && (
+        <AddMoneyModal shopId={shopId} funds={funds} onClose={() => setIsAdding(false)} onAdded={reload} />
+      )}
 
       {isMoving && funds && (
         <TransferModal shopId={shopId} funds={funds} onClose={() => setIsMoving(false)} onMoved={reload} />

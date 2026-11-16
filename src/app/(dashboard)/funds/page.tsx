@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  ACCOUNT_ICONS,
   ACCOUNT_LABELS,
   ALL_LINES,
   IN_LINES,
@@ -14,6 +13,7 @@ import {
   OUT_LINES,
   formatEtb,
 } from "@/components/funds/funds-shared";
+import { BalanceOverview } from "@/components/funds/balance-overview";
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { TransferModal } from "@/components/funds/transfer-modal";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -34,7 +34,7 @@ import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
 
-type Tab = "overview" | "ledger" | "suppliers";
+type Tab = "activity" | "summary" | "suppliers";
 type LedgerFilter = { line: FundsLine | ""; account: FundAccount | ""; from: string; to: string };
 
 const EMPTY_FILTER: LedgerFilter = { line: "", account: "", from: "", to: "" };
@@ -439,9 +439,14 @@ function FundsPageContent() {
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
+  // Older links use ?tab=ledger / overview; they keep working.
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState<Tab>(
-    initialTab === "ledger" || initialTab === "suppliers" ? initialTab : "overview",
+    initialTab === "suppliers"
+      ? "suppliers"
+      : initialTab === "summary" || initialTab === "overview"
+        ? "summary"
+        : "activity",
   );
   const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>(EMPTY_FILTER);
   const [funds, setFunds] = useState<FundsSummary | null>(null);
@@ -482,14 +487,12 @@ function FundsPageContent() {
   const tabs = useMemo(
     () =>
       [
-        { id: "overview" as const, label: t("fundsPage.tab.overview") },
-        { id: "ledger" as const, label: t("fundsPage.tab.ledger") },
+        { id: "activity" as const, label: t("fundsPage.tab.activity"), badge: null as string | null },
+        { id: "summary" as const, label: t("fundsPage.tab.summary"), badge: null as string | null },
         {
           id: "suppliers" as const,
-          label:
-            owed > 0
-              ? t("fundsPage.tab.suppliersAmount", { amount: formatEtb(owed) })
-              : t("fundsPage.tab.suppliers"),
+          label: t("fundsPage.tab.suppliersShort"),
+          badge: owed > 0 ? formatEtb(owed) : null,
         },
       ],
     [owed, t],
@@ -547,56 +550,15 @@ function FundsPageContent() {
         </div>
       </div>
 
-      {/* Money left and where it is */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t("fundsPage.moneyLeft")}</span>
-            <span className="rounded-md bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
-              {t("fundsPage.rightNow")}
-            </span>
-          </div>
-          <p
-            className={`mt-3 font-mono text-2xl font-bold tracking-tight tabular-nums ${
-              funds.moneyLeft < 0 ? "text-rose-300" : "text-white"
-            }`}
-          >
-            {formatEtb(funds.moneyLeft)} <span className="text-xs font-semibold text-slate-400">{t("shared.etb")}</span>
-          </p>
-          <p className="mt-2 text-[11px] text-slate-400">
-            {t("fundsPage.inOutSummary", { in: formatEtb(funds.moneyIn), out: formatEtb(funds.moneyOut) })}
-          </p>
-        </div>
-        {funds.accounts.map((account) => {
-          const Icon = ACCOUNT_ICONS[account.account];
-          return (
-            <button
-              key={account.account}
-              type="button"
-              onClick={() => {
-                setLedgerFilter({ ...EMPTY_FILTER, account: account.account });
-                setTab("ledger");
-              }}
-              className="rounded-xl border border-zinc-200/80 bg-white p-5 text-left shadow-2xs transition-all hover:border-zinc-300"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t(ACCOUNT_LABELS[account.account])}</span>
-                <div className="flex size-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-700">
-                  <Icon className="size-4" />
-                </div>
-              </div>
-              <p
-                className={`mt-3 font-mono text-2xl font-bold tracking-tight tabular-nums ${
-                  account.balance < 0 ? "text-rose-700" : "text-zinc-900"
-                }`}
-              >
-                {formatEtb(account.balance)} <span className="text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
-              </p>
-              <p className="mt-2 text-[11px] text-zinc-500">{t("fundsPage.seeRecords")}</p>
-            </button>
-          );
-        })}
-      </div>
+      {/* Money now, each account, and a reminder when suppliers are owed */}
+      <BalanceOverview
+        funds={funds}
+        onOpenAccount={(account) => {
+          setLedgerFilter({ ...EMPTY_FILTER, account });
+          setTab("activity");
+        }}
+        onSeeSuppliers={() => setTab("suppliers")}
+      />
 
       {/* Tabs */}
       <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1">
@@ -605,27 +567,32 @@ function FundsPageContent() {
             key={item.id}
             type="button"
             onClick={() => setTab(item.id)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all ${
               tab === item.id
                 ? "border border-zinc-200/80 bg-white font-semibold text-zinc-900 shadow-2xs"
                 : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
             }`}
           >
             {item.label}
+            {item.badge && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-amber-800">
+                {item.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {tab === "overview" && (
+      {tab === "summary" && (
         <OverviewTab
           funds={funds}
           onOpenLine={(line) => {
             setLedgerFilter({ ...EMPTY_FILTER, line });
-            setTab("ledger");
+            setTab("activity");
           }}
         />
       )}
-      {tab === "ledger" && (
+      {tab === "activity" && (
         <LedgerTab key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       )}
       {tab === "suppliers" && <SuppliersTab payables={payables} payments={payments} onPay={setPayKey} />}

@@ -20,6 +20,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
+import { SupplierDetailPanel, type SupplierDetailTarget } from "@/components/suppliers/supplier-detail-panel";
 import { useT } from "@/lib/i18n/use-t";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
@@ -547,6 +548,7 @@ function SuppliersContent() {
   const [payables, setPayables] = useState<SupplierPayables | null>(null);
   const [paidLast30, setPaidLast30] = useState(0);
   const [payKey, setPayKey] = useState<string | null>(null);
+  const [detail, setDetail] = useState<SupplierDetailTarget | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -674,6 +676,19 @@ function SuppliersContent() {
         shopId={shopId}
       />
 
+      {detail && (
+        <SupplierDetailPanel
+          shopId={shopId}
+          target={detail}
+          payable={payables?.suppliers.find((p) => supplierKey(p) === detail.key) ?? null}
+          onClose={() => setDetail(null)}
+          onPay={setPayKey}
+          onEdit={(s) => setSupplierToEdit(s)}
+          onDelete={(s) => setSupplierToDelete(s)}
+          onAddToList={(name) => openAdd(name)}
+        />
+      )}
+
       {payKey !== null && (
         <PaySupplierModal
           shopId={shopId}
@@ -794,10 +809,14 @@ function SuppliersContent() {
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-amber-50 font-mono text-[11px] font-bold text-amber-800 ring-1 ring-amber-200">
                     {u.name.slice(0, 2).toUpperCase()}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-zinc-900">{u.name}</p>
+                  <button
+                    type="button"
+                    onClick={() => setDetail({ key: u.key, supplier: null, name: u.name })}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="truncate text-sm font-semibold text-zinc-900 hover:underline">{u.name}</p>
                     <p className="text-[11px] text-zinc-500">{t.n("suppliers.unpaidRestocks", u.restocks)}</p>
-                  </div>
+                  </button>
                   <span className="font-mono text-sm font-bold tabular-nums text-amber-800">
                     {u.owed.toLocaleString("en-US", { maximumFractionDigits: 2 })} {t("shared.etb")}
                   </span>
@@ -939,7 +958,13 @@ function SuppliersContent() {
                   currentSuppliers.map((supplier) => {
                     const info = owedById.get(supplier.id);
                     return (
-                      <tr key={supplier.id} className="transition-colors hover:bg-zinc-50/60">
+                      <tr
+                        key={supplier.id}
+                        onClick={() =>
+                          setDetail({ key: supplierKey({ supplierId: supplier.id, supplierName: supplier.name }), supplier, name: supplier.name })
+                        }
+                        className="cursor-pointer transition-colors hover:bg-zinc-50/60"
+                      >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
                             <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-zinc-100 font-mono text-[11px] font-bold text-zinc-700 ring-1 ring-zinc-200">
@@ -967,7 +992,7 @@ function SuppliersContent() {
                             <span className="text-zinc-400">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5 text-right">
+                        <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             {info && (
                               <button

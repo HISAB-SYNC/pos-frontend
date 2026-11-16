@@ -8,7 +8,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { EntryIcon } from "@/components/funds/entry-icon";
 import { ACCOUNT_LABELS, formatEtb } from "@/components/funds/funds-shared";
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
-import { LoadingState } from "@/components/shared/loading-state";
+import { DetailPageSkeleton } from "@/components/shared/skeletons";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { AddSupplierModal, DeleteSupplierDialog, EditSupplierModal } from "@/components/suppliers/supplier-modals";
@@ -82,7 +82,7 @@ function SupplierPageContent() {
     </Link>
   );
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <DetailPageSkeleton />;
 
   if (!found) {
     return (
@@ -198,7 +198,24 @@ function SupplierPageContent() {
             <h2 className="border-b border-zinc-100 px-4 py-3 text-sm font-bold tracking-tight text-zinc-900 sm:px-5">
               {t("suppliers.detail.unpaidRestocks")}
             </h2>
-            <div className="overflow-x-auto">
+            {/* Phones: one line per unpaid restock */}
+            <ul className="divide-y divide-zinc-100 sm:hidden">
+              {payable.purchases.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-zinc-900">
+                      {p.productName} × {p.quantity}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">
+                      {formatDate(p.purchasedAt)}
+                      {p.amountPaid > 0 && ` · ${formatEtb(p.amountPaid)} / ${formatEtb(p.totalCost)}`}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-sm font-bold tabular-nums text-amber-800">{formatEtb(p.remaining)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full min-w-[480px] text-left text-xs">
                 <thead>
                   <tr className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
@@ -265,7 +282,7 @@ function SupplierPageContent() {
 export default function SupplierPage() {
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<DetailPageSkeleton />}>
         <SupplierPageContent />
       </Suspense>
     </RouteGuard>

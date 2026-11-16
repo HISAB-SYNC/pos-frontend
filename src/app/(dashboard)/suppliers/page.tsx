@@ -9,7 +9,8 @@ import { useDismiss } from "@/hooks/use-dismiss";
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { AddSupplierModal, DeleteSupplierDialog, EditSupplierModal } from "@/components/suppliers/supplier-modals";
 import { useT } from "@/lib/i18n/use-t";
-import { LoadingState } from "@/components/shared/loading-state";
+import { TablePageSkeleton } from "@/components/shared/skeletons";
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getSuppliers } from "@/lib/api";
@@ -195,6 +196,9 @@ function SuppliersContent() {
     { id: "OWE", label: t("suppliers.chip.owe"), count: owingCount },
     { id: "SETTLED", label: t("suppliers.chip.settled") },
   ];
+
+  // First load: a page-shaped placeholder instead of empty cards and a blank table
+  if (isLoading && suppliers.length === 0 && !payables) return <TablePageSkeleton cards={3} />;
 
   return (
     <>
@@ -416,7 +420,58 @@ function SuppliersContent() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Phones: one card per supplier */}
+          <ul className="divide-y divide-zinc-100 sm:hidden">
+            {isLoading ? (
+              <li>
+                <ListSkeleton rows={5} />
+              </li>
+            ) : currentSuppliers.length === 0 ? (
+              <li className="px-5 py-10 text-center text-xs text-zinc-400">
+                {view === "ALL" && !debouncedSearch ? t("suppliers.empty") : t("suppliers.noOweMatch")}
+              </li>
+            ) : (
+              currentSuppliers.map((supplier) => {
+                const info = owedById.get(supplier.id);
+                return (
+                  <li key={supplier.id} className="px-4 py-3.5">
+                    <Link href={`/suppliers/${supplier.id}`} className="flex items-start gap-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-zinc-100 font-mono text-[11px] font-bold text-zinc-700 ring-1 ring-zinc-200">
+                        {supplier.name.slice(0, 2).toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-zinc-900">{supplier.name}</span>
+                        <span className="block truncate font-mono text-[11px] text-zinc-500">{supplier.contactInfo || "—"}</span>
+                      </span>
+                      {info && (
+                        <span className="shrink-0 text-right">
+                          <span className="block font-mono text-sm font-bold tabular-nums text-amber-800">
+                            {info.owed.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                          </span>
+                          <span className="block text-[10px] text-zinc-500">{t.n("suppliers.unpaidRestocks", info.restocks)}</span>
+                        </span>
+                      )}
+                    </Link>
+                    <div className="mt-2.5 flex items-center justify-end gap-1.5">
+                      {info && (
+                        <button
+                          type="button"
+                          onClick={() => setPayKey(supplierKey({ supplierId: supplier.id, supplierName: supplier.name }))}
+                          className="rounded-md bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white shadow-2xs active:scale-95"
+                        >
+                          {t("suppliers.pay")}
+                        </button>
+                      )}
+                      <RowMenu onEdit={() => setSupplierToEdit(supplier)} onDelete={() => setSupplierToDelete(supplier)} />
+                    </div>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+
+          {/* Tablets and larger: the table */}
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[600px] text-xs">
               <thead>
                 <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
@@ -429,9 +484,9 @@ function SuppliersContent() {
               <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12">
-                      <LoadingState />
-                    </td>
+                    <td colSpan={4} className="p-0">
+<ListSkeleton rows={6} />
+</td>
                   </tr>
                 ) : currentSuppliers.length === 0 ? (
                   <tr>
@@ -511,7 +566,7 @@ function SuppliersContent() {
 export default function SuppliersPage() {
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<TablePageSkeleton cards={3} />}>
         <SuppliersContent />
       </Suspense>
     </RouteGuard>

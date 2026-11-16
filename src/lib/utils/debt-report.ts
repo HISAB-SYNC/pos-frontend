@@ -1,4 +1,5 @@
 import type { Debt } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { DateRange } from "./report-range";
 
 export type DebtRowStatus = "PAID" | "PARTIAL" | "UNPAID";
@@ -62,7 +63,7 @@ function shortRef(id: string) {
 }
 
 /** Debts issued inside the range, one row per debt. */
-export function buildDebtRows(debts: Debt[], range: DateRange): DebtReportRow[] {
+export function buildDebtRows(debts: Debt[], range: DateRange, unknownCustomer = "Unknown customer"): DebtReportRow[] {
   const now = Date.now();
   const rows: DebtReportRow[] = [];
   for (const d of debts) {
@@ -78,7 +79,7 @@ export function buildDebtRows(debts: Debt[], range: DateRange): DebtReportRow[] 
     rows.push({
       key: d.id,
       customerId: d.customerId,
-      customer: d.customerName || d.customer?.name || "Unknown customer",
+      customer: d.customerName || d.customer?.name || unknownCustomer,
       phone: d.customerPhone || d.customer?.phone || "",
       reference: shortRef(d.id),
       count: 1,
@@ -143,8 +144,9 @@ export function summarize(debts: Debt[], rows: DebtReportRow[], range: DateRange
   };
 }
 
-export const STATUS_LABEL: Record<DebtRowStatus, string> = {
-  PAID: "Fully paid",
-  PARTIAL: "Partially paid",
-  UNPAID: "Unpaid",
+/** Message keys: render with `t(STATUS_LABEL[status])`. */
+export const STATUS_LABEL: Record<DebtRowStatus, MessageKey> = {
+  PAID: "reports.debt.status.PAID",
+  PARTIAL: "reports.debt.status.PARTIAL",
+  UNPAID: "reports.debt.status.UNPAID",
 };

@@ -10,6 +10,8 @@ import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getSales } from "@/lib/api/app-data";
 import type { Sale } from "@/lib/api/types";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { periodLabel, rangeFor, type Preset } from "@/lib/utils/report-range";
@@ -43,7 +45,7 @@ function buildRows(sales: Sale[]): CustomerRow[] {
     const when = new Date(sale.createdAt).getTime() || 0;
     const row = map.get(sale.customerId) ?? {
       customerId: sale.customerId,
-      name: sale.customer?.name || "Unknown customer",
+      name: sale.customer?.name || "",
       contact: sale.customer?.phone || sale.customer?.email || "",
       orders: 0,
       spent: 0,
@@ -59,6 +61,8 @@ function buildRows(sales: Sale[]): CustomerRow[] {
 }
 
 export default function TopCustomersReportPage() {
+  const t = useT();
+  const { formatDate } = useFormat();
   const shopId = useShopStore((state) => state.activeShopId) ?? MOCK_IDS.shop;
 
   const [preset, setPreset] = useState<Preset>("MONTH");
@@ -72,7 +76,7 @@ export default function TopCustomersReportPage() {
 
   const range = useMemo(() => rangeFor(preset, customFrom, customTo), [preset, customFrom, customTo]);
   const requestKey = `${JSON.stringify(range)}|${reloadKey}`;
-  const label = periodLabel(preset, range);
+  const label = periodLabel(preset, range, t, formatDate);
 
   useEffect(() => {
     let mounted = true;
@@ -121,18 +125,20 @@ export default function TopCustomersReportPage() {
     }
   }
 
+  const withEtb = (text: string) => `${text} (${t("shared.etb")})`;
+
   function handleCsv() {
     exportToCsv(
-      `top-customers-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
+      `top-customers-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || new Date().toISOString().slice(0, 10)}`,
       rows.map((r, index) => ({ ...r, rank: index + 1 })),
       [
-        { header: "Rank", key: "rank" },
-        { header: "Customer", key: "name" },
-        { header: "Contact", key: "contact" },
-        { header: "Orders", key: "orders" },
-        { header: "Total spent (ETB)", key: "spent" },
-        { header: "Average order (ETB)", formatter: (r) => Math.round(r.average * 100) / 100 },
-        { header: "Last purchase", formatter: (r) => (r.last ? new Date(r.last).toISOString().slice(0, 10) : "") },
+        { header: t("reports.top.csvRank"), key: "rank" },
+        { header: t("reports.customers.colCustomer"), formatter: (r) => r.name || t("reports.unknownCustomer") },
+        { header: t("reports.sales.contact"), key: "contact" },
+        { header: t("reports.customers.colOrders"), key: "orders" },
+        { header: withEtb(t("reports.customers.colSpent")), key: "spent" },
+        { header: withEtb(t("reports.customers.csvAverage")), formatter: (r) => Math.round(r.average * 100) / 100 },
+        { header: t("reports.customers.colLast"), formatter: (r) => (r.last ? new Date(r.last).toISOString().slice(0, 10) : "") },
       ],
     );
   }
@@ -146,12 +152,12 @@ export default function TopCustomersReportPage() {
         <div className="space-y-3">
           <Link href="/reports" className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-950">
             <ArrowLeft className="size-3.5" />
-            Back to reports
+            {t("reports.backToReports")}
           </Link>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-950">Top Customers</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-950">{t("reports.customers.title")}</h1>
             <p className="mt-0.5 text-xs text-zinc-500">
-              Every customer who bought in the period, ranked by spending · {label}
+              {t("reports.customers.subtitle", { period: label })}
             </p>
           </div>
         </div>
@@ -172,12 +178,12 @@ export default function TopCustomersReportPage() {
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 disabled:opacity-50"
           >
             <Download className="size-3.5 text-zinc-500" />
-            Export CSV
+            {t("reports.exportCsv")}
           </button>
         </div>
 
         {result?.error && !isLoading ? (
-          <LoadError what="the customer report" onRetry={() => setReloadKey((k) => k + 1)} />
+          <LoadError what={t("reports.what.customerReport")} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : (
           <section className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
             <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 p-3">
@@ -186,17 +192,17 @@ export default function TopCustomersReportPage() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search name, phone or email"
+                  placeholder={t("reports.customers.searchPlaceholder")}
                   className={`${reportInputClass} w-60 pl-8`}
                 />
               </div>
-              <span className="ml-auto text-xs text-zinc-500">{rows.length} customers</span>
+              <span className="ml-auto text-xs text-zinc-500">{t.n("reports.customers.count", rows.length)}</span>
             </div>
 
             {isLoading ? (
-              <p className="py-12 text-center text-xs text-zinc-400">Loading…</p>
+              <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
             ) : rows.length === 0 ? (
-              <p className="py-12 text-center text-xs text-zinc-500">No customer purchases found in this period.</p>
+              <p className="py-12 text-center text-xs text-zinc-500">{t("reports.customers.empty")}</p>
             ) : (
               <>
               <div className="overflow-x-auto">
@@ -204,11 +210,11 @@ export default function TopCustomersReportPage() {
                   <thead>
                     <tr className="border-b border-zinc-100 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
                       <th className="w-12 px-4 py-2.5 font-bold">#</th>
-                      <ReportSortTh label="Customer" field="name" {...sortProps} />
-                      <ReportSortTh label="Orders" field="orders" right {...sortProps} />
-                      <ReportSortTh label="Total spent" field="spent" right {...sortProps} />
-                      <ReportSortTh label="Avg. order" field="average" right {...sortProps} />
-                      <ReportSortTh label="Last purchase" field="last" right {...sortProps} />
+                      <ReportSortTh label={t("reports.customers.colCustomer")} field="name" {...sortProps} />
+                      <ReportSortTh label={t("reports.customers.colOrders")} field="orders" right {...sortProps} />
+                      <ReportSortTh label={t("reports.customers.colSpent")} field="spent" right {...sortProps} />
+                      <ReportSortTh label={t("reports.customers.colAverage")} field="average" right {...sortProps} />
+                      <ReportSortTh label={t("reports.customers.colLast")} field="last" right {...sortProps} />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -216,25 +222,23 @@ export default function TopCustomersReportPage() {
                       <tr key={r.customerId} className="transition-colors hover:bg-zinc-50/80">
                         <td className="px-4 py-2.5 font-mono font-bold text-zinc-400">{pager.from + index}</td>
                         <td className="px-4 py-2.5">
-                          <p className="font-semibold text-zinc-900">{r.name}</p>
+                          <p className="font-semibold text-zinc-900">{r.name || t("reports.unknownCustomer")}</p>
                           <p className="font-mono text-[11px] text-zinc-500">{r.contact || "—"}</p>
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono font-semibold text-zinc-700 tabular-nums">{r.orders}</td>
                         <td className="px-4 py-2.5 text-right font-mono font-bold text-emerald-700 tabular-nums">
-                          {etb(r.spent)} ETB
+                          {etb(r.spent)} {t("shared.etb")}
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono text-zinc-600 tabular-nums">{etb(r.average)}</td>
                         <td className="px-4 py-2.5 text-right text-zinc-600">
-                          {r.last
-                            ? new Date(r.last).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                            : "—"}
+                          {r.last ? formatDate(r.last) : "—"}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <TablePagination pagination={pager} noun="customers" />
+              <TablePagination pagination={pager} noun={t("reports.customers.noun")} />
               </>
             )}
           </section>

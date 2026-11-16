@@ -33,6 +33,7 @@ import { ProductReport } from "@/components/reports/product-report";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getShopAnalytics } from "@/lib/api/app-data";
 import { getProducts } from "@/lib/api/shops";
+import { useT } from "@/lib/i18n/use-t";
 
 import type {
   AnalyticsPeriod,
@@ -53,6 +54,7 @@ const PAYMENT_METHOD_COLORS: Record<string, string> = {
 };
 
 function SalesReport() {
+  const t = useT();
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
   const [period, setPeriod] = useState<AnalyticsPeriod>("weekly");
@@ -150,28 +152,44 @@ function SalesReport() {
     const mobileOrTelebirrAmount = (breakdown.MOBILE?.totalAmount || 0) || (breakdown.TELEBIRR?.totalAmount || 0);
 
     if (cashAmount > 0) {
-      items.push({ name: "Cash", value: cashAmount, color: PAYMENT_METHOD_COLORS.CASH });
+      items.push({ name: t("reports.sales.payCash"), value: cashAmount, color: PAYMENT_METHOD_COLORS.CASH });
     }
     if (cardOrBankAmount > 0) {
-      items.push({ name: "Card / Bank", value: cardOrBankAmount, color: PAYMENT_METHOD_COLORS.CARD });
+      items.push({ name: t("reports.sales.payCardBank"), value: cardOrBankAmount, color: PAYMENT_METHOD_COLORS.CARD });
     }
     if (mobileOrTelebirrAmount > 0) {
-      items.push({ name: "Mobile / Telebirr", value: mobileOrTelebirrAmount, color: PAYMENT_METHOD_COLORS.MOBILE });
+      items.push({ name: t("reports.sales.payMobile"), value: mobileOrTelebirrAmount, color: PAYMENT_METHOD_COLORS.MOBILE });
     }
     return items;
-  }, [analytics]);
+  }, [analytics, t]);
 
   if (loading && !analytics) {
     return <LoadingState />;
   }
 
   if (loadError && !analytics) {
-    return <LoadError what="reports" onRetry={loadAnalytics} />;
+    return <LoadError what={t("reports.what.reports")} onRetry={loadAnalytics} />;
   }
 
   const sales = analytics?.salesAnalytics;
   const products = analytics?.productAnalytics;
   const customers = analytics?.customerAnalytics;
+
+  const periodTabs: Array<{ id: AnalyticsPeriod; label: string }> = [
+    { id: "daily", label: t("shared.today") },
+    { id: "weekly", label: t("reports.sales.past7") },
+    { id: "monthly", label: t("reports.sales.past30") },
+    { id: "custom", label: t("reports.period.custom") },
+  ];
+  const periodName = periodTabs.find((tab) => tab.id === period)?.label ?? period;
+  const withEtb = (text: string) => `${text} (${t("shared.etb")})`;
+  const exportDateRange = () =>
+    analytics?.dateRange
+      ? t("reports.dateRange", {
+          from: analytics.dateRange.startDate.slice(0, 10),
+          to: analytics.dateRange.endDate.slice(0, 10),
+        })
+      : periodName;
 
   function handleExportReportCsv() {
     if (!analytics) return;
@@ -180,49 +198,47 @@ function SalesReport() {
     if (topProd.length === 0) {
       exportToCsv(`analytics-report-${period}`, [
         {
-          period: period.toUpperCase(),
-          dateRange: analytics.dateRange
-            ? `${analytics.dateRange.startDate.slice(0, 10)} to ${analytics.dateRange.endDate.slice(0, 10)}`
-            : period,
+          period: periodName,
+          dateRange: exportDateRange(),
           totalStoreRevenue: (analytics.salesAnalytics?.totalRevenue || 0).toFixed(2),
           totalTransactions: analytics.salesAnalytics?.totalSalesCount || 0,
           averageOrderValue: (analytics.salesAnalytics?.averageOrderValue || 0).toFixed(2),
         },
       ], [
-        { header: "Period", key: "period" },
-        { header: "Date Range", key: "dateRange" },
-        { header: "Total Store Revenue (ETB)", key: "totalStoreRevenue" },
-        { header: "Total Transactions", key: "totalTransactions" },
-        { header: "Average Order Value (ETB)", key: "averageOrderValue" },
+        { header: t("reports.sales.csvPeriod"), key: "period" },
+        { header: t("reports.sales.csvDateRange"), key: "dateRange" },
+        { header: withEtb(t("reports.sales.totalRevenue")), key: "totalStoreRevenue" },
+        { header: t("reports.sales.totalTransactions"), key: "totalTransactions" },
+        { header: withEtb(t("reports.sales.csvAvgOrder")), key: "averageOrderValue" },
       ]);
       return;
     }
 
     exportToCsv(`analytics-report-${period}`, topProd, [
-      { header: "Product Name", key: "name" },
-      { header: "SKU", key: "sku" },
+      { header: t("reports.sales.csvProductName"), key: "name" },
+      { header: t("reports.sales.sku"), key: "sku" },
       {
-        header: "Buying Price (ETB)",
+        header: withEtb(t("reports.sales.buyingPrice")),
         formatter: (item) => getProductBuyingPrice(item).toFixed(2),
       },
       {
-        header: "Selling Price (ETB)",
+        header: withEtb(t("reports.sales.sellingPrice")),
         formatter: (item) => getProductSellingPrice(item).toFixed(2),
       },
-      { header: "Quantity Sold", key: "totalQuantitySold" },
+      { header: t("reports.sales.csvQtySold"), key: "totalQuantitySold" },
       {
-        header: "Total Buying Cost (ETB)",
+        header: withEtb(t("reports.sales.csvTotalBuyingCost")),
         formatter: (item) => {
           const bp = getProductBuyingPrice(item);
           return (bp * item.totalQuantitySold).toFixed(2);
         },
       },
       {
-        header: "Revenue Generated (ETB)",
+        header: withEtb(t("reports.sales.csvRevenueGenerated")),
         formatter: (item) => (item.totalRevenue || 0).toFixed(2),
       },
       {
-        header: "Gross Profit (ETB)",
+        header: withEtb(t("reports.sales.csvGrossProfit")),
         formatter: (item) => {
           const bp = getProductBuyingPrice(item);
           const rev = item.totalRevenue || 0;
@@ -231,7 +247,7 @@ function SalesReport() {
         },
       },
       {
-        header: "Profit Margin %",
+        header: t("reports.sales.csvProfitMargin"),
         formatter: (item) => {
           const bp = getProductBuyingPrice(item);
           const rev = item.totalRevenue || 0;
@@ -243,22 +259,19 @@ function SalesReport() {
         },
       },
       {
-        header: "Period",
-        formatter: () => period.toUpperCase(),
+        header: t("reports.sales.csvPeriod"),
+        formatter: () => periodName,
       },
       {
-        header: "Date Range",
-        formatter: () =>
-          analytics.dateRange
-            ? `${analytics.dateRange.startDate.slice(0, 10)} to ${analytics.dateRange.endDate.slice(0, 10)}`
-            : period,
+        header: t("reports.sales.csvDateRange"),
+        formatter: () => exportDateRange(),
       },
       {
-        header: "Total Store Revenue (ETB)",
+        header: withEtb(t("reports.sales.totalRevenue")),
         formatter: () => (analytics.salesAnalytics?.totalRevenue || 0).toFixed(2),
       },
       {
-        header: "Total Transactions",
+        header: t("reports.sales.totalTransactions"),
         formatter: () => analytics.salesAnalytics?.totalSalesCount || 0,
       },
     ]);
@@ -276,26 +289,21 @@ function SalesReport() {
               <span className="flex size-7 items-center justify-center rounded-lg bg-slate-900 text-indigo-400 shadow-2xs">
                 <BarChart3 className="size-4 text-indigo-400" />
               </span>
-              <h1 className="text-xl font-bold tracking-tight text-zinc-900">Shop Analytics &amp; Reports</h1>
+              <h1 className="text-xl font-bold tracking-tight text-zinc-900">{t("reports.sales.title")}</h1>
             </div>
             <p className="text-xs text-zinc-500 mt-1">
-              Performance metrics, sales revenue trends, product leaderboards, and customer insights.
+              {t("reports.sales.subtitle")}
             </p>
           </div>
 
           {/* Period Selector Tabs & Export Actions */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 text-xs font-medium max-w-full overflow-x-auto scrollbar-none">
-              {[
-                { id: "daily", label: "Today" },
-                { id: "weekly", label: "Past 7 Days" },
-                { id: "monthly", label: "Past 30 Days" },
-                { id: "custom", label: "Custom" },
-              ].map((tab) => (
+              {periodTabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setPeriod(tab.id as AnalyticsPeriod)}
+                  onClick={() => setPeriod(tab.id)}
                   className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
                     period === tab.id
                       ? "bg-slate-900 text-white shadow-2xs font-bold"
@@ -313,7 +321,7 @@ function SalesReport() {
               className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 active:scale-95"
             >
               <Download className="size-3.5 text-zinc-500" />
-              Export CSV
+              {t("reports.exportCsv")}
             </button>
             <button
               type="button"
@@ -321,7 +329,7 @@ function SalesReport() {
               className="flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 active:scale-95"
             >
               <Printer className="size-3.5 text-zinc-500" />
-              Print Report
+              {t("reports.sales.printReport")}
             </button>
           </div>
         </div>
@@ -329,7 +337,7 @@ function SalesReport() {
         {/* Custom Date Range Inputs */}
         {period === "custom" && (
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-zinc-200/80 bg-white p-3.5 text-xs shadow-2xs">
-            <span className="font-semibold text-zinc-700">Custom Date Range:</span>
+            <span className="font-semibold text-zinc-700">{t("reports.sales.customRange")}</span>
             <div className="flex flex-wrap items-center gap-2">
               <input
                 type="date"
@@ -337,7 +345,7 @@ function SalesReport() {
                 onChange={(e) => setCustomStart(e.target.value)}
                 className="h-8 rounded-md border border-zinc-200 bg-white px-2.5 font-mono text-xs text-zinc-900 focus:border-[#5B4FE9] focus:outline-hidden"
               />
-              <span className="text-zinc-400 font-mono text-xs">to</span>
+              <span className="text-zinc-400 font-mono text-xs">{t("reports.to")}</span>
               <input
                 type="date"
                 value={customEnd}
@@ -349,7 +357,7 @@ function SalesReport() {
                 onClick={loadAnalytics}
                 className="rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
               >
-                Apply Filter
+                {t("reports.sales.applyFilter")}
               </button>
             </div>
           </div>
@@ -362,7 +370,7 @@ function SalesReport() {
           {/* Gross Revenue */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Store Revenue</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("reports.sales.totalRevenue")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/15">
                 <DollarSign className="size-4" />
               </div>
@@ -371,18 +379,18 @@ function SalesReport() {
               <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {(sales?.totalRevenue || 0).toLocaleString()}
               </span>
-              <span className="font-sans text-xs font-semibold text-zinc-500">ETB</span>
+              <span className="font-sans text-xs font-semibold text-zinc-500">{t("shared.etb")}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-[11px] text-zinc-500">
-              <span>Tax: {(sales?.totalTaxCollected || 0).toLocaleString()} ETB</span>
-              <span className="font-medium text-emerald-600">Completed Sales</span>
+              <span>{t("reports.sales.tax", { amount: (sales?.totalTaxCollected || 0).toLocaleString() })}</span>
+              <span className="font-medium text-emerald-600">{t("reports.sales.completedSales")}</span>
             </div>
           </div>
 
           {/* Total Completed Orders */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Transactions</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("reports.sales.totalTransactions")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-800 ring-1 ring-zinc-200">
                 <ShoppingCart className="size-4" />
               </div>
@@ -391,17 +399,19 @@ function SalesReport() {
               <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {sales?.totalSalesCount || 0}
               </span>
-              <span className="font-sans text-xs font-normal text-zinc-500">Orders</span>
+              <span className="font-sans text-xs font-normal text-zinc-500">{t("reports.sales.orders")}</span>
             </div>
             <div className="mt-1 text-[11px] text-zinc-500">
-              Avg Order: <span className="font-mono font-medium text-zinc-700">{(sales?.averageOrderValue || 0).toLocaleString()} ETB</span>
+              <span className="font-mono font-medium text-zinc-700">
+                {t("reports.sales.avgOrder", { amount: (sales?.averageOrderValue || 0).toLocaleString() })}
+              </span>
             </div>
           </div>
 
           {/* Active Customer Spenders */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Customer Base</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("reports.sales.customerBase")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-800 ring-1 ring-zinc-200">
                 <Users className="size-4" />
               </div>
@@ -411,18 +421,20 @@ function SalesReport() {
                 {customers?.totalCustomers || 0}
               </span>
               <span className="rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-700">
-                +{customers?.newCustomersInPeriod || 0} New
+                {t("reports.sales.newCustomers", { count: customers?.newCustomersInPeriod || 0 })}
               </span>
             </div>
             <div className="mt-1 text-[11px] text-zinc-500">
-              Catalog: <span className="font-mono font-medium text-zinc-700">{products?.totalProductsCount || 0}</span> Active Products
+              <span className="font-mono font-medium text-zinc-700">
+                {t("reports.sales.catalog", { count: products?.totalProductsCount || 0 })}
+              </span>
             </div>
           </div>
 
           {/* Outstanding Customer Debt */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">Outstanding Credit Debt</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t("reports.sales.outstandingDebt")}</span>
               <div className="flex size-8 items-center justify-center rounded-lg bg-rose-50 text-rose-700 ring-1 ring-rose-500/15">
                 <HandCoins className="size-4" />
               </div>
@@ -431,10 +443,12 @@ function SalesReport() {
               <span className="font-mono text-2xl font-bold tracking-tight text-rose-700 tabular-nums">
                 {(customers?.outstandingDebt.totalAmount || 0).toLocaleString()}
               </span>
-              <span className="font-sans text-xs font-semibold text-rose-600">ETB</span>
+              <span className="font-sans text-xs font-semibold text-rose-600">{t("shared.etb")}</span>
             </div>
             <div className="mt-1 text-[11px] text-zinc-500">
-              <span className="font-mono font-medium text-zinc-700">{customers?.outstandingDebt.count || 0}</span> open debtor accounts
+              <span className="font-mono font-medium text-zinc-700">
+                {t("reports.sales.openDebtors", { count: customers?.outstandingDebt.count || 0 })}
+              </span>
             </div>
           </div>
         </div>
@@ -447,8 +461,8 @@ function SalesReport() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs lg:col-span-2">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-zinc-900">Sales &amp; Revenue Trend</h2>
-                <p className="text-xs text-zinc-500">Chronological sales performance over the selected period</p>
+                <h2 className="text-sm font-bold tracking-tight text-zinc-900">{t("reports.sales.trendTitle")}</h2>
+                <p className="text-xs text-zinc-500">{t("reports.sales.trendSub")}</p>
               </div>
             </div>
 
@@ -478,7 +492,7 @@ function SalesReport() {
                     tickFormatter={(val) => `${val.toLocaleString()}`}
                   />
                   <Tooltip
-                    formatter={(val: any) => [`${Number(val).toLocaleString()} ETB`, "Revenue"]}
+                    formatter={(val: any) => [`${Number(val).toLocaleString()} ${t("shared.etb")}`, t("reports.sales.revenue")]}
                     contentStyle={{
                       backgroundColor: "#0F172A",
                       border: "1px solid #1E293B",
@@ -503,8 +517,8 @@ function SalesReport() {
 
           {/* Payment Method Distribution */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs lg:col-span-1">
-            <h2 className="text-sm font-bold tracking-tight text-zinc-900">Payment Breakdown</h2>
-            <p className="text-xs text-zinc-500">Distribution of sales by payment channel</p>
+            <h2 className="text-sm font-bold tracking-tight text-zinc-900">{t("reports.sales.paymentTitle")}</h2>
+            <p className="text-xs text-zinc-500">{t("reports.sales.paymentSub")}</p>
 
             <div className="mt-2 h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -523,7 +537,7 @@ function SalesReport() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(val: any, name: any) => [`${Number(val).toLocaleString()} ETB`, String(name)]}
+                    formatter={(val: any, name: any) => [`${Number(val).toLocaleString()} ${t("shared.etb")}`, String(name)]}
                     contentStyle={{
                       backgroundColor: "#0F172A",
                       border: "1px solid #1E293B",
@@ -552,14 +566,14 @@ function SalesReport() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-zinc-900">Top Performing Products</h2>
-                <p className="text-xs text-zinc-500">Highest quantity sold during this period</p>
+                <h2 className="text-sm font-bold tracking-tight text-zinc-900">{t("reports.sales.topProducts")}</h2>
+                <p className="text-xs text-zinc-500">{t("reports.sales.topProductsSub")}</p>
               </div>
               <Link
                 href="/inventory"
                 className="text-xs font-semibold text-zinc-700 hover:text-zinc-900 transition-colors"
               >
-                View Catalog &rarr;
+                {t("reports.sales.viewCatalog")} &rarr;
               </Link>
             </div>
 
@@ -567,13 +581,13 @@ function SalesReport() {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-zinc-200/80 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
                   <tr>
-                    <th className="pb-2.5">Rank</th>
-                    <th className="pb-2.5">Product</th>
-                    <th className="pb-2.5">SKU</th>
-                    <th className="pb-2.5 text-right">Buying Price</th>
-                    <th className="pb-2.5 text-right">Selling Price</th>
-                    <th className="pb-2.5 text-center">Qty Sold</th>
-                    <th className="pb-2.5 text-right">Revenue</th>
+                    <th className="pb-2.5">{t("reports.sales.rank")}</th>
+                    <th className="pb-2.5">{t("reports.sales.product")}</th>
+                    <th className="pb-2.5">{t("reports.sales.sku")}</th>
+                    <th className="pb-2.5 text-right">{t("reports.sales.buyingPrice")}</th>
+                    <th className="pb-2.5 text-right">{t("reports.sales.sellingPrice")}</th>
+                    <th className="pb-2.5 text-center">{t("reports.sales.qtySold")}</th>
+                    <th className="pb-2.5 text-right">{t("reports.sales.revenueCol")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -587,16 +601,16 @@ function SalesReport() {
                           <td className="py-2.5 font-semibold text-zinc-900">{p.name}</td>
                           <td className="py-2.5 font-mono text-zinc-500">{p.sku || "—"}</td>
                           <td className="py-2.5 text-right font-mono text-zinc-600 tabular-nums">
-                            {bp > 0 ? `${bp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "—"}
+                            {bp > 0 ? `${bp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t("shared.etb")}` : "—"}
                           </td>
                           <td className="py-2.5 text-right font-mono font-medium text-zinc-900 tabular-nums">
-                            {sp > 0 ? `${sp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB` : "—"}
+                            {sp > 0 ? `${sp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t("shared.etb")}` : "—"}
                           </td>
                           <td className="py-2.5 text-center font-mono font-bold text-zinc-900 tabular-nums">
-                            {p.totalQuantitySold} pcs
+                            {t("reports.sales.pcs", { count: p.totalQuantitySold })}
                           </td>
                           <td className="py-2.5 text-right font-mono font-bold text-zinc-900 tabular-nums">
-                            {p.totalRevenue.toLocaleString()} ETB
+                            {p.totalRevenue.toLocaleString()} {t("shared.etb")}
                           </td>
                         </tr>
                       );
@@ -604,7 +618,7 @@ function SalesReport() {
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-6 text-center text-xs text-zinc-400">
-                        No product sales recorded in this period.
+                        {t("reports.sales.noProductSales")}
                       </td>
                     </tr>
                   )}
@@ -615,7 +629,7 @@ function SalesReport() {
               href="/reports/top-selling"
               className="flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
             >
-              See more &rarr;
+              {t("shared.seeMore")} &rarr;
             </Link>
           </div>
 
@@ -623,14 +637,14 @@ function SalesReport() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-zinc-900">Top Customer Spenders</h2>
-                <p className="text-xs text-zinc-500">Highest purchasing customers in this timeframe</p>
+                <h2 className="text-sm font-bold tracking-tight text-zinc-900">{t("reports.sales.topCustomers")}</h2>
+                <p className="text-xs text-zinc-500">{t("reports.sales.topCustomersSub")}</p>
               </div>
               <Link
                 href="/customers"
                 className="text-xs font-semibold text-zinc-700 hover:text-zinc-900 transition-colors"
               >
-                All Customers &rarr;
+                {t("reports.sales.allCustomers")} &rarr;
               </Link>
             </div>
 
@@ -638,10 +652,10 @@ function SalesReport() {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-zinc-200/80 text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500">
                   <tr>
-                    <th className="pb-2.5">Customer Name</th>
-                    <th className="pb-2.5">Contact</th>
-                    <th className="pb-2.5 text-center">Orders</th>
-                    <th className="pb-2.5 text-right">Total Spent</th>
+                    <th className="pb-2.5">{t("reports.sales.customerName")}</th>
+                    <th className="pb-2.5">{t("reports.sales.contact")}</th>
+                    <th className="pb-2.5 text-center">{t("reports.sales.ordersCol")}</th>
+                    <th className="pb-2.5 text-right">{t("reports.sales.totalSpent")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -654,14 +668,14 @@ function SalesReport() {
                           {c.salesCount}
                         </td>
                         <td className="py-2.5 text-right font-mono font-bold text-emerald-700 tabular-nums">
-                          {c.totalSpent.toLocaleString()} ETB
+                          {c.totalSpent.toLocaleString()} {t("shared.etb")}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td colSpan={4} className="py-6 text-center text-xs text-zinc-400">
-                        No customer transactions found in this period.
+                        {t("reports.sales.noCustomerSales")}
                       </td>
                     </tr>
                   )}
@@ -672,7 +686,7 @@ function SalesReport() {
               href="/reports/top-customers"
               className="flex items-center justify-center gap-1 rounded-md border border-zinc-200/80 py-2 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-950"
             >
-              See more &rarr;
+              {t("shared.seeMore")} &rarr;
             </Link>
           </div>
         </div>
@@ -685,6 +699,7 @@ function SalesReport() {
 type ReportTab = "sales" | "products" | "debts";
 
 function ReportsContent() {
+  const t = useT();
   const searchParams = useSearchParams();
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
   const [tab, setTab] = useState<ReportTab>(
@@ -696,22 +711,22 @@ function ReportsContent() {
       <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1 print:hidden">
         {(
           [
-            { id: "sales", label: "Sales" },
-            { id: "products", label: "Products" },
-            { id: "debts", label: "Debts" },
+            { id: "sales", label: t("reports.tab.sales") },
+            { id: "products", label: t("reports.tab.products") },
+            { id: "debts", label: t("reports.tab.debts") },
           ] as Array<{ id: ReportTab; label: string }>
-        ).map((t) => (
+        ).map((item) => (
           <button
-            key={t.id}
+            key={item.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(item.id)}
             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-              tab === t.id
+              tab === item.id
                 ? "border border-zinc-200/80 bg-white font-semibold text-zinc-900 shadow-2xs"
                 : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
             }`}
           >
-            {t.label}
+            {item.label}
           </button>
         ))}
       </div>
@@ -720,9 +735,9 @@ function ReportsContent() {
       ) : tab === "debts" ? (
         <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
           <div className="space-y-1 print:hidden">
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Debt report</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">{t("reports.debt.heading")}</h1>
             <p className="text-xs text-zinc-500">
-              How much credit was given, how much has been repaid and who still owes. Filter by status and period, then print it, save it as PDF or export it to Excel.
+              {t("reports.debt.intro")}
             </p>
           </div>
           <DebtReport shopId={activeShopId} />
@@ -730,9 +745,9 @@ function ReportsContent() {
       ) : (
         <RouteGuard requiredRole={["OWNER", "ADMIN"]}>
           <div className="space-y-1 print:hidden">
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900">Product report</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900">{t("reports.product.heading")}</h1>
             <p className="text-xs text-zinc-500">
-              What customers bought and what you restocked, per product. Print it, save it as PDF or export it to Excel.
+              {t("reports.product.intro")}
             </p>
           </div>
           <ProductReport shopId={activeShopId} />

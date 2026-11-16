@@ -1,38 +1,53 @@
 import type { ProductReport } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
 
 /**
  * Builds and downloads the product report as a real .xlsx file. exceljs is
  * loaded only when someone exports, so it doesn't slow down the app.
  */
-export async function downloadProductReportXlsx(report: ProductReport, meta: { shopName: string; periodLabel: string }) {
+export async function downloadProductReportXlsx(
+  report: ProductReport,
+  meta: {
+    shopName: string;
+    periodLabel: string;
+    /** Translator from useT(): column headings and titles follow the interface language. */
+    t: Translate;
+    /** "Generated" date and time, already formatted. */
+    generatedAt: string;
+  },
+) {
+  const { t } = meta;
+  const withEtb = (text: string) => `${text} (${t("shared.etb")})`;
   const { default: ExcelJS } = await import("exceljs");
   const wb = new ExcelJS.Workbook();
   wb.creator = "Andalus";
   wb.created = new Date();
 
-  const sheet = wb.addWorksheet("Products", { views: [{ state: "frozen", ySplit: 4 }] });
+  const sheet = wb.addWorksheet(t("reports.product.sheetName"), { views: [{ state: "frozen", ySplit: 4 }] });
   const columns = [
-    { header: "Product", key: "name", width: 28 },
-    { header: "SKU", key: "sku", width: 16 },
-    { header: "Category", key: "category", width: 16 },
-    { header: "Units sold", key: "soldUnits", width: 12, money: false },
-    { header: "Sales value (ETB)", key: "revenue", width: 18, money: true },
-    { header: "Cost of goods (ETB)", key: "cogs", width: 18, money: true },
-    { header: "Gross profit (ETB)", key: "profit", width: 18, money: true },
-    { header: "Margin %", key: "margin", width: 10 },
-    { header: "Units restocked", key: "restockedUnits", width: 15 },
-    { header: "Restock cost (ETB)", key: "restockCost", width: 18, money: true },
-    { header: "Paid now (ETB)", key: "paidNow", width: 15, money: true },
-    { header: "On credit (ETB)", key: "onCredit", width: 15, money: true },
-    { header: "Stock now", key: "onHand", width: 11 },
-    { header: "Stock value at cost (ETB)", key: "stockValue", width: 22, money: true },
+    { header: t("reports.product.colProduct"), key: "name", width: 28 },
+    { header: t("reports.product.xlSku"), key: "sku", width: 16 },
+    { header: t("shared.category"), key: "category", width: 16 },
+    { header: t("reports.product.xlUnitsSold"), key: "soldUnits", width: 12, money: false },
+    { header: withEtb(t("reports.product.colSalesValue")), key: "revenue", width: 18, money: true },
+    { header: withEtb(t("reports.product.colCogs")), key: "cogs", width: 18, money: true },
+    { header: withEtb(t("reports.product.xlGrossProfit")), key: "profit", width: 18, money: true },
+    { header: t("reports.product.xlMargin"), key: "margin", width: 10 },
+    { header: t("reports.product.xlUnitsRestocked"), key: "restockedUnits", width: 15 },
+    { header: withEtb(t("reports.product.colRestockCost")), key: "restockCost", width: 18, money: true },
+    { header: withEtb(t("reports.product.xlPaidNow")), key: "paidNow", width: 15, money: true },
+    { header: withEtb(t("reports.product.xlOnCredit")), key: "onCredit", width: 15, money: true },
+    { header: t("reports.product.colStockNow"), key: "onHand", width: 11 },
+    { header: withEtb(t("reports.product.xlStockValue")), key: "stockValue", width: 22, money: true },
   ];
 
   sheet.mergeCells(1, 1, 1, columns.length);
-  sheet.getCell(1, 1).value = `${meta.shopName} — Product report`;
+  sheet.getCell(1, 1).value = t("reports.product.printHeader", { shop: meta.shopName });
   sheet.getCell(1, 1).font = { bold: true, size: 14 };
   sheet.mergeCells(2, 1, 2, columns.length);
-  sheet.getCell(2, 1).value = `Period: ${meta.periodLabel} · Generated ${new Date().toLocaleString("en-GB")}`;
+  sheet.getCell(2, 1).value = t("reports.printMeta", { period: meta.periodLabel, date: meta.generatedAt });
   sheet.getCell(2, 1).font = { color: { argb: "FF6B7280" } };
 
   const headerRow = sheet.getRow(4);
@@ -69,7 +84,7 @@ export async function downloadProductReportXlsx(report: ProductReport, meta: { s
   // Totals of the exported rows (they may be filtered).
   const add = (f: (i: ProductReport["items"][number]) => number, digits = 100) =>
     Math.round(report.items.reduce((sum, i) => sum + f(i), 0) * digits) / digits;
-  const t = {
+  const totals = {
     products: report.items.length,
     soldUnits: add((i) => i.sold.units, 1000),
     revenue: add((i) => i.sold.revenue),
@@ -82,10 +97,10 @@ export async function downloadProductReportXlsx(report: ProductReport, meta: { s
   };
   const totalRow = sheet.getRow(5 + report.items.length);
   totalRow.values = [
-    `Total (${t.products} products)`, "", "",
-    t.soldUnits, t.revenue, t.cogs, t.profit,
-    t.revenue > 0 ? Math.round((t.profit / t.revenue) * 1000) / 10 : "",
-    t.restockedUnits, t.restockCost, t.restockPaidNow, t.restockOnCredit, "", "",
+    t(totals.products === 1 ? "reports.product.totalRow_one" : "reports.product.totalRow_other", { count: totals.products }), "", "",
+    totals.soldUnits, totals.revenue, totals.cogs, totals.profit,
+    totals.revenue > 0 ? Math.round((totals.profit / totals.revenue) * 1000) / 10 : "",
+    totals.restockedUnits, totals.restockCost, totals.restockPaidNow, totals.restockOnCredit, "", "",
   ];
   totalRow.font = { bold: true };
   totalRow.eachCell((cell) => {
@@ -101,7 +116,7 @@ export async function downloadProductReportXlsx(report: ProductReport, meta: { s
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `product-report-${meta.periodLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.xlsx`;
+  link.download = `product-report-${meta.periodLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || new Date().toISOString().slice(0, 10)}.xlsx`;
   document.body.appendChild(link);
   link.click();
   link.remove();

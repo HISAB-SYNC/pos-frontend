@@ -32,6 +32,9 @@ import {
   updateTeamMember,
 } from "@/lib/api/app-data";
 import type { AuditLogRecord, TeamMember, TeamSummary } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import {
@@ -41,6 +44,31 @@ import {
 import type { Role } from "@/lib/permissions/roles";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
+
+type RoleKind = "OWNER" | "ADMIN" | "SALES";
+
+/** The backend and mock data use several spellings for the same role. */
+function normRole(role: string): RoleKind {
+  if (role === "Owner" || role === "OWNER") return "OWNER";
+  if (role === "Shop Admin" || role === "ADMIN") return "ADMIN";
+  return "SALES";
+}
+
+function roleLabelKey(role: string): MessageKey {
+  return `users.role.${normRole(role)}` as MessageKey;
+}
+
+const AUDIT_ACTION_KEYS: Record<string, MessageKey> = {
+  PERMISSION_UPDATED: "users.audit.action.PERMISSION_UPDATED",
+  USER_CREATED: "users.audit.action.USER_CREATED",
+  PRICE_CHANGED: "users.audit.action.PRICE_CHANGED",
+  SALE_COMPLETED: "users.audit.action.SALE_COMPLETED",
+  STOCK_ADJUSTED: "users.audit.action.STOCK_ADJUSTED",
+  ROLE_CHANGED: "users.audit.action.ROLE_CHANGED",
+  PASSWORD_RESET: "users.audit.action.PASSWORD_RESET",
+  USER_DEACTIVATED: "users.audit.action.USER_DEACTIVATED",
+  USER_ACTIVATED: "users.audit.action.USER_ACTIVATED",
+};
 
 /* ------------------------------------------------------------------ */
 /* Seed Audit Logs Data                                               */
@@ -122,6 +150,7 @@ function AddTeamMemberModal({
   shopId: string;
   currentUserRole: Role;
 }) {
+  const t = useT();
   const allowedRoles = useMemo(() => getAllowedRolesToCreate(currentUserRole), [currentUserRole]);
   const defaultRole = allowedRoles[0]?.role || "SALES";
 
@@ -140,7 +169,7 @@ function AddTeamMemberModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !password) {
-      setErrorMsg("Please fill in all required fields.");
+      setErrorMsg(t("users.add.fillRequired"));
       return;
     }
 
@@ -164,13 +193,13 @@ function AddTeamMemberModal({
       const auditLog: AuditLogRecord = {
         id: `aud-${Date.now()}`,
         userId: "current-user",
-        userName: "You",
+        userName: t("users.audit.you"),
         userRole: currentUserRole,
         action: "USER_CREATED",
-        resource: `TeamMember: ${name.trim()}`,
+        resource: t("users.audit.resourceMember", { name: name.trim() }),
         timestamp: new Date().toISOString(),
-        details: `Provisioned account with role ${selectedRole}`,
-        newValue: `Role: ${selectedRole} (Active)`,
+        details: t("users.audit.provisioned", { role: t(roleLabelKey(selectedRole)) }),
+        newValue: t("users.audit.roleActive", { role: t(roleLabelKey(selectedRole)) }),
       };
 
       await createTeamMember(shopId, {
@@ -188,7 +217,7 @@ function AddTeamMemberModal({
       setPhone("");
       setPassword("");
     } catch (err) {
-      setErrorMsg(errorMessage(err, "Failed to provision account. Please check inputs."));
+      setErrorMsg(errorMessage(err, t("users.add.failed")));
     } finally {
       setIsSubmitting(false);
     }
@@ -201,12 +230,13 @@ function AddTeamMemberModal({
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-start justify-between border-b border-zinc-100 pb-4">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Provision Team Member</h2>
-            <p className="mt-0.5 text-xs text-zinc-500">Create staff credentials and assign system operational roles</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("users.add.title")}</h2>
+            <p className="mt-0.5 text-xs text-zinc-500">{t("users.add.subtitle")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -225,35 +255,35 @@ function AddTeamMemberModal({
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Full Name <span className="text-rose-500">*</span>
+                {t("users.add.fullName")} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Dawit Haile"
+                placeholder={t("users.add.namePlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Email / Username <span className="text-rose-500">*</span>
+                {t("users.add.emailUsername")} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. dawit@store.com"
+                placeholder={t("users.add.emailPlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Phone Number
+                {t("users.add.phoneNumber")}
               </label>
               <input
                 type="text"
@@ -266,14 +296,14 @@ function AddTeamMemberModal({
 
             <div className="space-y-1.5">
               <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                Initial Password <span className="text-rose-500">*</span>
+                {t("users.add.initialPassword")} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder={t("users.add.passwordPlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
@@ -282,7 +312,7 @@ function AddTeamMemberModal({
           {/* Role Selection Box */}
           <div className="rounded-lg border border-zinc-200/80 bg-zinc-50/60 p-4 space-y-3">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-              Assign System Role
+              {t("users.add.assignRole")}
             </span>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {allowedRoles.map((r) => {
@@ -304,11 +334,9 @@ function AddTeamMemberModal({
                       className="mt-0.5 size-4 text-zinc-900 focus:ring-zinc-900"
                     />
                     <div>
-                      <p className="font-semibold text-zinc-900">{r.label}</p>
+                      <p className="font-semibold text-zinc-900">{t(roleLabelKey(r.role))}</p>
                       <p className="mt-0.5 text-[11px] text-zinc-500">
-                        {r.role === "ADMIN"
-                          ? "Shop operations, inventory adjustments, and seller oversight"
-                          : "Point of sale checkout, receipts, and customer sales"}
+                        {r.role === "ADMIN" ? t("users.roleDesc.ADMIN") : t("users.roleDesc.SALES")}
                       </p>
                     </div>
                   </label>
@@ -318,7 +346,7 @@ function AddTeamMemberModal({
 
             {currentUserRole === "ADMIN" && (
               <p className="font-mono text-[10px] text-zinc-500 italic">
-                Note: As a Shop Administrator, your authority allows provisioning Sellers and Cashiers.
+                {t("users.add.adminNote")}
               </p>
             )}
           </div>
@@ -329,14 +357,14 @@ function AddTeamMemberModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Provisioning..." : "Provision Member"}
+              {isSubmitting ? t("users.add.submitting") : t("users.add.submit")}
             </button>
           </div>
         </form>
@@ -357,6 +385,7 @@ function ResetPasswordModal({
   onClose: () => void;
   onReset: (log: AuditLogRecord) => void;
 }) {
+  const t = useT();
   const [newPassword, setNewPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -368,13 +397,13 @@ function ResetPasswordModal({
     const auditLog: AuditLogRecord = {
       id: `aud-${Date.now()}`,
       userId: "current-user",
-      userName: "You",
+      userName: t("users.audit.you"),
       userRole: "OWNER",
       action: "PASSWORD_RESET",
-      resource: `TeamMember: ${member.name}`,
+      resource: t("users.audit.resourceMember", { name: member.name }),
       timestamp: new Date().toISOString(),
-      details: "Administrator forced password reset for employee account",
-      newValue: "Credentials Updated",
+      details: t("users.audit.passwordReset"),
+      newValue: t("users.audit.credentialsUpdated"),
     };
 
     onReset(auditLog);
@@ -391,15 +420,16 @@ function ResetPasswordModal({
               <KeyRound className="size-4.5" />
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-tight text-zinc-900">Reset Password</h2>
+              <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("users.reset.title")}</h2>
               <p className="mt-0.5 text-xs text-zinc-500">
-                Account: <span className="font-semibold text-zinc-800">{member.name}</span>
+                {t("users.reset.account")} <span className="font-semibold text-zinc-800">{member.name}</span>
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -409,14 +439,14 @@ function ResetPasswordModal({
         <form onSubmit={handleSubmit} className="my-4 space-y-4 text-xs">
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              New Password <span className="text-rose-500">*</span>
+              {t("users.reset.newPassword")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="password"
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimum 6 characters"
+              placeholder={t("users.add.passwordPlaceholder")}
               className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
             />
           </div>
@@ -427,14 +457,14 @@ function ResetPasswordModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSaving}
               className="rounded-md bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95"
             >
-              Update Password
+              {t("users.reset.submit")}
             </button>
           </div>
         </form>
@@ -462,6 +492,7 @@ function EditMemberDetailsModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const t = useT();
   const [role, setRole] = useState<Role>("SALES");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -502,12 +533,12 @@ function EditMemberDetailsModal({
       const auditLog: AuditLogRecord = {
         id: `aud-${Date.now()}`,
         userId: "current-user",
-        userName: "You",
+        userName: t("users.audit.you"),
         userRole: currentUserRole,
         action: "ROLE_CHANGED",
-        resource: `TeamMember: ${name}`,
+        resource: t("users.audit.resourceMember", { name }),
         timestamp: new Date().toISOString(),
-        details: `Updated details for ${name} (${role})`,
+        details: t("users.audit.detailsUpdated", { name, role: t(roleLabelKey(role)) }),
         previousValue: member.role,
         newValue: role,
       };
@@ -515,7 +546,7 @@ function EditMemberDetailsModal({
       onUpdated(auditLog, updated);
       onClose();
     } catch (err) {
-      setActionError(errorMessage(err, "Couldn't save the changes. Nothing was changed."));
+      setActionError(errorMessage(err, t("users.edit.failed")));
     } finally {
       setIsSubmitting(false);
     }
@@ -528,12 +559,13 @@ function EditMemberDetailsModal({
       <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200/80 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-start justify-between border-b border-zinc-100 pb-4">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Edit Member Profile</h2>
-            <p className="mt-0.5 text-xs text-zinc-500">Update staff contact particulars and role permissions</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("users.edit.title")}</h2>
+            <p className="mt-0.5 text-xs text-zinc-500">{t("users.edit.subtitle")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -543,7 +575,7 @@ function EditMemberDetailsModal({
         <form onSubmit={handleSubmit} className="my-4 space-y-3.5 text-xs">
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Full Name <span className="text-rose-500">*</span>
+              {t("users.add.fullName")} <span className="text-rose-500">*</span>
             </label>
             <input
               required
@@ -555,7 +587,7 @@ function EditMemberDetailsModal({
 
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Email Address
+              {t("users.edit.emailAddress")}
             </label>
             <input
               type="email"
@@ -567,7 +599,7 @@ function EditMemberDetailsModal({
 
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Phone Number
+              {t("users.add.phoneNumber")}
             </label>
             <input
               value={phone}
@@ -578,7 +610,7 @@ function EditMemberDetailsModal({
 
           <div className="space-y-1.5">
             <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-              Assigned System Role
+              {t("users.edit.assignedRole")}
             </label>
             <select
               value={role}
@@ -588,13 +620,13 @@ function EditMemberDetailsModal({
               {allowedRoles.length > 0 ? (
                 allowedRoles.map((r) => (
                   <option key={r.role} value={r.role}>
-                    {r.label} ({r.role})
+                    {t(roleLabelKey(r.role))} ({r.role})
                   </option>
                 ))
               ) : (
                 <>
-                  <option value="SALES">Seller / Cashier (SALES)</option>
-                  <option value="ADMIN">Shop Admin (ADMIN)</option>
+                  <option value="SALES">{t("users.role.SALES")} (SALES)</option>
+                  <option value="ADMIN">{t("users.role.ADMIN")} (ADMIN)</option>
                 </>
               )}
             </select>
@@ -607,14 +639,14 @@ function EditMemberDetailsModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-zinc-900 px-4 py-2 font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? t("shared.saving") : t("users.edit.save")}
             </button>
           </div>
         </form>
@@ -637,6 +669,7 @@ function DeleteStaffDialog({
   onDeleted: (log: AuditLogRecord) => void;
   shopId: string;
 }) {
+  const t = useT();
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -648,19 +681,19 @@ function DeleteStaffDialog({
       const auditLog: AuditLogRecord = {
         id: `aud-${Date.now()}`,
         userId: "current-user",
-        userName: "You",
+        userName: t("users.audit.you"),
         userRole: "ADMIN",
         action: "USER_DEACTIVATED",
-        resource: `TeamMember: ${member.name}`,
+        resource: t("users.audit.resourceMember", { name: member.name }),
         timestamp: new Date().toISOString(),
-        details: `Employee account ${member.name} (${member.email}) was removed`,
-        previousValue: "Active",
-        newValue: "Deleted",
+        details: t("users.audit.removed", { name: member.name, email: member.email }),
+        previousValue: t("users.status.active"),
+        newValue: t("users.status.deleted"),
       };
       onDeleted(auditLog);
       onClose();
     } catch (err) {
-      setActionError(errorMessage(err, "Couldn't remove this team member. Nothing was changed."));
+      setActionError(errorMessage(err, t("users.delete.failed")));
     } finally {
       setIsDeleting(false);
     }
@@ -674,9 +707,9 @@ function DeleteStaffDialog({
         <div className="mb-3.5 flex size-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600">
           <Trash2 className="size-4.5" />
         </div>
-        <h3 className="text-base font-bold tracking-tight text-zinc-900">Revoke Store Access</h3>
+        <h3 className="text-base font-bold tracking-tight text-zinc-900">{t("users.delete.title")}</h3>
         <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-          Are you sure you want to remove <span className="font-semibold text-zinc-900">{member.name}</span> ({member.role})? Their POS and dashboard permissions will be permanently revoked.
+          {t("users.delete.confirm", { name: member.name, role: t(roleLabelKey(member.role)) })}
         </p>
 
         {actionError && <div className="mt-4"><ActionError message={actionError} /></div>}
@@ -686,7 +719,7 @@ function DeleteStaffDialog({
             onClick={onClose}
             className="rounded-md border border-zinc-200/80 bg-white px-3.5 py-2 font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50"
           >
-            Cancel
+            {t("shared.cancel")}
           </button>
           <button
             type="button"
@@ -694,7 +727,7 @@ function DeleteStaffDialog({
             onClick={handleConfirm}
             className="rounded-md bg-rose-600 px-3.5 py-2 font-semibold text-white shadow-2xs hover:bg-rose-700 disabled:opacity-50"
           >
-            {isDeleting ? "Removing..." : "Remove Employee"}
+            {isDeleting ? t("users.delete.submitting") : t("users.delete.submit")}
           </button>
         </div>
       </div>
@@ -706,6 +739,7 @@ function DeleteStaffDialog({
 /* Role Badge Helper                                                  */
 /* ------------------------------------------------------------------ */
 function TeamRoleBadge({ role }: { role: string }) {
+  const t = useT();
   const isOwner = role === "Owner" || role === "OWNER";
   const isAdmin = role === "Shop Admin" || role === "ADMIN";
 
@@ -713,7 +747,7 @@ function TeamRoleBadge({ role }: { role: string }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-700">
         <Shield className="size-2.5" />
-        Owner
+        {t("users.roleShort.OWNER")}
       </span>
     );
   }
@@ -722,7 +756,7 @@ function TeamRoleBadge({ role }: { role: string }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-indigo-700">
         <ShieldCheck className="size-2.5" />
-        Admin
+        {t("users.roleShort.ADMIN")}
       </span>
     );
   }
@@ -730,7 +764,7 @@ function TeamRoleBadge({ role }: { role: string }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
       <UserCheck className="size-2.5" />
-      Sales / Cashier
+      {t("users.roleShort.SALES")}
     </span>
   );
 }
@@ -739,6 +773,8 @@ function TeamRoleBadge({ role }: { role: string }) {
 /* Main User Management & RBAC Page                                   */
 /* ------------------------------------------------------------------ */
 export default function UsersPage() {
+  const t = useT();
+  const { formatDateTime } = useFormat();
   const authUser = useAuthStore((state) => state.user);
   const activeShopId = useShopStore((state) => state.activeShopId) || MOCK_IDS.shop;
 
@@ -759,25 +795,25 @@ export default function UsersPage() {
 
   function handleExportDirectory() {
     exportToCsv("staff-directory", filteredMembers, [
-      { header: "Name", key: "name" },
-      { header: "Email", key: "email" },
-      { header: "Phone", key: "phone" },
-      { header: "Role", key: "role" },
-      { header: "Status", key: "status" },
-      { header: "Joined Date", key: "joinedDate" },
-      { header: "Last Login", key: "lastLogin" },
+      { header: t("shared.name"), key: "name" },
+      { header: t("shared.email"), key: "email" },
+      { header: t("shared.phone"), key: "phone" },
+      { header: t("users.col.role"), key: "role" },
+      { header: t("shared.status"), key: "status" },
+      { header: t("users.col.joined"), key: "joinedDate" },
+      { header: t("users.csv.lastLogin"), key: "lastLogin" },
     ]);
   }
 
   function handleExportAuditLogs() {
     exportToCsv("rbac-audit-logs", auditLogs, [
-      { header: "Timestamp", key: "timestamp" },
-      { header: "Actor", key: "userName" },
-      { header: "Action", key: "action" },
-      { header: "Resource", key: "resource" },
-      { header: "Details", key: "details" },
-      { header: "Previous Value", key: "previousValue" },
-      { header: "New Value", key: "newValue" },
+      { header: t("users.audit.col.timestamp"), key: "timestamp" },
+      { header: t("users.csv.actor"), key: "userName" },
+      { header: t("users.audit.col.action"), key: "action" },
+      { header: t("users.audit.col.target"), key: "resource" },
+      { header: t("users.csv.details"), key: "details" },
+      { header: t("users.csv.previous"), key: "previousValue" },
+      { header: t("users.csv.new"), key: "newValue" },
     ]);
   }
 
@@ -834,6 +870,10 @@ export default function UsersPage() {
   function handleToggleStatus(member: TeamMember) {
     const isCurrentlyActive = member.status !== "Suspended" && member.status !== "Inactive";
     const newStatus = isCurrentlyActive ? "Suspended" : "Active";
+    const newStatusLabel = t(isCurrentlyActive ? "users.status.suspended" : "users.status.active");
+    const oldStatusLabel = t(
+      member.status === "Suspended" || member.status === "Inactive" ? "users.status.suspended" : "users.status.active",
+    );
 
     const updated = members.map((m) =>
       m.id === member.id ? { ...m, status: newStatus as "Active" | "Suspended" } : m,
@@ -843,17 +883,17 @@ export default function UsersPage() {
     const log: AuditLogRecord = {
       id: `aud-${Date.now()}`,
       userId: "current-user",
-      userName: "You",
+      userName: t("users.audit.you"),
       userRole: authUser?.role || "ADMIN",
       action: isCurrentlyActive ? "USER_DEACTIVATED" : "USER_ACTIVATED",
-      resource: `TeamMember: ${member.name}`,
+      resource: t("users.audit.resourceMember", { name: member.name }),
       timestamp: new Date().toISOString(),
-      details: `Account status updated to ${newStatus}`,
-      previousValue: member.status || "Active",
-      newValue: newStatus,
+      details: t("users.audit.statusUpdated", { status: newStatusLabel }),
+      previousValue: oldStatusLabel,
+      newValue: newStatusLabel,
     };
     setAuditLogs((prev) => [log, ...prev]);
-    setActionSuccessMsg(`Updated account status for ${member.name} to ${newStatus}`);
+    setActionSuccessMsg(t("users.msg.statusUpdated", { name: member.name, status: newStatusLabel }));
     setTimeout(() => setActionSuccessMsg(""), 3500);
   }
 
@@ -861,9 +901,9 @@ export default function UsersPage() {
   if (authUser?.role === "SALES") {
     return (
       <AccessDenied
-        requiredRole="OWNER or ADMIN"
+        requiredRole={t("users.accessDenied.roles")}
         requiredPermission="user.view, seller.manage"
-        description="Cashiers / Sales personnel are not authorized to access employee accounts or role configuration."
+        description={t("users.accessDenied.description")}
       />
     );
   }
@@ -873,7 +913,7 @@ export default function UsersPage() {
   }
 
   if (loadError && members.length === 0) {
-    return <LoadError what="your team" onRetry={loadData} />;
+    return <LoadError what={t("users.what.team")} onRetry={loadData} />;
   }
 
   const activeStaffCount = members.filter(
@@ -891,7 +931,7 @@ export default function UsersPage() {
           onCreated={(newM, log) => {
             setMembers((prev) => [newM, ...prev]);
             setAuditLogs((prev) => [log, ...prev]);
-            setActionSuccessMsg(`Created employee account for ${newM.name}`);
+            setActionSuccessMsg(t("users.msg.created", { name: newM.name }));
             setTimeout(() => setActionSuccessMsg(""), 3500);
           }}
           shopId={activeShopId}
@@ -933,7 +973,7 @@ export default function UsersPage() {
             }
             loadData();
             setAuditLogs((prev) => [log, ...prev]);
-            setActionSuccessMsg(`Updated profile details for staff member`);
+            setActionSuccessMsg(t("users.msg.profileUpdated"));
             setTimeout(() => setActionSuccessMsg(""), 3500);
           }}
           shopId={activeShopId}
@@ -945,7 +985,7 @@ export default function UsersPage() {
             onClose={() => setMemberToResetPassword(null)}
             onReset={(log) => {
               setAuditLogs((prev) => [log, ...prev]);
-              setActionSuccessMsg(`Reset password for ${memberToResetPassword.name}`);
+              setActionSuccessMsg(t("users.msg.passwordReset", { name: memberToResetPassword.name }));
               setTimeout(() => setActionSuccessMsg(""), 3500);
             }}
           />
@@ -957,7 +997,7 @@ export default function UsersPage() {
           onDeleted={(log) => {
             loadData();
             setAuditLogs((prev) => [log, ...prev]);
-            setActionSuccessMsg(`Employee account removed from store`);
+            setActionSuccessMsg(t("users.msg.removed"));
             setTimeout(() => setActionSuccessMsg(""), 3500);
           }}
           shopId={activeShopId}
@@ -969,10 +1009,10 @@ export default function UsersPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
-              Team &amp; Access Control
+              {t("users.title")}
             </h1>
             <p className="mt-1 text-xs text-zinc-500">
-              Manage store employees, configure RBAC role permissions, and review security audit logs
+              {t("users.subtitle")}
             </p>
           </div>
 
@@ -983,7 +1023,7 @@ export default function UsersPage() {
               className="inline-flex h-8.5 items-center gap-1.5 rounded-md border border-zinc-200/80 bg-white px-3 text-xs font-medium text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 hover:text-zinc-900"
             >
               <Download className="size-3.5 text-zinc-400" />
-              <span>{activeTab === "DIRECTORY" ? "Export Directory" : "Export Logs"}</span>
+              <span>{activeTab === "DIRECTORY" ? t("users.exportDirectory") : t("users.exportLogs")}</span>
             </button>
             <button
               type="button"
@@ -991,7 +1031,7 @@ export default function UsersPage() {
               className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95"
             >
               <UserPlus className="size-3.5 text-indigo-400" />
-              <span>Provision Member</span>
+              <span>{t("users.add.submit")}</span>
             </button>
           </div>
         </div>
@@ -1018,7 +1058,7 @@ export default function UsersPage() {
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                Total Team
+                {t("users.card.totalTeam")}
               </span>
               <Users className="size-4 text-zinc-400" />
             </div>
@@ -1026,14 +1066,14 @@ export default function UsersPage() {
               <div className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {members.length}
               </div>
-              <p className="mt-1 font-mono text-[11px] text-zinc-400">Staff assigned to this store</p>
+              <p className="mt-1 font-mono text-[11px] text-zinc-400">{t("users.card.totalTeamHint")}</p>
             </div>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-                Store Admins
+                {t("users.card.admins")}
               </span>
               <ShieldCheck className="size-4 text-indigo-500" />
             </div>
@@ -1041,14 +1081,14 @@ export default function UsersPage() {
               <div className="font-mono text-2xl font-bold tracking-tight text-indigo-700 tabular-nums">
                 {members.filter((m) => m.role === "Shop Admin" || m.role === "ADMIN").length}
               </div>
-              <p className="mt-1 font-mono text-[11px] text-zinc-400">Inventory &amp; staff supervision</p>
+              <p className="mt-1 font-mono text-[11px] text-zinc-400">{t("users.card.adminsHint")}</p>
             </div>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-                Sellers &amp; Cashiers
+                {t("users.card.sellers")}
               </span>
               <UserCheck className="size-4 text-emerald-600" />
             </div>
@@ -1056,14 +1096,14 @@ export default function UsersPage() {
               <div className="font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular-nums">
                 {members.filter((m) => m.role === "Shop Sale" || m.role === "SALES").length}
               </div>
-              <p className="mt-1 font-mono text-[11px] text-zinc-400">POS checkout &amp; orders</p>
+              <p className="mt-1 font-mono text-[11px] text-zinc-400">{t("users.card.sellersHint")}</p>
             </div>
           </div>
 
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                Active Staff
+                {t("users.card.active")}
               </span>
               <Activity className="size-4 text-emerald-500" />
             </div>
@@ -1071,7 +1111,7 @@ export default function UsersPage() {
               <div className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
                 {activeStaffCount}
               </div>
-              <p className="mt-1 font-mono text-[11px] text-zinc-400">Authorized active accounts</p>
+              <p className="mt-1 font-mono text-[11px] text-zinc-400">{t("users.card.activeHint")}</p>
             </div>
           </div>
         </div>
@@ -1094,7 +1134,7 @@ export default function UsersPage() {
                 }`}
               >
                 <Users className="size-3.5" />
-                <span>Team Directory</span>
+                <span>{t("users.tab.directory")}</span>
                 <span className="ml-1 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
                   {members.length}
                 </span>
@@ -1110,7 +1150,7 @@ export default function UsersPage() {
                 }`}
               >
                 <History className="size-3.5" />
-                <span>Activity &amp; Audit Logs</span>
+                <span>{t("users.tab.audit")}</span>
                 <span className="ml-1 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
                   {auditLogs.length}
                 </span>
@@ -1123,7 +1163,7 @@ export default function UsersPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search staff, email, or role..."
+                placeholder={t("users.searchPlaceholder")}
                 className="h-8.5 w-full rounded-md border border-zinc-200/80 bg-white pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
               {searchQuery && (
@@ -1145,12 +1185,12 @@ export default function UsersPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 bg-zinc-50/40 px-5 py-2.5">
                 <div className="flex items-center gap-1.5">
                   <span className="mr-1 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    Role Filter:
+                    {t("users.roleFilter")}
                   </span>
                   {[
-                    { id: "ALL", label: "All Roles" },
-                    { id: "ADMIN", label: "Shop Admins" },
-                    { id: "SALES", label: "Sellers / Cashiers" },
+                    { id: "ALL", label: t("users.filter.all") },
+                    { id: "ADMIN", label: t("users.filter.admins") },
+                    { id: "SALES", label: t("users.filter.sellers") },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1168,8 +1208,7 @@ export default function UsersPage() {
                 </div>
 
                 <span className="font-mono text-xs text-zinc-500">
-                  Showing <span className="font-bold text-zinc-900">{filteredMembers.length}</span>{" "}
-                  {filteredMembers.length === 1 ? "staff member" : "staff members"}
+                  {t.n("users.showingStaff", filteredMembers.length)}
                 </span>
               </div>
 
@@ -1177,12 +1216,12 @@ export default function UsersPage() {
                 <table className="w-full min-w-[760px] text-xs">
                   <thead>
                     <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
-                      <th className="px-5 py-3">Employee</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3">Role Capabilities</th>
-                      <th className="px-4 py-3">Joined Date</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-5 py-3 text-right">Actions</th>
+                      <th className="px-5 py-3">{t("users.col.employee")}</th>
+                      <th className="px-4 py-3">{t("users.col.role")}</th>
+                      <th className="px-4 py-3">{t("users.col.capabilities")}</th>
+                      <th className="px-4 py-3">{t("users.col.joined")}</th>
+                      <th className="px-4 py-3">{t("shared.status")}</th>
+                      <th className="px-5 py-3 text-right">{t("shared.actions")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -1221,10 +1260,10 @@ export default function UsersPage() {
                                 <ShieldCheck className="size-3 text-emerald-600" />
                                 <span>
                                   {isOwner
-                                    ? "Full Shop & Staff Ownership"
+                                    ? t("users.cap.OWNER")
                                     : isAdmin
-                                    ? "Shop Operations & Inventory"
-                                    : "POS Sales & Customer Checkout"}
+                                    ? t("users.cap.ADMIN")
+                                    : t("users.cap.SALES")}
                                 </span>
                               </span>
                             </td>
@@ -1244,7 +1283,7 @@ export default function UsersPage() {
                                     isActive ? "bg-emerald-600" : "bg-rose-600"
                                   }`}
                                 />
-                                {isActive ? "Active" : "Suspended"}
+                                {isActive ? t("users.status.active") : t("users.status.suspended")}
                               </span>
                             </td>
                             <td className="px-5 py-3.5 text-right">
@@ -1253,7 +1292,7 @@ export default function UsersPage() {
                                   <button
                                     type="button"
                                     onClick={() => setMemberToEditDetails(m)}
-                                    title="Edit employee details"
+                                    title={t("users.action.edit")}
                                     className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-white text-zinc-600 shadow-2xs transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
                                   >
                                     <Edit2 className="size-3.5" />
@@ -1261,7 +1300,7 @@ export default function UsersPage() {
                                   <button
                                     type="button"
                                     onClick={() => setMemberToResetPassword(m)}
-                                    title="Reset password"
+                                    title={t("users.reset.title")}
                                     className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-white text-zinc-600 shadow-2xs transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
                                   >
                                     <KeyRound className="size-3.5" />
@@ -1275,12 +1314,12 @@ export default function UsersPage() {
                                         : "border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
                                     }`}
                                   >
-                                    {isActive ? "Suspend" : "Activate"}
+                                    {isActive ? t("users.suspend") : t("users.activate")}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setMemberToDelete(m)}
-                                    title="Revoke access"
+                                    title={t("users.action.revoke")}
                                     className="flex size-7 items-center justify-center rounded-md border border-zinc-200/80 bg-white text-zinc-600 shadow-2xs transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                                   >
                                     <Trash2 className="size-3.5" />
@@ -1288,7 +1327,7 @@ export default function UsersPage() {
                                 </div>
                               ) : (
                                 <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">
-                                  Owner Account
+                                  {t("users.ownerAccount")}
                                 </span>
                               )}
                             </td>
@@ -1298,14 +1337,14 @@ export default function UsersPage() {
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400">
-                          No team members found matching the filter criteria.
+                          {t("users.empty")}
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
-              <TablePagination pagination={membersPager} noun="staff members" />
+              <TablePagination pagination={membersPager} noun={t("users.staffNoun")} />
             </div>
           )}
 
@@ -1315,18 +1354,18 @@ export default function UsersPage() {
               <table className="w-full min-w-[760px] text-xs">
                 <thead>
                   <tr className="border-b border-zinc-200/80 bg-zinc-50/60 text-left font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
-                    <th className="px-5 py-3">Timestamp</th>
-                    <th className="px-4 py-3">Actor / User</th>
-                    <th className="px-4 py-3">Action</th>
-                    <th className="px-4 py-3">Target Resource</th>
-                    <th className="px-5 py-3">Audit Details</th>
+                    <th className="px-5 py-3">{t("users.audit.col.timestamp")}</th>
+                    <th className="px-4 py-3">{t("users.audit.col.actor")}</th>
+                    <th className="px-4 py-3">{t("users.audit.col.action")}</th>
+                    <th className="px-4 py-3">{t("users.audit.col.target")}</th>
+                    <th className="px-5 py-3">{t("users.audit.col.details")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {auditPager.pageItems.map((log) => (
                     <tr key={log.id} className="transition-colors hover:bg-zinc-50/70">
                       <td className="px-5 py-3.5 font-mono text-xs text-zinc-600 tabular-nums">
-                        {new Date(log.timestamp).toLocaleString()}
+                        {formatDateTime(log.timestamp)}
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
@@ -1348,7 +1387,7 @@ export default function UsersPage() {
                               : "border-indigo-200 bg-indigo-50 text-indigo-700"
                           }`}
                         >
-                          {log.action}
+                          {AUDIT_ACTION_KEYS[log.action] ? t(AUDIT_ACTION_KEYS[log.action]) : log.action}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 font-mono text-xs text-zinc-700">{log.resource}</td>
@@ -1365,7 +1404,7 @@ export default function UsersPage() {
                   ))}
                 </tbody>
               </table>
-              <TablePagination pagination={auditPager} noun="log entries" />
+              <TablePagination pagination={auditPager} noun={t("users.audit.logsNoun")} />
             </div>
           )}
         </div>

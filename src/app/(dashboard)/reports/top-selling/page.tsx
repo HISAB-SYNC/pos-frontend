@@ -10,6 +10,8 @@ import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport, ProductReportItem } from "@/lib/api/types";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { periodLabel, rangeFor, type Preset } from "@/lib/utils/report-range";
@@ -40,6 +42,8 @@ function sortValue(item: ProductReportItem, key: SortKey): string | number {
 }
 
 export default function TopSellingReportPage() {
+  const t = useT();
+  const { formatDate } = useFormat();
   const shopId = useShopStore((state) => state.activeShopId) ?? MOCK_IDS.shop;
 
   const [preset, setPreset] = useState<Preset>("MONTH");
@@ -53,7 +57,7 @@ export default function TopSellingReportPage() {
 
   const range = useMemo(() => rangeFor(preset, customFrom, customTo), [preset, customFrom, customTo]);
   const requestKey = `${JSON.stringify(range)}|${reloadKey}`;
-  const label = periodLabel(preset, range);
+  const label = periodLabel(preset, range, t, formatDate);
 
   useEffect(() => {
     let mounted = true;
@@ -94,21 +98,23 @@ export default function TopSellingReportPage() {
     }
   }
 
+  const withEtb = (text: string) => `${text} (${t("shared.etb")})`;
+
   function handleCsv() {
     exportToCsv(
-      `top-selling-products-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
+      `top-selling-products-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || new Date().toISOString().slice(0, 10)}`,
       rows.map((item, index) => ({ ...item, rank: index + 1 })),
       [
-        { header: "Rank", key: "rank" },
-        { header: "Product", key: "name" },
-        { header: "SKU", formatter: (i) => i.sku ?? "" },
-        { header: "Category", formatter: (i) => i.category ?? "" },
-        { header: "Units sold", formatter: (i) => i.sold.units },
-        { header: "Sales value (ETB)", formatter: (i) => i.sold.revenue },
-        { header: "Cost of goods (ETB)", formatter: (i) => i.sold.cogs },
-        { header: "Profit (ETB)", formatter: (i) => i.sold.profit },
-        { header: "Margin (%)", formatter: (i) => (i.sold.marginPct === null ? "" : i.sold.marginPct) },
-        { header: "Stock now", formatter: (i) => i.stock?.onHand ?? "" },
+        { header: t("reports.top.csvRank"), key: "rank" },
+        { header: t("reports.sales.product"), key: "name" },
+        { header: t("reports.sales.sku"), formatter: (i) => i.sku ?? "" },
+        { header: t("shared.category"), formatter: (i) => i.category ?? "" },
+        { header: t("reports.top.colUnits"), formatter: (i) => i.sold.units },
+        { header: withEtb(t("reports.top.colSales")), formatter: (i) => i.sold.revenue },
+        { header: withEtb(t("reports.top.csvCogs")), formatter: (i) => i.sold.cogs },
+        { header: withEtb(t("reports.top.colProfit")), formatter: (i) => i.sold.profit },
+        { header: t("reports.top.csvMargin"), formatter: (i) => (i.sold.marginPct === null ? "" : i.sold.marginPct) },
+        { header: t("reports.top.colStock"), formatter: (i) => i.stock?.onHand ?? "" },
       ],
     );
   }
@@ -122,12 +128,12 @@ export default function TopSellingReportPage() {
         <div className="space-y-3">
           <Link href="/reports" className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-950">
             <ArrowLeft className="size-3.5" />
-            Back to reports
+            {t("reports.backToReports")}
           </Link>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-950">Top Selling Products</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-950">{t("reports.top.title")}</h1>
             <p className="mt-0.5 text-xs text-zinc-500">
-              Every product sold in the period with revenue, cost and profit · {label}
+              {t("reports.top.subtitle", { period: label })}
             </p>
           </div>
         </div>
@@ -148,12 +154,12 @@ export default function TopSellingReportPage() {
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 disabled:opacity-50"
           >
             <Download className="size-3.5 text-zinc-500" />
-            Export CSV
+            {t("reports.exportCsv")}
           </button>
         </div>
 
         {result?.error && !isLoading ? (
-          <LoadError what="the top selling products" onRetry={() => setReloadKey((k) => k + 1)} />
+          <LoadError what={t("reports.what.topSelling")} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : (
           <section className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
             <div className="flex flex-wrap items-center gap-2 border-b border-zinc-100 p-3">
@@ -162,17 +168,17 @@ export default function TopSellingReportPage() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search product or SKU"
+                  placeholder={t("reports.product.searchPlaceholder")}
                   className={`${reportInputClass} w-56 pl-8`}
                 />
               </div>
-              <span className="ml-auto text-xs text-zinc-500">{rows.length} products</span>
+              <span className="ml-auto text-xs text-zinc-500">{t.n("reports.top.productsCount", rows.length)}</span>
             </div>
 
             {isLoading ? (
-              <p className="py-12 text-center text-xs text-zinc-400">Loading…</p>
+              <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
             ) : rows.length === 0 ? (
-              <p className="py-12 text-center text-xs text-zinc-500">No products were sold in this period.</p>
+              <p className="py-12 text-center text-xs text-zinc-500">{t("reports.top.empty")}</p>
             ) : (
               <>
               <div className="overflow-x-auto">
@@ -180,12 +186,12 @@ export default function TopSellingReportPage() {
                   <thead>
                     <tr className="border-b border-zinc-100 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
                       <th className="w-12 px-4 py-2.5 font-bold">#</th>
-                      <ReportSortTh label="Product" field="name" {...sortProps} />
-                      <ReportSortTh label="Units sold" field="units" right {...sortProps} />
-                      <ReportSortTh label="Sales value" field="revenue" right {...sortProps} />
-                      <ReportSortTh label="Profit" field="profit" right {...sortProps} />
-                      <ReportSortTh label="Margin" field="margin" right {...sortProps} />
-                      <ReportSortTh label="Stock now" field="stock" right {...sortProps} />
+                      <ReportSortTh label={t("reports.sales.product")} field="name" {...sortProps} />
+                      <ReportSortTh label={t("reports.top.colUnits")} field="units" right {...sortProps} />
+                      <ReportSortTh label={t("reports.top.colSales")} field="revenue" right {...sortProps} />
+                      <ReportSortTh label={t("reports.top.colProfit")} field="profit" right {...sortProps} />
+                      <ReportSortTh label={t("reports.top.colMargin")} field="margin" right {...sortProps} />
+                      <ReportSortTh label={t("reports.top.colStock")} field="stock" right {...sortProps} />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -214,7 +220,7 @@ export default function TopSellingReportPage() {
                   </tbody>
                 </table>
               </div>
-              <TablePagination pagination={pager} noun="products" />
+              <TablePagination pagination={pager} noun={t("reports.product.productsNoun")} />
               </>
             )}
           </section>

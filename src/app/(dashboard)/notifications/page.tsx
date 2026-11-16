@@ -34,85 +34,88 @@ import type {
   NotificationSeverity,
   NotificationType,
 } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 import { useUiStore } from "@/stores/ui-store";
 
-function formatFullTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "Recently";
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getNotificationTypeMeta(type: NotificationType) {
+function getNotificationTypeMeta(type: NotificationType): {
+  labelKey: MessageKey;
+  actionKey: MessageKey;
+  icon: React.ReactNode;
+  color: string;
+  routePrefix: string;
+} {
   switch (type) {
     case "LOW_STOCK":
       return {
-        label: "Low Stock",
+        labelKey: "notificationsPage.type.LOW_STOCK",
         icon: <PackageX className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
-        actionLabel: "View Product",
+        actionKey: "notificationsPage.action.LOW_STOCK",
         routePrefix: "/inventory?status=low",
       };
     case "PRODUCT_EXPIRED":
       return {
-        label: "Product Expired",
+        labelKey: "notificationsPage.type.PRODUCT_EXPIRED",
         icon: <AlertCircle className="size-4 text-red-600" />,
         color: "bg-red-50 text-red-800 border-red-200",
-        actionLabel: "Inspect Item",
+        actionKey: "notificationsPage.action.PRODUCT_EXPIRED",
         routePrefix: "/inventory?status=expired",
       };
     case "PRODUCT_EXPIRING_SOON":
       return {
-        label: "Expiring Soon",
+        labelKey: "notificationsPage.type.PRODUCT_EXPIRING_SOON",
         icon: <Hourglass className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
-        actionLabel: "Review Stock",
+        actionKey: "notificationsPage.action.PRODUCT_EXPIRING_SOON",
         routePrefix: "/inventory?status=expiring",
       };
     case "OVERDUE_DEBT":
       return {
-        label: "Overdue Debt",
+        labelKey: "notificationsPage.type.OVERDUE_DEBT",
         icon: <CreditCard className="size-4 text-amber-600" />,
         color: "bg-amber-50 text-amber-800 border-amber-200",
-        actionLabel: "Open Debts",
+        actionKey: "notificationsPage.action.OVERDUE_DEBT",
         routePrefix: "/debts",
       };
     case "PRICE_BELOW_COST":
       return {
-        label: "Priced Below Cost",
+        labelKey: "notificationsPage.type.PRICE_BELOW_COST",
         icon: <TrendingDown className="size-4 text-red-600" />,
         color: "bg-red-50 text-red-800 border-red-200",
-        actionLabel: "Fix Prices",
+        actionKey: "notificationsPage.action.PRICE_BELOW_COST",
         routePrefix: "/inventory",
       };
     case "PENDING_OWNER_APPROVAL":
       return {
-        label: "Approval Needed",
+        labelKey: "notificationsPage.type.PENDING_OWNER_APPROVAL",
         icon: <UserCheck className="size-4 text-blue-600" />,
         color: "bg-blue-50 text-blue-800 border-blue-200",
-        actionLabel: "Review Owner",
+        actionKey: "notificationsPage.action.PENDING_OWNER_APPROVAL",
         routePrefix: "/users",
       };
     case "SYSTEM":
     default:
       return {
-        label: "System Alert",
+        labelKey: "notificationsPage.type.SYSTEM",
         icon: <Bell className="size-4 text-zinc-600" />,
         color: "bg-zinc-50 text-zinc-800 border-zinc-200",
-        actionLabel: "Details",
+        actionKey: "notificationsPage.action.SYSTEM",
         routePrefix: "",
       };
   }
 }
 
 export default function NotificationsPage() {
+  const t = useT();
+  const { formatDateTime } = useFormat();
+  const formatFullTime = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? t("notificationsPage.recently") : formatDateTime(d);
+  };
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const shopId = useShopStore((state) => state.activeShopId) || user?.shopId || "";
@@ -220,10 +223,10 @@ export default function NotificationsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-zinc-900">
-            Notification Center
+            {t("notificationsPage.title")}
           </h1>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Live operational alerts, low-stock warnings, product expiration notices, and system events.
+            {t("notificationsPage.subtitle")}
           </p>
         </div>
 
@@ -235,7 +238,7 @@ export default function NotificationsPage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 shadow-xs hover:bg-zinc-50 transition-colors"
             >
               <CheckCheck className="size-3.5 text-zinc-500" />
-              <span>Mark all as read</span>
+              <span>{t("notificationsPage.markAllRead")}</span>
             </button>
           )}
 
@@ -245,7 +248,7 @@ export default function NotificationsPage() {
             className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-95"
           >
             <RotateCcw className="size-3.5 text-indigo-400" />
-            <span>Refresh</span>
+            <span>{t("shared.refresh")}</span>
           </button>
         </div>
       </div>
@@ -257,7 +260,7 @@ export default function NotificationsPage() {
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-              Unread Alerts
+              {t("notificationsPage.card.unread")}
             </span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-indigo-50 text-[#5B4FE9] ring-1 ring-[#5B4FE9]/20">
               <Bell className="size-4 text-[#5B4FE9]" />
@@ -267,14 +270,14 @@ export default function NotificationsPage() {
             {unreadCount}
           </p>
           <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
-            Requires attention
+            {t("notificationsPage.card.unreadHint")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-              Critical Alerts
+              {t("notificationsPage.card.critical")}
             </span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-500/20">
               <AlertCircle className="size-4 text-red-600" />
@@ -284,14 +287,14 @@ export default function NotificationsPage() {
             {notifications.filter((n) => n.severity === "CRITICAL").length}
           </p>
           <p className="mt-0.5 text-[11px] font-medium text-red-600">
-            Out-of-stock or expired
+            {t("notificationsPage.card.criticalHint")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-              Warnings &amp; Expiring
+              {t("notificationsPage.card.warnings")}
             </span>
             <div className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-500/20">
               <Hourglass className="size-4 text-amber-600" />
@@ -301,7 +304,7 @@ export default function NotificationsPage() {
             {notifications.filter((n) => n.severity === "WARNING").length}
           </p>
           <p className="mt-0.5 text-[11px] font-medium text-amber-600">
-            Upcoming action required
+            {t("notificationsPage.card.warningsHint")}
           </p>
         </div>
       </div>
@@ -325,7 +328,7 @@ export default function NotificationsPage() {
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
-              All Alerts
+              {t("notificationsPage.tab.all")}
             </button>
             <button
               type="button"
@@ -339,7 +342,7 @@ export default function NotificationsPage() {
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
-              Unread ({unreadCount})
+              {t("notificationsPage.tab.unread", { count: unreadCount })}
             </button>
             <button
               type="button"
@@ -353,7 +356,7 @@ export default function NotificationsPage() {
                   : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
-              Read History
+              {t("notificationsPage.tab.read")}
             </button>
           </div>
 
@@ -364,7 +367,7 @@ export default function NotificationsPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search alerts..."
+                placeholder={t("notificationsPage.searchPlaceholder")}
                 className="h-9 w-48 sm:w-56 rounded-xl border border-zinc-200 bg-zinc-50/70 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-800 focus:bg-white focus:outline-none"
               />
             </div>
@@ -378,13 +381,13 @@ export default function NotificationsPage() {
                 }}
                 className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 focus:border-zinc-800 focus:outline-none"
               >
-                <option value="ALL">All Types</option>
-                <option value="LOW_STOCK">Low Stock</option>
-                <option value="PRODUCT_EXPIRED">Product Expired</option>
-                <option value="PRODUCT_EXPIRING_SOON">Expiring Soon</option>
-                <option value="OVERDUE_DEBT">Overdue Debt</option>
-                <option value="PRICE_BELOW_COST">Priced Below Cost</option>
-                <option value="SYSTEM">System</option>
+                <option value="ALL">{t("notificationsPage.allTypes")}</option>
+                <option value="LOW_STOCK">{t("notificationsPage.type.LOW_STOCK")}</option>
+                <option value="PRODUCT_EXPIRED">{t("notificationsPage.type.PRODUCT_EXPIRED")}</option>
+                <option value="PRODUCT_EXPIRING_SOON">{t("notificationsPage.type.PRODUCT_EXPIRING_SOON")}</option>
+                <option value="OVERDUE_DEBT">{t("notificationsPage.type.OVERDUE_DEBT")}</option>
+                <option value="PRICE_BELOW_COST">{t("notificationsPage.type.PRICE_BELOW_COST")}</option>
+                <option value="SYSTEM">{t("notificationsPage.typeSystem")}</option>
               </select>
             )}
 
@@ -396,10 +399,10 @@ export default function NotificationsPage() {
               }}
               className="h-9 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 focus:border-zinc-800 focus:outline-none"
             >
-              <option value="ALL">All Severities</option>
-              <option value="CRITICAL">Critical</option>
-              <option value="WARNING">Warning</option>
-              <option value="INFO">Info</option>
+              <option value="ALL">{t("notificationsPage.allSeverities")}</option>
+              <option value="CRITICAL">{t("notificationsPage.severity.CRITICAL")}</option>
+              <option value="WARNING">{t("notificationsPage.severity.WARNING")}</option>
+              <option value="INFO">{t("notificationsPage.severity.INFO")}</option>
             </select>
           </div>
         </div>
@@ -418,9 +421,9 @@ export default function NotificationsPage() {
             <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
               <Sparkles className="size-6" />
             </div>
-            <h3 className="text-sm font-bold text-zinc-900">No Notifications Found</h3>
+            <h3 className="text-sm font-bold text-zinc-900">{t("notificationsPage.empty.title")}</h3>
             <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-              You are all caught up! There are no alerts matching the selected filters.
+              {t("notificationsPage.empty.text")}
             </p>
           </div>
         ) : (
@@ -453,7 +456,7 @@ export default function NotificationsPage() {
                         <span
                           className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold ${meta.color}`}
                         >
-                          {meta.label}
+                          {t(meta.labelKey)}
                         </span>
 
                         <span
@@ -465,7 +468,7 @@ export default function NotificationsPage() {
                               : "border-zinc-200 bg-zinc-100 text-zinc-700"
                           }`}
                         >
-                          {n.severity}
+                          {t(`notificationsPage.severity.${n.severity}` as MessageKey) || n.severity}
                         </span>
 
                         <h3 className="text-xs font-bold text-zinc-900 truncate">
@@ -489,7 +492,7 @@ export default function NotificationsPage() {
 
                         {n.isRead && n.readAt && (
                           <span className="text-zinc-400">
-                            • Read at {formatFullTime(n.readAt)}
+                            {t("notificationsPage.readAt", { time: formatFullTime(n.readAt) })}
                           </span>
                         )}
                       </div>
@@ -507,7 +510,7 @@ export default function NotificationsPage() {
                         }}
                         className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
                       >
-                        <span>{meta.actionLabel}</span>
+                        <span>{t(meta.actionKey)}</span>
                         <ExternalLink className="size-3 text-zinc-400" />
                       </button>
                     )}
@@ -519,7 +522,7 @@ export default function NotificationsPage() {
                         className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
                       >
                         <Check className="size-3 text-emerald-600" />
-                        <span>Mark read</span>
+                        <span>{t("notificationsPage.markRead")}</span>
                       </button>
                     )}
                   </div>
@@ -530,7 +533,7 @@ export default function NotificationsPage() {
         )}
 
         <TablePagination
-          noun="notifications"
+          noun={t("notificationsPage.noun")}
           pagination={{
             page,
             setPage,

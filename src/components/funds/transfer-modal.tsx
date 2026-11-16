@@ -4,6 +4,7 @@ import { ArrowRight, X } from "lucide-react";
 import { useState } from "react";
 
 import { transferFunds } from "@/lib/api/app-data";
+import { useT } from "@/lib/i18n/use-t";
 import type { FundAccount, FundsSummary } from "@/lib/api/types";
 import { roundMoney } from "@/lib/utils/money";
 
@@ -26,6 +27,7 @@ export function TransferModal({
   onClose: () => void;
   onMoved: () => void;
 }) {
+  const t = useT();
   const [fromAccount, setFromAccount] = useState<FundAccount>("CASH_DRAWER");
   const [toAccount, setToAccount] = useState<FundAccount>("BANK");
   const [amount, setAmount] = useState("");
@@ -55,7 +57,7 @@ export function TransferModal({
       onMoved();
       onClose();
     } catch (err) {
-      setError((err as { message?: string })?.message || "Couldn't move the money. Nothing was changed.");
+      setError((err as { message?: string })?.message || t("fundsPage.transfer.failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -78,9 +80,9 @@ export function TransferModal({
           >
             <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${isSelected ? "text-zinc-900" : "text-zinc-600"}`}>
               <Icon className={`size-3.5 ${isSelected ? "text-[#5B4FE9]" : "text-zinc-400"}`} />
-              {ACCOUNT_LABELS[acc]}
+              {t(ACCOUNT_LABELS[acc])}
             </span>
-            <span className="font-mono text-[10px] tabular-nums text-zinc-500">{formatEtb(balance(acc))} ETB</span>
+            <span className="font-mono text-[10px] tabular-nums text-zinc-500">{formatEtb(balance(acc))} {t("shared.etb")}</span>
           </button>
         );
       })}
@@ -92,12 +94,13 @@ export function TransferModal({
       <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 sm:p-6">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">Move money</h2>
-            <p className="text-xs text-zinc-500">Between your own accounts, e.g. cash deposited at the bank.</p>
+            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("fundsPage.moveMoney")}</h2>
+            <p className="text-xs text-zinc-500">{t("fundsPage.transfer.subtitle")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <X className="size-4" />
@@ -106,25 +109,25 @@ export function TransferModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-700">From</label>
+            <label className="mb-1.5 block font-semibold text-zinc-700">{t("fundsPage.transfer.from")}</label>
             {accountButtons(fromAccount, pickFrom)}
           </div>
           <div>
-            <label className="mb-1.5 block font-semibold text-zinc-700">To</label>
+            <label className="mb-1.5 block font-semibold text-zinc-700">{t("fundsPage.transfer.to")}</label>
             {accountButtons(toAccount, setToAccount, fromAccount)}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="font-semibold text-zinc-700">Amount (ETB) *</label>
+                <label className="font-semibold text-zinc-700">{t("fundsPage.transfer.amountLabel")}</label>
                 {balance(fromAccount) > 0 && (
                   <button
                     type="button"
                     onClick={() => setAmount(String(balance(fromAccount)))}
                     className="text-[11px] font-semibold text-[#5B4FE9] hover:underline"
                   >
-                    All {formatEtb(balance(fromAccount))}
+                    {t("fundsPage.transfer.all", { amount: formatEtb(balance(fromAccount)) })}
                   </button>
                 )}
               </div>
@@ -135,17 +138,17 @@ export function TransferModal({
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 50000"
+                placeholder={t("fundsPage.transfer.amountPlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono font-semibold text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
             <div>
-              <label className="mb-1 block font-semibold text-zinc-700">Note (optional)</label>
+              <label className="mb-1 block font-semibold text-zinc-700">{t("fundsPage.transfer.note")}</label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. CBE deposit slip #123"
+                placeholder={t("fundsPage.transfer.notePlaceholder")}
                 className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
               />
             </div>
@@ -158,24 +161,26 @@ export function TransferModal({
                 { acc: toAccount, after: toAfter },
               ].map(({ acc, after }) => (
                 <div key={acc} className="flex items-center justify-between">
-                  <span className="text-zinc-500">{ACCOUNT_LABELS[acc]}</span>
+                  <span className="text-zinc-500">{t(ACCOUNT_LABELS[acc])}</span>
                   <span className="flex items-center gap-2 font-mono tabular-nums">
                     <span className="font-semibold text-zinc-500">{formatEtb(balance(acc))}</span>
                     <ArrowRight className="size-3 text-zinc-400" />
-                    <span className={`font-bold ${after < 0 ? "text-rose-700" : "text-zinc-900"}`}>{formatEtb(after)} ETB</span>
+                    <span className={`font-bold ${after < 0 ? "text-rose-700" : "text-zinc-900"}`}>{formatEtb(after)} {t("shared.etb")}</span>
                   </span>
                 </div>
               ))}
               <p className="border-t border-zinc-200/60 pt-1.5 text-[11px] text-zinc-500">
-                Money left stays {formatEtb(funds.moneyLeft)} ETB. Revenue and profit don&apos;t change.
+                {t("fundsPage.transfer.moneyLeftStays", { amount: formatEtb(funds.moneyLeft) })}
               </p>
             </div>
           )}
 
           {moreThanAvailable && amountNum > 0 && (
             <p className="rounded-md border border-amber-200 bg-amber-50/70 px-3 py-2 text-amber-900">
-              {ACCOUNT_LABELS[fromAccount]} only shows {formatEtb(balance(fromAccount))} ETB. You can still move it, but
-              check the amount: the balance would go negative.
+              {t("fundsPage.transfer.lowBalance", {
+                account: t(ACCOUNT_LABELS[fromAccount]),
+                amount: formatEtb(balance(fromAccount)),
+              })}
             </p>
           )}
 
@@ -187,7 +192,7 @@ export function TransferModal({
               onClick={onClose}
               className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
             >
-              Cancel
+              {t("shared.cancel")}
             </button>
             <button
               type="submit"
@@ -195,10 +200,10 @@ export function TransferModal({
               className="rounded-md bg-slate-900 px-5 py-2 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
             >
               {isSubmitting
-                ? "Moving…"
+                ? t("fundsPage.transfer.moving")
                 : amountNum > 0
-                ? `Move ${formatEtb(amountNum)} ETB to ${ACCOUNT_LABELS[toAccount]}`
-                : "Move money"}
+                ? t("fundsPage.transfer.moveTo", { amount: formatEtb(amountNum), account: t(ACCOUNT_LABELS[toAccount]) })
+                : t("fundsPage.moveMoney")}
             </button>
           </div>
         </form>

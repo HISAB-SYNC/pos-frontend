@@ -2,6 +2,7 @@
 
 import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 
+import { useT } from "@/lib/i18n/use-t";
 import { PRESETS, type Preset } from "@/lib/utils/report-range";
 
 export const reportInputClass =
@@ -23,6 +24,7 @@ export function PeriodBar({
   onCustomFrom: (value: string) => void;
   onCustomTo: (value: string) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1">
@@ -37,14 +39,14 @@ export function PeriodBar({
                 : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
             }`}
           >
-            {p.label}
+            {t(p.labelKey)}
           </button>
         ))}
       </div>
       {preset === "CUSTOM" && (
         <div className="flex items-center gap-1.5 text-xs text-zinc-500">
           <input type="date" value={customFrom} onChange={(e) => onCustomFrom(e.target.value)} className={reportInputClass} />
-          <span>to</span>
+          <span>{t("reports.to")}</span>
           <input type="date" value={customTo} onChange={(e) => onCustomTo(e.target.value)} className={reportInputClass} />
         </div>
       )}

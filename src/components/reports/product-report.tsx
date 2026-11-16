@@ -7,6 +7,8 @@ import { LoadError } from "@/components/shared/load-error";
 import { TablePagination, isOnPage, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
 import type { ProductReport as ProductReportData, ProductReportItem } from "@/lib/api/types";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { PRESETS, periodLabel, rangeFor, type Preset } from "@/lib/utils/report-range";
 import { formatQuantity } from "@/lib/utils/units";
 import { useShopStore } from "@/stores/shop-store";
@@ -31,6 +33,9 @@ const inputClass =
   "h-8 rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden";
 
 export function ProductReport({ shopId }: { shopId: string }) {
+  const t = useT();
+  const { formatDate, formatDateTime } = useFormat();
+  const etbLabel = t("shared.etb");
   const shopName = useShopStore((state) => state.activeShopName) || "Shop";
   const [preset, setPreset] = useState<Preset>("MONTH");
   const [customFrom, setCustomFrom] = useState("");
@@ -61,7 +66,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
 
   const isLoading = result?.key !== requestKey;
   const report = !isLoading ? result?.data ?? null : null;
-  const label = periodLabel(preset, range);
+  const label = periodLabel(preset, range, t, formatDate);
 
   const rows = useMemo(() => {
     if (!report) return [];
@@ -76,13 +81,16 @@ export function ProductReport({ shopId }: { shopId: string }) {
     if (!report) return;
     setIsExporting(true);
     try {
-      await downloadProductReportXlsx({ ...report, items: rows }, { shopName, periodLabel: label });
+      await downloadProductReportXlsx(
+        { ...report, items: rows },
+        { shopName, periodLabel: label, t, generatedAt: formatDateTime(new Date()) },
+      );
     } finally {
       setIsExporting(false);
     }
   }
 
-  const t = report?.totals;
+  const totals = report?.totals;
   // Footer totals follow the rows shown (search and filter applied).
   const shown = useMemo(() => {
     const add = (f: (i: ProductReportItem) => number, digits = 100) =>
@@ -117,9 +125,9 @@ export function ProductReport({ shopId }: { shopId: string }) {
 
       {/* Print header */}
       <div className="hidden print:block">
-        <h1 className="text-lg font-bold">{shopName} — Product report</h1>
+        <h1 className="text-lg font-bold">{t("reports.product.printHeader", { shop: shopName })}</h1>
         <p className="text-xs text-zinc-600">
-          Period: {label} · Generated {new Date().toLocaleString("en-GB")}
+          {t("reports.printMeta", { period: label, date: formatDateTime(new Date()) })}
         </p>
       </div>
 
@@ -138,14 +146,14 @@ export function ProductReport({ shopId }: { shopId: string }) {
                     : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
                 }`}
               >
-                {p.label}
+                {t(p.labelKey)}
               </button>
             ))}
           </div>
           {preset === "CUSTOM" && (
             <div className="flex items-center gap-1.5 text-xs text-zinc-500">
               <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className={inputClass} />
-              <span>to</span>
+              <span>{t("reports.to")}</span>
               <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className={inputClass} />
             </div>
           )}
@@ -158,7 +166,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 disabled:opacity-50"
           >
             <Printer className="size-3.5 text-zinc-500" />
-            Print / PDF
+            {t("reports.printPdf")}
           </button>
           <button
             type="button"
@@ -167,34 +175,47 @@ export function ProductReport({ shopId }: { shopId: string }) {
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 disabled:opacity-50"
           >
             <FileSpreadsheet className="size-3.5 text-emerald-400" />
-            {isExporting ? "Preparing…" : "Excel"}
+            {isExporting ? t("reports.preparing") : t("reports.excel")}
           </button>
         </div>
       </div>
 
       {result?.error && !isLoading ? (
-        <LoadError what="the product report" onRetry={() => setReloadKey((k) => k + 1)} />
+        <LoadError what={t("reports.what.productReport")} onRetry={() => setReloadKey((k) => k + 1)} />
       ) : (
         <>
           {/* Summary */}
           <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-            {label} · all products
+            {t("reports.product.periodCaption", { period: label })}
           </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: "Sales value", value: t?.revenue, hint: t ? `${formatQuantity(t.soldUnits)} units sold` : "" },
-              { label: "Cost of goods", value: t?.cogs, hint: "At buying price when sold" },
-              { label: "Gross profit", value: t?.profit, hint: t && t.revenue > 0 ? `${((t.profit / t.revenue) * 100).toFixed(1)}% margin` : "" },
               {
-                label: "Restock cost",
-                value: t?.restockCost,
-                hint: t ? `Paid ${etb(t.restockPaidNow)} · On credit ${etb(t.restockOnCredit)}` : "",
+                label: t("reports.product.cardSalesValue"),
+                value: totals?.revenue,
+                hint: totals ? t("reports.product.hintUnitsSold", { count: formatQuantity(totals.soldUnits) }) : "",
+              },
+              { label: t("reports.product.cardCogs"), value: totals?.cogs, hint: t("reports.product.hintCogs") },
+              {
+                label: t("reports.product.cardProfit"),
+                value: totals?.profit,
+                hint:
+                  totals && totals.revenue > 0
+                    ? t("reports.product.hintMargin", { pct: ((totals.profit / totals.revenue) * 100).toFixed(1) })
+                    : "",
+              },
+              {
+                label: t("reports.product.cardRestock"),
+                value: totals?.restockCost,
+                hint: totals
+                  ? t("reports.product.hintRestock", { paid: etb(totals.restockPaidNow), credit: etb(totals.restockOnCredit) })
+                  : "",
               },
             ].map((card) => (
               <div key={card.label} className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{card.label}</p>
                 <p className={`mt-1.5 font-mono text-xl font-bold tabular-nums text-zinc-900 ${isLoading ? "opacity-40" : ""}`}>
-                  {card.value !== undefined ? etb(card.value) : "—"} <span className="text-xs font-semibold text-zinc-500">ETB</span>
+                  {card.value !== undefined ? etb(card.value) : "—"} <span className="text-xs font-semibold text-zinc-500">{etbLabel}</span>
                 </p>
                 <p className="mt-1 truncate text-[11px] text-zinc-500">{card.hint}</p>
               </div>
@@ -209,43 +230,43 @@ export function ProductReport({ shopId }: { shopId: string }) {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search product or SKU"
+                  placeholder={t("reports.product.searchPlaceholder")}
                   className={`${inputClass} w-56 pl-8`}
                 />
               </div>
               <select value={view} onChange={(e) => setView(e.target.value as View)} className={inputClass}>
-                <option value="ALL">Sold or restocked</option>
-                <option value="SOLD">Sold only</option>
-                <option value="RESTOCKED">Restocked only</option>
+                <option value="ALL">{t("reports.product.viewAll")}</option>
+                <option value="SOLD">{t("reports.product.viewSold")}</option>
+                <option value="RESTOCKED">{t("reports.product.viewRestocked")}</option>
               </select>
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className={inputClass}>
-                <option value="revenue">Sort: sales value</option>
-                <option value="units">Sort: units sold</option>
-                <option value="profit">Sort: profit</option>
-                <option value="restock">Sort: restock cost</option>
+                <option value="revenue">{t("reports.product.sortRevenue")}</option>
+                <option value="units">{t("reports.product.sortUnits")}</option>
+                <option value="profit">{t("reports.product.sortProfit")}</option>
+                <option value="restock">{t("reports.product.sortRestock")}</option>
               </select>
               <span className="ml-auto text-xs text-zinc-500">
-                {label} · {rows.length} products
+                {t.n("reports.product.periodCount", rows.length, { period: label })}
               </span>
             </div>
 
             {isLoading ? (
-              <p className="py-12 text-center text-xs text-zinc-400">Loading…</p>
+              <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
             ) : rows.length === 0 ? (
-              <p className="py-12 text-center text-xs text-zinc-500">No products were sold or restocked in this period.</p>
+              <p className="py-12 text-center text-xs text-zinc-500">{t("reports.product.empty")}</p>
             ) : (
               <div className="overflow-x-auto print:overflow-visible">
                 <table className="w-full min-w-[900px] text-left text-xs print:min-w-0">
                   <thead>
                     <tr className="border-b border-zinc-100 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                      <th className="px-4 py-2.5 font-bold">Product</th>
-                      <th className="px-3 py-2.5 text-right font-bold">Sold</th>
-                      <th className="px-3 py-2.5 text-right font-bold">Sales value</th>
-                      <th className="px-3 py-2.5 text-right font-bold">Cost of goods</th>
-                      <th className="px-3 py-2.5 text-right font-bold">Profit</th>
-                      <th className="px-3 py-2.5 text-right font-bold">Restocked</th>
-                      <th className="px-3 py-2.5 text-right font-bold">Restock cost</th>
-                      <th className="px-4 py-2.5 text-right font-bold">Stock now</th>
+                      <th className="px-4 py-2.5 font-bold">{t("reports.product.colProduct")}</th>
+                      <th className="px-3 py-2.5 text-right font-bold">{t("reports.product.colSold")}</th>
+                      <th className="px-3 py-2.5 text-right font-bold">{t("reports.product.colSalesValue")}</th>
+                      <th className="px-3 py-2.5 text-right font-bold">{t("reports.product.colCogs")}</th>
+                      <th className="px-3 py-2.5 text-right font-bold">{t("reports.product.colProfit")}</th>
+                      <th className="px-3 py-2.5 text-right font-bold">{t("reports.product.colRestocked")}</th>
+                      <th className="px-3 py-2.5 text-right font-bold">{t("reports.product.colRestockCost")}</th>
+                      <th className="px-4 py-2.5 text-right font-bold">{t("reports.product.colStockNow")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -271,7 +292,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
                         <td className="px-3 py-2 text-right font-mono tabular-nums text-zinc-600">
                           {etb(i.restocked.cost)}
                           {i.restocked.onCredit > 0 && (
-                            <span className="block text-[10px] text-amber-700">{etb(i.restocked.onCredit)} on credit</span>
+                            <span className="block text-[10px] text-amber-700">{t("reports.product.onCredit", { amount: etb(i.restocked.onCredit) })}</span>
                           )}
                         </td>
                         <td className="px-4 py-2 text-right font-mono tabular-nums text-zinc-600">
@@ -283,7 +304,11 @@ export function ProductReport({ shopId }: { shopId: string }) {
                   {rows.length > 0 && (
                     <tfoot>
                       <tr className="border-t-2 border-zinc-900 font-semibold text-zinc-900">
-                        <td className="px-4 py-2.5">Total ({shown.products} {shown.products === 1 ? "product" : "products"}{isFiltered ? " shown" : ""})</td>
+                        <td className="px-4 py-2.5">
+                          {isFiltered
+                            ? t.n("reports.product.totalRowShown", shown.products)
+                            : t.n("reports.product.totalRow", shown.products)}
+                        </td>
                         <td className="px-3 py-2.5 text-right font-mono tabular-nums">{formatQuantity(shown.soldUnits)}</td>
                         <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(shown.revenue)}</td>
                         <td className="px-3 py-2.5 text-right font-mono tabular-nums">{etb(shown.cogs)}</td>
@@ -295,10 +320,10 @@ export function ProductReport({ shopId }: { shopId: string }) {
                     </tfoot>
                   )}
                 </table>
-                <TablePagination pagination={pager} noun="products" />
+                <TablePagination pagination={pager} noun={t("reports.product.productsNoun")} />
                 {isFiltered && (
                   <p className="border-t border-zinc-100 px-4 py-2 text-[11px] text-zinc-500 print:hidden">
-                    The total row covers the products shown. The cards at the top cover every product in the period.
+                    {t("reports.product.totalNote")}
                   </p>
                 )}
               </div>

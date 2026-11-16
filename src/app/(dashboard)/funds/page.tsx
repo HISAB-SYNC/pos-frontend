@@ -2,22 +2,24 @@
 
 import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AddMoneyModal } from "@/components/funds/add-money-modal";
-import { ActivityList, EMPTY_FILTER, type LedgerFilter } from "@/components/funds/activity-list";
+import { ActivityPanel, EMPTY_FILTER, type LedgerFilter } from "@/components/funds/activity-list";
 import { BalanceOverview } from "@/components/funds/balance-overview";
-import { SummaryPanel } from "@/components/funds/summary-panel";
+import { BreakdownPanel } from "@/components/funds/breakdown-panel";
+import { PeriodBar } from "@/components/funds/period-bar";
+import { usePeriodLines, useFundsEntries } from "@/components/funds/use-funds-entries";
 import { TransferModal } from "@/components/funds/transfer-modal";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getFundsSummary } from "@/lib/api/app-data";
 import type { FundsSummary } from "@/lib/api/types";
 import { useT } from "@/lib/i18n/use-t";
+import type { Direction } from "@/lib/utils/funds-activity";
+import { emptyLineTotals, periodRange } from "@/lib/utils/funds-period";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useShopStore } from "@/stores/shop-store";
-
-type Tab = "activity" | "summary";
 
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
@@ -29,14 +31,17 @@ function FundsPageContent() {
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
-  // Older links use ?tab=ledger / overview; they keep working. What is owed to
-  // suppliers now lives on the Suppliers page.
+  // What is owed to suppliers now lives on the Suppliers page; old links are sent there.
   const initialTab = searchParams.get("tab");
-  const [tab, setTab] = useState<Tab>(initialTab === "summary" || initialTab === "overview" ? "summary" : "activity");
   useEffect(() => {
     if (initialTab === "suppliers") router.replace("/suppliers?filter=owed");
   }, [initialTab, router]);
-  const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>(EMPTY_FILTER);
+
+  // The page opens on the last 7 days.
+  const [filter, setFilter] = useState<LedgerFilter>(() => ({ ...EMPTY_FILTER, ...periodRange("WEEK") }));
+  const [direction, setDirection] = useState<Direction>("ALL");
+  const [customMode, setCustomMode] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [funds, setFunds] = useState<FundsSummary | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [isMoving, setIsMoving] = useState(false);
@@ -63,13 +68,9 @@ function FundsPageContent() {
     setReloadToken((n) => n + 1);
   };
 
-  const tabs = useMemo(
-    () => [
-      { id: "activity" as const, label: t("fundsPage.tab.activity") },
-      { id: "summary" as const, label: t("fundsPage.tab.summary") },
-    ],
-    [t],
-  );
+  // The records for the chosen period, and the money per type for it (exact, even beyond 500 records)
+  const { entries, isLoading: entriesLoading, hasError } = useFundsEntries(shopId, filter, reloadToken);
+  const period = usePeriodLines(shopId, filter, entries, funds?.lines ?? emptyLineTotals());
 
   if (status === "loading") return <LoadingState />;
 
@@ -124,42 +125,43 @@ function FundsPageContent() {
       {/* Money now and each account */}
       <BalanceOverview
         funds={funds}
-        onOpenAccount={(account) => {
-          setLedgerFilter({ ...EMPTY_FILTER, account });
-          setTab("activity");
-        }}
+        onOpenAccount={(account) => setFilter((f) => ({ ...f, account }))}
       />
 
-      {/* Tabs */}
-      <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-1">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all ${
-              tab === item.id
-                ? "border border-zinc-200/80 bg-white font-semibold text-zinc-900 shadow-2xs"
-                : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "summary" && (
-        <SummaryPanel
-          funds={funds}
+      {/* How did it go? Money in, out and net for the chosen period */}
+      <PeriodBar
+        filter={filter}
+        onFilterChange={setFilter}
+        lines={period.lines}
+        isLoading={period.isLoading}
+        direction={direction}
+        onDirectionChange={setDirection}
+        breakdownOpen={showBreakdown}
+        onToggleBreakdown={() => setShowBreakdown((v) => !v)}
+        customMode={customMode}
+        onCustomMode={setCustomMode}
+      />
+      {showBreakdown && period.lines && (
+        <BreakdownPanel
+          lines={period.lines}
           onOpenLine={(line) => {
-            setLedgerFilter({ ...EMPTY_FILTER, line });
-            setTab("activity");
+            setFilter((f) => ({ ...f, line }));
+            setDirection("ALL");
+            setShowBreakdown(false);
           }}
         />
       )}
-      {tab === "activity" && (
-        <ActivityList key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
-      )}
+
+      {/* Every record of the period */}
+      <ActivityPanel
+        entries={entries}
+        isLoading={entriesLoading}
+        hasError={hasError}
+        filter={filter}
+        onFilterChange={setFilter}
+        direction={direction}
+        onDirectionChange={setDirection}
+      />
 
       {isAdding && funds && (
         <AddMoneyModal shopId={shopId} funds={funds} onClose={() => setIsAdding(false)} onAdded={reload} />

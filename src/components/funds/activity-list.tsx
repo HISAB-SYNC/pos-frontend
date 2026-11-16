@@ -1,11 +1,10 @@
 "use client";
 
 import { ArrowDownLeft, ArrowUpRight, Download, SlidersHorizontal, Wallet, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
-import { getFundsEntries } from "@/lib/api/app-data";
 import type { FundAccount, FundsEntries, FundsEntry, FundsLine } from "@/lib/api/types";
 import { useFormat } from "@/lib/i18n/use-format";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -17,7 +16,6 @@ import {
   filterByDirection,
   groupByDay,
   mergeTransfers,
-  sumInOut,
 } from "@/lib/utils/funds-activity";
 import { exportToCsv } from "@/lib/utils/export";
 
@@ -47,23 +45,6 @@ const ACCOUNT_BY_ENGLISH: Record<string, FundAccount> = {
 
 const selectClass =
   "h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-xs text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden";
-
-function inputDate(date: Date) {
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${m}-${d}`;
-}
-
-function datePreset(preset: "today" | "week" | "month"): Pick<LedgerFilter, "from" | "to"> {
-  const now = new Date();
-  if (preset === "today") return { from: inputDate(now), to: inputDate(now) };
-  if (preset === "week") {
-    const start = new Date(now);
-    start.setDate(now.getDate() - 6);
-    return { from: inputDate(start), to: inputDate(now) };
-  }
-  return { from: inputDate(new Date(now.getFullYear(), now.getMonth(), 1)), to: inputDate(now) };
-}
 
 /* ------------------------------------------------------------------ */
 /* Friendly titles for the descriptions the server writes in English   */
@@ -163,53 +144,6 @@ function ActivityItem({ row }: { row: ActivityRow }) {
 /* ------------------------------------------------------------------ */
 /* Activity: every money movement, grouped by day                      */
 /* ------------------------------------------------------------------ */
-export function ActivityList({
-  shopId,
-  filter,
-  onFilterChange,
-}: {
-  shopId: string;
-  filter: LedgerFilter;
-  onFilterChange: (filter: LedgerFilter) => void;
-}) {
-  const [data, setData] = useState<{ key: string; entries: FundsEntries | null; error: boolean } | null>(null);
-  const filterKey = JSON.stringify(filter);
-
-  useEffect(() => {
-    let mounted = true;
-    const from = filter.from ? new Date(`${filter.from}T00:00:00`) : null;
-    const to = filter.to ? new Date(`${filter.to}T00:00:00`) : null;
-    if (to) to.setDate(to.getDate() + 1); // include the whole "to" day
-    getFundsEntries(shopId, {
-      line: filter.line || undefined,
-      account: filter.account || undefined,
-      from: from?.toISOString(),
-      to: to?.toISOString(),
-      limit: 500,
-    })
-      .then((entries) => {
-        if (mounted) setData({ key: filterKey, entries, error: false });
-      })
-      .catch(() => {
-        if (mounted) setData({ key: filterKey, entries: null, error: true });
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [shopId, filter, filterKey]);
-
-  const isLoading = data?.key !== filterKey;
-  return (
-    <ActivityPanel
-      entries={!isLoading ? (data?.entries ?? null) : null}
-      isLoading={isLoading}
-      hasError={!isLoading && !!data?.error}
-      filter={filter}
-      onFilterChange={onFilterChange}
-    />
-  );
-}
-
 /** The list itself: chips, filters, day groups. Takes the records as props. */
 export function ActivityPanel({
   entries,
@@ -217,16 +151,20 @@ export function ActivityPanel({
   hasError,
   filter,
   onFilterChange,
+  direction,
+  onDirectionChange,
 }: {
   entries: FundsEntries | null;
   isLoading: boolean;
   hasError: boolean;
   filter: LedgerFilter;
   onFilterChange: (filter: LedgerFilter) => void;
+  direction: Direction;
+  onDirectionChange: (direction: Direction) => void;
 }) {
   const t = useT();
   const { formatDate } = useFormat();
-  const [direction, setDirection] = useState<Direction>("ALL");
+  const setDirection = onDirectionChange;
   const [showFilters, setShowFilters] = useState(false);
   const popoverRef = useDismiss<HTMLDivElement>(showFilters, () => setShowFilters(false));
 
@@ -234,11 +172,12 @@ export function ActivityPanel({
     () => filterByDirection(mergeTransfers(entries?.items ?? []), direction),
     [entries, direction],
   );
-  const totals = useMemo(() => sumInOut(rows), [rows]);
   const pager = usePagination(rows, 20);
   const groups = useMemo(() => groupByDay(pager.pageItems), [pager.pageItems]);
 
-  const activeFilterCount = [filter.line, filter.account, filter.from || filter.to].filter(Boolean).length;
+  // The period (dates) is chosen in the bar above; this list only adds type and account.
+  const activeFilterCount = [filter.line, filter.account].filter(Boolean).length;
+  const clearTypeAndAccount = () => onFilterChange({ ...filter, line: "", account: "" });
 
   function dayTitle(group: { date: Date; key: string }) {
     const diff = daysAgo(group);
@@ -271,11 +210,6 @@ export function ActivityPanel({
     { id: "OUT", label: t("fundsPage.dir.out"), icon: ArrowUpRight, tone: "text-rose-600" },
     { id: "MOVED", label: t("fundsPage.dir.moved"), tone: "" },
   ];
-
-  const dateLabel =
-    filter.from || filter.to
-      ? `${filter.from ? formatDate(`${filter.from}T12:00:00`) : "…"} – ${filter.to ? formatDate(`${filter.to}T12:00:00`) : "…"}`
-      : "";
 
   return (
     <section className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-2xs">
@@ -357,51 +291,10 @@ export function ActivityPanel({
                   ))}
                 </select>
               </label>
-              <div>
-                <span className="mb-1 block font-semibold text-zinc-700">{t("fundsPage.filter.dates")}</span>
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {(
-                    [
-                      ["today", "fundsPage.filter.today"],
-                      ["week", "fundsPage.filter.week"],
-                      ["month", "fundsPage.filter.month"],
-                    ] as const
-                  ).map(([id, key]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => onFilterChange({ ...filter, ...datePreset(id) })}
-                      className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-700 hover:bg-zinc-50"
-                    >
-                      {t(key)}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block">
-                    <span className="mb-0.5 block text-[10px] text-zinc-500">{t("fundsPage.filter.from")}</span>
-                    <input
-                      type="date"
-                      value={filter.from}
-                      onChange={(e) => onFilterChange({ ...filter, from: e.target.value })}
-                      className={selectClass}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-0.5 block text-[10px] text-zinc-500">{t("fundsPage.filter.to")}</span>
-                    <input
-                      type="date"
-                      value={filter.to}
-                      onChange={(e) => onFilterChange({ ...filter, to: e.target.value })}
-                      className={selectClass}
-                    />
-                  </label>
-                </div>
-              </div>
               <div className="flex items-center justify-between pt-1">
                 <button
                   type="button"
-                  onClick={() => onFilterChange(EMPTY_FILTER)}
+                  onClick={clearTypeAndAccount}
                   className="font-medium text-zinc-500 hover:text-zinc-900"
                 >
                   {t("fundsPage.filter.clearAll")}
@@ -430,7 +323,6 @@ export function ActivityPanel({
                 clear: { ...filter, account: "" as const },
               },
               filter.line && { key: "line", label: t(LINE_LABELS[filter.line]), clear: { ...filter, line: "" as const } },
-              (filter.from || filter.to) && { key: "dates", label: dateLabel, clear: { ...filter, from: "", to: "" } },
             ].filter(Boolean) as Array<{ key: string; label: string; clear: LedgerFilter }>
           ).map((chip) => (
             <span
@@ -450,19 +342,12 @@ export function ActivityPanel({
           ))}
           <button
             type="button"
-            onClick={() => onFilterChange(EMPTY_FILTER)}
+            onClick={clearTypeAndAccount}
             className="ml-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900"
           >
             {t("fundsPage.filter.clearAll")}
           </button>
         </div>
-      )}
-
-      {/* Totals */}
-      {entries && rows.length > 0 && (
-        <p className="border-b border-zinc-100 bg-zinc-50/60 px-4 py-2 text-xs text-zinc-500">
-          {t.n("fundsPage.activity.totals", rows.length, { in: `+${formatEtb(totals.in)}`, out: `−${formatEtb(totals.out)}` })}
-        </p>
       )}
 
       {isLoading ? (

@@ -120,7 +120,7 @@ export function MoneyLeftCard({ shopId }: { shopId: string }) {
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-3 text-[11px]">
         <span className="text-zinc-500">{t("funds.explainer")}</span>
         {funds.owedToSuppliers > 0 ? (
-          <Link href="/funds?tab=suppliers" className="font-semibold text-amber-800 hover:underline">
+          <Link href="/suppliers?filter=owed" className="font-semibold text-amber-800 hover:underline">
             {t("funds.owed", { amount: formatEtb(funds.owedToSuppliers) })}
           </Link>
         ) : (

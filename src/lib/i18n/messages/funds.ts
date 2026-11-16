@@ -153,6 +153,8 @@ const en = {
   "fundsPage.label.restockSupplier": "Bought {product} × {qty} · {supplier}",
   "fundsPage.label.ownerMoney": "Money you put in",
   "fundsPage.label.alreadyThere": "Money that was already there",
+  "fundsPage.owedLine": "Owed to suppliers {amount} ETB",
+  "fundsPage.openSuppliers": "Open Suppliers",
 } as const;
 
 export const funds: Area<typeof en> = {
@@ -309,6 +311,8 @@ export const funds: Area<typeof en> = {
     "fundsPage.label.restockSupplier": "{product} × {qty} ተገዛ · {supplier}",
     "fundsPage.label.ownerMoney": "ያስገቡት ገንዘብ",
     "fundsPage.label.alreadyThere": "አስቀድሞ የነበረ ገንዘብ",
+    "fundsPage.owedLine": "ለአቅራቢዎች የሚከፈል {amount} ብር",
+    "fundsPage.openSuppliers": "አቅራቢዎችን ክፈት",
   },
   om: {
     "fundsPage.title": "Maallaqa",
@@ -463,5 +467,7 @@ export const funds: Area<typeof en> = {
     "fundsPage.label.restockSupplier": "{product} × {qty} bitame · {supplier}",
     "fundsPage.label.ownerMoney": "Maallaqa ati galchite",
     "fundsPage.label.alreadyThere": "Maallaqa duraan ture",
+    "fundsPage.owedLine": "Dhiyeessitootaaf kan kaffalamu Birrii {amount}",
+    "fundsPage.openSuppliers": "Dhiyeessitoota Bani",
   },
 };

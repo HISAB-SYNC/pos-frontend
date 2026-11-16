@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, ChevronRight, Store } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 import type { FundAccount, FundsSummary } from "@/lib/api/types";
 import { useT } from "@/lib/i18n/use-t";
@@ -14,11 +15,9 @@ import { ACCOUNT_ICONS, ACCOUNT_LABELS, formatEtb } from "./funds-shared";
 export function BalanceOverview({
   funds,
   onOpenAccount,
-  onSeeSuppliers,
 }: {
   funds: FundsSummary;
   onOpenAccount: (account: FundAccount) => void;
-  onSeeSuppliers: () => void;
 }) {
   const t = useT();
   const owed = funds.owedToSuppliers;
@@ -38,7 +37,18 @@ export function BalanceOverview({
               {formatEtb(funds.moneyLeft)} <span className="text-sm font-semibold text-slate-400">{t("shared.etb")}</span>
             </p>
           </div>
-          <p className="mt-4 text-[11px] leading-relaxed text-slate-400">{t("fundsPage.moneyNowHint")}</p>
+          <div className="mt-4 space-y-1.5">
+            <p className="text-[11px] leading-relaxed text-slate-400">{t("fundsPage.moneyNowHint")}</p>
+            {owed > 0 && (
+              <Link
+                href="/suppliers?filter=owed"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 hover:text-amber-200"
+              >
+                {t("fundsPage.owedLine", { amount: formatEtb(owed) })} · {t("fundsPage.openSuppliers")}
+                <ChevronRight className="size-3" />
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Accounts */}
@@ -84,24 +94,6 @@ export function BalanceOverview({
         </div>
       </div>
 
-      {owed > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3">
-          <p className="flex items-center gap-2.5 text-sm font-semibold text-amber-900">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-              <Store className="size-4" />
-            </span>
-            {t("fundsPage.oweBanner", { amount: formatEtb(owed) })}
-          </p>
-          <button
-            type="button"
-            onClick={onSeeSuppliers}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-900 px-3 text-xs font-bold text-white transition-colors hover:bg-amber-950"
-          >
-            {t("fundsPage.oweBannerAction")}
-            <ChevronRight className="size-3.5" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

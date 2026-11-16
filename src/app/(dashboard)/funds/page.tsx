@@ -1,66 +1,53 @@
 "use client";
 
 import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
-import { formatEtb } from "@/components/funds/funds-shared";
 import { AddMoneyModal } from "@/components/funds/add-money-modal";
 import { ActivityList, EMPTY_FILTER, type LedgerFilter } from "@/components/funds/activity-list";
 import { BalanceOverview } from "@/components/funds/balance-overview";
-import { PaySupplierModal } from "@/components/funds/pay-supplier-modal";
-import { SuppliersOwed } from "@/components/funds/suppliers-owed";
 import { SummaryPanel } from "@/components/funds/summary-panel";
 import { TransferModal } from "@/components/funds/transfer-modal";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RouteGuard } from "@/components/shared/route-guard";
-import { getFundsSummary, getSupplierPayables, getSupplierPayments } from "@/lib/api/app-data";
-import type { FundsSummary, SupplierPayables, SupplierPayment } from "@/lib/api/types";
+import { getFundsSummary } from "@/lib/api/app-data";
+import type { FundsSummary } from "@/lib/api/types";
 import { useT } from "@/lib/i18n/use-t";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { useShopStore } from "@/stores/shop-store";
 
-type Tab = "activity" | "summary" | "suppliers";
+type Tab = "activity" | "summary";
 
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 function FundsPageContent() {
   const t = useT();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const activeShopId = useShopStore((state) => state.activeShopId);
   const shopId = activeShopId ?? MOCK_IDS.shop;
 
-  // Older links use ?tab=ledger / overview; they keep working.
+  // Older links use ?tab=ledger / overview; they keep working. What is owed to
+  // suppliers now lives on the Suppliers page.
   const initialTab = searchParams.get("tab");
-  const [tab, setTab] = useState<Tab>(
-    initialTab === "suppliers"
-      ? "suppliers"
-      : initialTab === "summary" || initialTab === "overview"
-        ? "summary"
-        : "activity",
-  );
+  const [tab, setTab] = useState<Tab>(initialTab === "summary" || initialTab === "overview" ? "summary" : "activity");
+  useEffect(() => {
+    if (initialTab === "suppliers") router.replace("/suppliers?filter=owed");
+  }, [initialTab, router]);
   const [ledgerFilter, setLedgerFilter] = useState<LedgerFilter>(EMPTY_FILTER);
   const [funds, setFunds] = useState<FundsSummary | null>(null);
-  const [payables, setPayables] = useState<SupplierPayables | null>(null);
-  const [payments, setPayments] = useState<SupplierPayment[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [payKey, setPayKey] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
   const load = useCallback(
     () =>
-      Promise.all([
-        getFundsSummary(shopId),
-        getSupplierPayables(shopId).catch(() => null),
-        getSupplierPayments(shopId, { limit: 20 }).catch(() => [] as SupplierPayment[]),
-      ])
-        .then(([f, p, pay]) => {
+      getFundsSummary(shopId)
+        .then((f) => {
           setFunds(f);
-          setPayables(p);
-          setPayments(pay);
           setStatus("ready");
         })
         .catch(() => setStatus("error")),
@@ -76,19 +63,12 @@ function FundsPageContent() {
     setReloadToken((n) => n + 1);
   };
 
-  const owed = funds?.owedToSuppliers ?? 0;
   const tabs = useMemo(
-    () =>
-      [
-        { id: "activity" as const, label: t("fundsPage.tab.activity"), badge: null as string | null },
-        { id: "summary" as const, label: t("fundsPage.tab.summary"), badge: null as string | null },
-        {
-          id: "suppliers" as const,
-          label: t("fundsPage.tab.suppliersShort"),
-          badge: owed > 0 ? formatEtb(owed) : null,
-        },
-      ],
-    [owed, t],
+    () => [
+      { id: "activity" as const, label: t("fundsPage.tab.activity") },
+      { id: "summary" as const, label: t("fundsPage.tab.summary") },
+    ],
+    [t],
   );
 
   if (status === "loading") return <LoadingState />;
@@ -138,27 +118,16 @@ function FundsPageContent() {
           <ArrowLeftRight className="size-3.5 text-zinc-500" />
           {t("fundsPage.moveMoney")}
         </button>
-        {owed > 0 && (
-          <button
-            type="button"
-            onClick={() => setPayKey("")}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-4 text-xs font-bold text-white shadow-2xs transition-all hover:bg-slate-800 active:scale-95"
-          >
-            {t("fundsPage.paySupplier")}
-            <span className="font-mono font-semibold text-slate-300">{t("fundsPage.owedSuffix", { amount: formatEtb(owed) })}</span>
-          </button>
-        )}
         </div>
       </div>
 
-      {/* Money now, each account, and a reminder when suppliers are owed */}
+      {/* Money now and each account */}
       <BalanceOverview
         funds={funds}
         onOpenAccount={(account) => {
           setLedgerFilter({ ...EMPTY_FILTER, account });
           setTab("activity");
         }}
-        onSeeSuppliers={() => setTab("suppliers")}
       />
 
       {/* Tabs */}
@@ -175,11 +144,6 @@ function FundsPageContent() {
             }`}
           >
             {item.label}
-            {item.badge && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-amber-800">
-                {item.badge}
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -196,7 +160,6 @@ function FundsPageContent() {
       {tab === "activity" && (
         <ActivityList key={reloadToken} shopId={shopId} filter={ledgerFilter} onFilterChange={setLedgerFilter} />
       )}
-      {tab === "suppliers" && <SuppliersOwed payables={payables} payments={payments} onPay={setPayKey} />}
 
       {isAdding && funds && (
         <AddMoneyModal shopId={shopId} funds={funds} onClose={() => setIsAdding(false)} onAdded={reload} />
@@ -204,15 +167,6 @@ function FundsPageContent() {
 
       {isMoving && funds && (
         <TransferModal shopId={shopId} funds={funds} onClose={() => setIsMoving(false)} onMoved={reload} />
-      )}
-
-      {payKey !== null && (
-        <PaySupplierModal
-          shopId={shopId}
-          initialSupplierKey={payKey || undefined}
-          onClose={() => setPayKey(null)}
-          onPaid={reload}
-        />
       )}
     </div>
   );

@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 
 import { AndalusLogo } from "@/components/shared/andalus-mark";
+import { useT } from "@/lib/i18n/use-t";
 
 type AuthShellProps = {
   children: React.ReactNode;
@@ -19,6 +22,7 @@ export function AuthShell({
   hideAllLogos = false,
   layout = "split",
 }: AuthShellProps) {
+  const t = useT();
   const isCentered = layout === "centered" || hideAllLogos;
 
   if (isCentered) {
@@ -36,7 +40,7 @@ export function AuthShell({
               className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900"
             >
               <span aria-hidden="true" className="text-sm leading-none">‹</span>
-              Back
+              {t("shared.back")}
             </Link>
           )}
 
@@ -77,7 +81,7 @@ export function AuthShell({
                 className="mb-1 inline-flex items-center gap-2 text-sm font-medium text-[#222222] transition-colors hover:text-[#000000]"
               >
                 <span aria-hidden="true">‹</span>
-                Back
+                {t("shared.back")}
               </Link>
             )}
 

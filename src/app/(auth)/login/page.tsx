@@ -18,6 +18,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { login } from "@/lib/api/auth";
 import { getOwnerShops } from "@/lib/api/shops";
 import type { ApiError } from "@/lib/api/types";
+import { useT } from "@/lib/i18n/use-t";
 import { isBackendRole } from "@/lib/permissions/roles";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
@@ -26,6 +27,7 @@ const emptySubscribe = () => () => {};
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -37,7 +39,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("Invalid email or password.");
+  const [errorMessage, setErrorMessage] = useState("");
   const [isPendingActivation, setIsPendingActivation] = useState(false);
 
   // If already logged in, redirect directly to user's destination
@@ -61,13 +63,13 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("loading");
-    setErrorMessage("Invalid email or password.");
+    setErrorMessage(t("auth.invalidCredentials"));
 
     try {
       const { user, token } = await login(email, password);
 
       if (!isBackendRole(user.role) && user.role !== "SYSTEM_ADMIN") {
-        throw new Error("Unsupported user role.");
+        throw new Error(t("auth.unsupportedRole"));
       }
 
       setSession(
@@ -112,7 +114,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error) {
       const apiError = error as ApiError;
-      const rawMsg = apiError.message ?? "Invalid email or password.";
+      const rawMsg = apiError.message ?? t("auth.invalidCredentials");
       const rawCode = (apiError as any)?.code || (error as any)?.code;
       if (
         rawCode === "ACCOUNT_PENDING_APPROVAL" ||
@@ -122,9 +124,7 @@ export default function LoginPage() {
         rawMsg.toLowerCase().includes("approval")
       ) {
         setIsPendingActivation(true);
-        setErrorMessage(
-          "Your store owner account is awaiting SuperAdmin review and activation. You will be able to access your shops as soon as platform administrators approve your registration.",
-        );
+        setErrorMessage(t("auth.pendingMessage"));
       } else {
         setIsPendingActivation(false);
         setErrorMessage(rawMsg);
@@ -136,16 +136,16 @@ export default function LoginPage() {
   return (
     <AuthShell hideAllLogos layout="centered" backHref="/landing-page">
       <div>
-        <h1 className={authTitleClassName}>Welcome Back</h1>
+        <h1 className={authTitleClassName}>{t("auth.welcomeBack")}</h1>
         <p className={authSubtitleClassName}>
-          Sign in to access your shop terminal and management dashboard.
+          {t("auth.loginSubtitle")}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-7 space-y-4">
         <div>
           <label htmlFor="email" className={authLabelClassName}>
-            Email Address
+            {t("auth.emailAddress")}
           </label>
           <input
             id="email"
@@ -163,13 +163,13 @@ export default function LoginPage() {
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="password" className={authLabelClassName}>
-              Password
+              {t("auth.password")}
             </label>
             <Link
               href="/forgot-password"
               className="text-xs font-medium text-zinc-600 transition-colors hover:text-zinc-950 hover:underline"
             >
-              Forgot password?
+              {t("auth.forgotPassword")}
             </Link>
           </div>
           <div className="relative mt-1">
@@ -187,7 +187,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-700"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -200,7 +200,7 @@ export default function LoginPage() {
             <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/90 p-3.5 text-xs leading-relaxed text-amber-900">
               <Clock className="mt-0.5 size-4 shrink-0 text-amber-600" />
               <div>
-                <p className="font-bold text-amber-950 mb-0.5">Account Pending Activation</p>
+                <p className="font-bold text-amber-950 mb-0.5">{t("auth.pendingTitle")}</p>
                 <p>{errorMessage}</p>
               </div>
             </div>
@@ -216,21 +216,21 @@ export default function LoginPage() {
           {status === "loading" ? (
             <>
               <Loader2 className="size-4 animate-spin text-[#5B4FE9]" />
-              <span>Signing in...</span>
+              <span>{t("auth.signingIn")}</span>
             </>
           ) : (
-            "Sign In"
+            t("auth.signIn")
           )}
         </button>
 
         <div className="pt-3 text-center">
           <p className="text-xs text-zinc-500">
-            New store owner?{" "}
+            {t("auth.newOwner")}{" "}
             <Link
               href="/register"
               className="font-semibold text-zinc-900 transition-colors hover:text-[#5B4FE9] hover:underline"
             >
-              Create an Account
+              {t("auth.createAccount")}
             </Link>
           </p>
         </div>

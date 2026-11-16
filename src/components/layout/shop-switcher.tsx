@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Plus, Store } from "lucide-react";
 import Link from "next/link";
 import { getOwnerShops } from "@/lib/api/shops";
+import { useT } from "@/lib/i18n/use-t";
 import type { Shop } from "@/lib/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
 export function ShopSwitcher() {
+  const t = useT();
   const user = useAuthStore((state) => state.user);
   const { activeShopId, activeShopName, setActiveShop } = useShopStore();
   const [shops, setShops] = useState<Shop[]>([]);
@@ -174,7 +176,7 @@ export function ShopSwitcher() {
                 className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
               >
                 <Plus className="size-3.5 text-zinc-400" />
-                <span>Register New Store</span>
+                <span>{t("shell.registerNewStore")}</span>
               </Link>
             </div>
           )}

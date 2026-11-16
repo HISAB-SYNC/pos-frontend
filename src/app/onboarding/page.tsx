@@ -13,42 +13,47 @@ import {
   Store,
 } from "lucide-react";
 
+import { LanguageSwitch } from "@/components/layout/language-switch";
+import { useT } from "@/lib/i18n/use-t";
 import { createShop } from "@/lib/api/shops";
 import type { ApiError } from "@/lib/api/types";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
-const BUSINESS_TYPES = [
-  "Retail & Boutique",
-  "Supermarket & Grocery",
-  "Electronics & Gadgets",
-  "Pharmacy & Health",
-  "Cafe & Restaurant",
-  "Hardware & Tools",
-  "Wholesale & Distribution",
-  "Other",
+// `value` is what is sent to the API; `labelKey` is the text shown.
+const BUSINESS_TYPES: Array<{ value: string; labelKey: MessageKey }> = [
+  { value: "Retail & Boutique", labelKey: "settings.onbType1" },
+  { value: "Supermarket & Grocery", labelKey: "settings.onbType2" },
+  { value: "Electronics & Gadgets", labelKey: "settings.onbType3" },
+  { value: "Pharmacy & Health", labelKey: "settings.onbType4" },
+  { value: "Cafe & Restaurant", labelKey: "settings.onbType5" },
+  { value: "Hardware & Tools", labelKey: "settings.onbType6" },
+  { value: "Wholesale & Distribution", labelKey: "settings.onbType7" },
+  { value: "Other", labelKey: "settings.onbType8" },
 ];
 
-const CURRENCIES = [
-  { code: "ETB", label: "Ethiopian Birr (ETB)" },
-  { code: "USD", label: "US Dollar ($)" },
-  { code: "EUR", label: "Euro (€)" },
-  { code: "GBP", label: "British Pound (£)" },
+const CURRENCIES: Array<{ code: string; labelKey: MessageKey }> = [
+  { code: "ETB", labelKey: "settings.curEtb" },
+  { code: "USD", labelKey: "settings.curUsd" },
+  { code: "EUR", labelKey: "settings.curEur" },
+  { code: "GBP", labelKey: "settings.curGbp" },
 ];
 
-const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "am", label: "Amharic (አማርኛ)" },
+const LANGUAGES: Array<{ code: string; labelKey: MessageKey }> = [
+  { code: "en", labelKey: "settings.langEnglish" },
+  { code: "am", labelKey: "settings.langAmharic" },
 ];
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const t = useT();
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setActiveShop = useShopStore((state) => state.setActiveShop);
 
   const [name, setName] = useState("");
-  const [businessType, setBusinessType] = useState(BUSINESS_TYPES[0]);
+  const [businessType, setBusinessType] = useState(BUSINESS_TYPES[0].value);
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState("ETB");
   const [language, setLanguage] = useState("en");
@@ -68,13 +73,13 @@ export default function OnboardingPage() {
     setErrorMessage("");
 
     if (!name.trim()) {
-      setErrorMessage("Please provide a store name.");
+      setErrorMessage(t("settings.needStoreName"));
       setStatus("error");
       return;
     }
 
     if (!address.trim()) {
-      setErrorMessage("Please provide a store address or location.");
+      setErrorMessage(t("settings.needStoreAddress"));
       setStatus("error");
       return;
     }
@@ -100,13 +105,16 @@ export default function OnboardingPage() {
       router.push("/dashboard");
     } catch (error) {
       const apiError = error as ApiError;
-      setErrorMessage(apiError.message ?? "Failed to initialize store. Please try again.");
+      setErrorMessage(apiError.message ?? t("settings.initFailed"));
       setStatus("error");
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] px-4 py-12">
+      <div className="fixed right-4 top-4 z-40">
+        <LanguageSwitch className="bg-white shadow-2xs" />
+      </div>
       <div className="mx-auto max-w-2xl">
         {/* Brand Header */}
         <div className="mb-8 text-center">
@@ -115,13 +123,13 @@ export default function OnboardingPage() {
           </div>
           <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
             <Sparkles className="size-3.5" />
-            <span>Store Setup Wizard</span>
+            <span>{t("settings.wizardBadge")}</span>
           </div>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0f172a]">
-            Welcome{user?.name ? `, ${user.name}` : ""}! Let&apos;s setup your store
+            {user?.name ? t("settings.welcomeNamed", { name: user.name }) : t("settings.welcomeAnon")}
           </h1>
           <p className="mt-2 text-sm text-[#64748b]">
-            Fill in your business details to configure your POS terminal, taxes, and catalog.
+            {t("settings.onbSubtitle")}
           </p>
         </div>
 
@@ -132,13 +140,13 @@ export default function OnboardingPage() {
             <div>
               <label htmlFor="shopName" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
                 <Store className="size-4 text-[#64748b]" />
-                Store Name *
+                {t("settings.storeNameRequired")}
               </label>
               <input
                 id="shopName"
                 type="text"
                 required
-                placeholder="e.g. Addis Central Supermarket"
+                placeholder={t("settings.storeNamePh")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={status === "loading"}
@@ -150,7 +158,7 @@ export default function OnboardingPage() {
             <div>
               <label htmlFor="businessType" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
                 <Building2 className="size-4 text-[#64748b]" />
-                Business Type
+                {t("settings.businessType")}
               </label>
               <select
                 id="businessType"
@@ -160,8 +168,8 @@ export default function OnboardingPage() {
                 className="w-full rounded-xl border border-[#cbd5e1] bg-white px-4 py-2.5 text-sm font-medium text-[#0f172a] transition-all focus:border-[#0f172a] focus:outline-none focus:ring-2 focus:ring-[#0f172a]/10 disabled:bg-[#f8fafc]"
               >
                 {BUSINESS_TYPES.map((bt) => (
-                  <option key={bt} value={bt}>
-                    {bt}
+                  <option key={bt.value} value={bt.value}>
+                    {t(bt.labelKey)}
                   </option>
                 ))}
               </select>
@@ -171,13 +179,13 @@ export default function OnboardingPage() {
             <div>
               <label htmlFor="address" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
                 <MapPin className="size-4 text-[#64748b]" />
-                Store Address / Location *
+                {t("settings.addressRequired")}
               </label>
               <input
                 id="address"
                 type="text"
                 required
-                placeholder="e.g. Bole Medhanialem, Addis Ababa, Ethiopia"
+                placeholder={t("settings.addressPh")}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 disabled={status === "loading"}
@@ -191,7 +199,7 @@ export default function OnboardingPage() {
               <div>
                 <label htmlFor="currency" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
                   <Coins className="size-4 text-[#64748b]" />
-                  Operating Currency
+                  {t("settings.operatingCurrency")}
                 </label>
                 <select
                   id="currency"
@@ -202,7 +210,7 @@ export default function OnboardingPage() {
                 >
                   {CURRENCIES.map((c) => (
                     <option key={c.code} value={c.code}>
-                      {c.label}
+                      {t(c.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -214,7 +222,7 @@ export default function OnboardingPage() {
             <div>
               <label htmlFor="language" className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#475569]">
                 <Languages className="size-4 text-[#64748b]" />
-                Primary Language
+                {t("settings.primaryLanguage")}
               </label>
               <select
                 id="language"
@@ -225,7 +233,7 @@ export default function OnboardingPage() {
               >
                 {LANGUAGES.map((l) => (
                   <option key={l.code} value={l.code}>
-                    {l.label}
+                    {t(l.labelKey)}
                   </option>
                 ))}
               </select>
@@ -248,12 +256,12 @@ export default function OnboardingPage() {
                 {status === "loading" ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    <span>Setting up your store...</span>
+                    <span>{t("settings.settingUp")}</span>
                   </>
                 ) : (
                   <>
                     <Store className="size-4" />
-                    <span>Launch Store & Enter POS</span>
+                    <span>{t("settings.launch")}</span>
                   </>
                 )}
               </button>
@@ -263,7 +271,7 @@ export default function OnboardingPage() {
 
         {/* Footer info */}
         <p className="mt-6 text-center text-xs text-[#94a3b8]">
-          You can update these store parameters anytime later from your Settings page.
+          {t("settings.onbFooter")}
         </p>
       </div>
     </div>

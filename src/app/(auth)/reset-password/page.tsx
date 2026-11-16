@@ -14,10 +14,12 @@ import {
   authTitleClassName,
 } from "@/components/auth/auth-shell";
 import { resetPassword } from "@/lib/api/auth";
+import { useT } from "@/lib/i18n/use-t";
 import type { ApiError } from "@/lib/api/types";
 
 function ResetPasswordContent() {
   const router = useRouter();
+  const t = useT();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const token = searchParams.get("token") ?? "";
@@ -25,7 +27,7 @@ function ResetPasswordContent() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
-  const [errorMessage, setErrorMessage] = useState("Something went wrong. Please try again.");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!email || !token) {
@@ -35,17 +37,17 @@ function ResetPasswordContent() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setErrorMessage("Something went wrong. Please try again.");
+    setErrorMessage(t("shared.somethingWrong"));
 
     if (password.length < 8) {
       setStatus("error");
-      setErrorMessage("Password must be at least 8 characters.");
+      setErrorMessage(t("auth.passwordMin8"));
       return;
     }
 
     if (password !== confirmPassword) {
       setStatus("error");
-      setErrorMessage("Passwords do not match.");
+      setErrorMessage(t("auth.passwordsMismatch"));
       return;
     }
 
@@ -57,20 +59,20 @@ function ResetPasswordContent() {
       router.push("/login");
     } catch (error) {
       const apiError = error as ApiError;
-      setErrorMessage(apiError.message ?? "Something went wrong. Please try again.");
+      setErrorMessage(apiError.message ?? t("shared.somethingWrong"));
       setStatus("error");
     }
   }
 
   return (
     <AuthShell backHref={`/verify-otp?email=${encodeURIComponent(email)}`}>
-      <h1 className={authTitleClassName}>Set new password</h1>
-      <p className={authSubtitleClassName}>Your new password should be different to previous one</p>
+      <h1 className={authTitleClassName}>{t("auth.setNewPassword")}</h1>
+      <p className={authSubtitleClassName}>{t("auth.setNewPasswordSubtitle")}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <div>
           <label htmlFor="password" className={authLabelClassName}>
-            new password*
+            {t("auth.newPassword")}
           </label>
           <input
             id="password"
@@ -85,7 +87,7 @@ function ResetPasswordContent() {
 
         <div>
           <label htmlFor="confirmPassword" className={authLabelClassName}>
-            Confirm password*
+            {t("auth.confirmPasswordRequired")}
           </label>
           <input
             id="confirmPassword"
@@ -101,9 +103,9 @@ function ResetPasswordContent() {
         {status === "error" && <p className="text-sm text-red-600">{errorMessage}</p>}
         {status === "success" && (
           <p className="text-sm text-emerald-600">
-            Password updated successfully.{" "}
+            {t("auth.passwordUpdated")}{" "}
             <Link href="/login" className="font-medium underline">
-              Sign in
+              {t("auth.signIn")}
             </Link>
           </p>
         )}
@@ -113,7 +115,7 @@ function ResetPasswordContent() {
           disabled={status === "loading" || status === "success"}
           className={authButtonClassName}
         >
-          {status === "loading" ? "Confirming..." : "Confirm password"}
+          {status === "loading" ? t("auth.confirming") : t("auth.confirmPasswordButton")}
         </button>
       </form>
     </AuthShell>

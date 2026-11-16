@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 
 /**
@@ -15,10 +16,6 @@ import { useAuthStore } from "@/stores/auth-store";
 const ANNOUNCEMENT = {
   id: "products-merged-into-inventory",
   until: "2026-11-13",
-  title: "Products have moved to Inventory",
-  message:
-    "The Products tab is gone. Add, edit and organise products (and categories) from the Inventory tab, next to your stock.",
-  linkLabel: "Go to Inventory",
   href: "/inventory",
 };
 
@@ -46,6 +43,7 @@ function isDismissed() {
 
 export function AnnouncementBanner() {
   const pathname = usePathname();
+  const t = useT();
   const role = useAuthStore((state) => state.user?.role);
   // Server render and first paint treat it as dismissed, so it never flashes.
   const dismissed = useSyncExternalStore(subscribe, isDismissed, () => true);
@@ -73,22 +71,22 @@ export function AnnouncementBanner() {
           <Megaphone className="size-3.5" />
         </div>
         <div className="min-w-0 flex-1 text-xs sm:flex sm:items-center sm:gap-2">
-          <p className="font-bold text-zinc-900">{ANNOUNCEMENT.title}</p>
-          <p className="text-zinc-600">{ANNOUNCEMENT.message}</p>
+          <p className="font-bold text-zinc-900">{t("shell.announceTitle")}</p>
+          <p className="text-zinc-600">{t("shell.announceMessage")}</p>
         </div>
         {!onTarget && (
           <Link
             href={ANNOUNCEMENT.href}
             className="hidden shrink-0 items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 sm:inline-flex"
           >
-            {ANNOUNCEMENT.linkLabel}
+            {t("shell.announceLink")}
             <ArrowRight className="size-3" />
           </Link>
         )}
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss announcement"
+          aria-label={t("shell.dismissAnnouncement")}
           className="shrink-0 rounded-md p-1 text-zinc-500 hover:bg-indigo-100 hover:text-zinc-900"
         >
           <X className="size-4" />

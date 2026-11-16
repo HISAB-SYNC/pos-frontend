@@ -13,6 +13,8 @@ import {
   Store,
 } from "lucide-react";
 
+import { useT } from "@/lib/i18n/use-t";
+
 type ProductItem = {
   id: string;
   name: string;
@@ -32,6 +34,8 @@ const SAMPLE_PRODUCTS: ProductItem[] = [
 ];
 
 export function DashboardPreview() {
+  const t = useT();
+  const etb = t("shared.etb");
   const [cart, setCart] = useState<Array<{ product: ProductItem; quantity: number }>>([
     { product: SAMPLE_PRODUCTS[0], quantity: 2 },
     { product: SAMPLE_PRODUCTS[1], quantity: 3 },
@@ -40,6 +44,8 @@ export function DashboardPreview() {
   const [paymentMethod, setPaymentMethod] = useState<"telebirr" | "cbe" | "cash">("telebirr");
   const [isCompleted, setIsCompleted] = useState(false);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+
+  const paymentLabels = { telebirr: "Telebirr", cbe: "CBE Birr", cash: t("landing.pvCash") } as const;
 
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
   const vat = Math.round(subtotal * 0.15);
@@ -102,7 +108,7 @@ export function DashboardPreview() {
             </span>
             <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-200">
               <Store className="size-3.5 text-[#5B4FE9]" />
-              <span>Andalus Counter • Bole Branch</span>
+              <span>{t("landing.pvTitle")}</span>
             </div>
           </div>
           <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-400">
@@ -110,7 +116,7 @@ export function DashboardPreview() {
               REG #01
             </span>
             <span className="text-[#5B4FE9] font-medium flex items-center gap-1">
-              <Sparkles className="size-3" /> 0.18s latency
+              <Sparkles className="size-3" /> {t("landing.pvLatency")}
             </span>
           </div>
         </div>
@@ -121,9 +127,9 @@ export function DashboardPreview() {
           <div className="border-b border-neutral-800 p-4 md:col-span-7 md:border-b-0 md:border-r">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-semibold tracking-wider text-neutral-400">
-                QUICK-RING CATALOG
+                {t("landing.pvCatalog")}
               </span>
-              <span className="font-mono text-[10px] text-neutral-500">Tap to Scan &amp; Add</span>
+              <span className="font-mono text-[10px] text-neutral-500">{t("landing.pvTap")}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-2">
@@ -156,9 +162,9 @@ export function DashboardPreview() {
                     </div>
                     <div className="mt-2 flex items-center justify-between pt-1">
                       <span className="font-mono text-xs font-bold text-white">
-                        {product.price} <span className="text-[9px] font-normal text-neutral-400">ETB</span>
+                        {product.price} <span className="text-[9px] font-normal text-neutral-400">{etb}</span>
                       </span>
-                      <span className="text-[10px] text-neutral-500">{product.stock} pcs</span>
+                      <span className="text-[10px] text-neutral-500">{t("landing.pvPcs", { count: product.stock })}</span>
                     </div>
                   </button>
                 );
@@ -167,10 +173,10 @@ export function DashboardPreview() {
 
             {/* Quick Metrics Strip */}
             <div className="mt-4 flex items-center justify-between rounded-md border border-neutral-800/80 bg-[#0B0F15] p-2.5 text-[11px] text-neutral-400">
-              <span>Shift Register Sales</span>
-              <span className="font-mono font-semibold text-white">ETB 42,850.00</span>
+              <span>{t("landing.pvShiftSales")}</span>
+              <span className="font-mono font-semibold text-white">42,850.00 {etb}</span>
               <span className="rounded bg-[#5B4FE9]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#5B4FE9]">
-                RECONCILED
+                {t("landing.pvReconciled")}
               </span>
             </div>
           </div>
@@ -181,7 +187,7 @@ export function DashboardPreview() {
               <div className="mb-2 flex items-center justify-between border-b border-neutral-800 pb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-200">
                   <ShoppingCart className="size-3.5 text-[#5B4FE9]" />
-                  <span>Current Bill ({cart.reduce((a, c) => a + c.quantity, 0)})</span>
+                  <span>{t("landing.pvBill", { count: cart.reduce((a, c) => a + c.quantity, 0) })}</span>
                 </div>
                 {cart.length > 0 && (
                   <button
@@ -189,7 +195,7 @@ export function DashboardPreview() {
                     type="button"
                     className="text-[10px] text-neutral-500 transition-colors hover:text-red-400"
                   >
-                    Clear
+                    {t("landing.pvClear")}
                   </button>
                 )}
               </div>
@@ -198,7 +204,7 @@ export function DashboardPreview() {
               <div className="max-h-[160px] space-y-1.5 overflow-y-auto pr-1">
                 {cart.length === 0 ? (
                   <div className="py-8 text-center text-xs text-neutral-500">
-                    Cart empty. Tap products to add.
+                    {t("landing.pvEmptyCart")}
                   </div>
                 ) : (
                   cart.map(({ product, quantity }) => (
@@ -209,7 +215,7 @@ export function DashboardPreview() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium text-neutral-200">{product.name}</div>
                         <div className="font-mono text-[10px] text-neutral-500">
-                          {product.price} ETB × {quantity}
+                          {product.price} {etb} × {quantity}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -239,7 +245,7 @@ export function DashboardPreview() {
               {/* Payment Rail Selectors */}
               <div className="mt-3 border-t border-neutral-800 pt-2.5">
                 <span className="mb-1.5 block text-[10px] font-semibold tracking-wider text-neutral-400">
-                  PAYMENT TENDER
+                  {t("landing.pvTender")}
                 </span>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button
@@ -275,7 +281,7 @@ export function DashboardPreview() {
                         : "bg-[#141b26] text-neutral-400 hover:text-white"
                     }`}
                   >
-                    <span>Cash</span>
+                    <span>{t("landing.pvCash")}</span>
                   </button>
                 </div>
               </div>
@@ -284,33 +290,33 @@ export function DashboardPreview() {
             {/* Total & Checkout */}
             <div className="mt-3 border-t border-neutral-800 pt-2.5">
               <div className="flex items-center justify-between text-xs text-neutral-400">
-                <span>Subtotal</span>
-                <span className="font-mono text-neutral-300">{subtotal} ETB</span>
+                <span>{t("shared.subtotal")}</span>
+                <span className="font-mono text-neutral-300">{subtotal} {etb}</span>
               </div>
               <div className="flex items-center justify-between text-xs text-neutral-400">
-                <span>Tax (15%)</span>
-                <span className="font-mono text-neutral-300">{vat} ETB</span>
+                <span>{t("landing.pvTax")}</span>
+                <span className="font-mono text-neutral-300">{vat} {etb}</span>
               </div>
               <div className="mt-1 flex items-center justify-between border-t border-neutral-800/80 pt-1 text-sm font-bold">
-                <span className="text-white">Total</span>
-                <span className="font-mono text-base text-[#5B4FE9]">{total} ETB</span>
+                <span className="text-white">{t("shared.total")}</span>
+                <span className="font-mono text-base text-[#5B4FE9]">{total} {etb}</span>
               </div>
 
               {isCompleted ? (
                 <div className="mt-2.5 rounded-lg border border-[#5B4FE9]/40 bg-[#5B4FE9]/10 p-2.5 text-center animate-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#5B4FE9]">
                     <CheckCircle2 className="size-4 animate-in spin-in-90 duration-300" />
-                    <span>Transaction Recorded & Receipt Printed</span>
+                    <span>{t("landing.pvRecorded")}</span>
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-neutral-400">
-                    Paid via {paymentMethod.toUpperCase()} • Synced to Cloud
+                    {t("landing.pvPaidVia", { method: paymentLabels[paymentMethod].toUpperCase() })}
                   </div>
                   <button
                     onClick={handleReset}
                     type="button"
                     className="mt-2 text-xs font-medium text-neutral-300 underline transition hover:text-white"
                   >
-                    Next Customer
+                    {t("landing.pvNext")}
                   </button>
                 </div>
               ) : (
@@ -321,7 +327,7 @@ export function DashboardPreview() {
                   className="mt-2.5 flex h-9.5 w-full items-center justify-center gap-2 rounded-lg bg-[#5B4FE9] text-xs font-semibold text-white shadow-md shadow-[#5B4FE9]/25 transition-all hover:bg-[#4d42c7] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Printer className="size-3.5" />
-                  <span>Process Checkout (F12)</span>
+                  <span>{t("landing.pvCheckout")}</span>
                 </button>
               )}
             </div>
@@ -333,7 +339,7 @@ export function DashboardPreview() {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-neutral-400">
               <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              THERMAL PRINTER: 80MM READY
+              {t("landing.pvPrinter")}
             </span>
             <span>ANDALUS OS · ETH-ADDIS</span>
           </div>

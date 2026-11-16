@@ -18,22 +18,27 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getUserProfile, updateUserProfile } from "@/lib/api/app-data";
 import { updateShop } from "@/lib/api/shops";
+import { useFormat } from "@/lib/i18n/use-format";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/use-t";
 import type { UserProfile } from "@/lib/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
 
-const BUSINESS_TYPES = [
-  { value: "retail", label: "General Retail" },
-  { value: "supermarket", label: "Supermarket & Grocery" },
-  { value: "boutique", label: "Boutique & Apparel" },
-  { value: "electronics", label: "Electronics & Tech" },
-  { value: "pharmacy", label: "Pharmacy & Healthcare" },
-  { value: "cafe", label: "Cafe & Restaurant" },
-  { value: "wholesale", label: "Wholesale Distribution" },
-  { value: "other", label: "Other Business" },
+const BUSINESS_TYPES: Array<{ value: string; labelKey: MessageKey }> = [
+  { value: "retail", labelKey: "settings.bt.retail" },
+  { value: "supermarket", labelKey: "settings.bt.supermarket" },
+  { value: "boutique", labelKey: "settings.bt.boutique" },
+  { value: "electronics", labelKey: "settings.bt.electronics" },
+  { value: "pharmacy", labelKey: "settings.bt.pharmacy" },
+  { value: "cafe", labelKey: "settings.bt.cafe" },
+  { value: "wholesale", labelKey: "settings.bt.wholesale" },
+  { value: "other", labelKey: "settings.bt.other" },
 ];
 
 export default function SettingsPage() {
+  const t = useT();
+  const { formatDate } = useFormat();
   const authUser = useAuthStore((state) => state.user);
   const setSession = useAuthStore((state) => state.setSession);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -149,7 +154,7 @@ export default function SettingsPage() {
       });
 
       setProfile(updated);
-      setSuccessMsg("Personal profile saved successfully.");
+      setSuccessMsg(t("settings.profileSaved"));
 
       if (accessToken && authUser) {
         setSession(
@@ -164,7 +169,7 @@ export default function SettingsPage() {
 
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
-      setErrorMsg(err?.message || "Failed to update profile settings.");
+      setErrorMsg(err?.message || t("settings.profileFailed"));
     } finally {
       setIsSavingProfile(false);
     }
@@ -177,17 +182,17 @@ export default function SettingsPage() {
     setSuccessMsg("");
 
     if (!currentPassword) {
-      setErrorMsg("Current password is required.");
+      setErrorMsg(t("settings.pwRequired"));
       return;
     }
 
     if (newPassword.length < 6) {
-      setErrorMsg("New password must be at least 6 characters.");
+      setErrorMsg(t("settings.pwTooShort"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMsg("Confirmation password does not match.");
+      setErrorMsg(t("settings.pwMismatch"));
       return;
     }
 
@@ -201,10 +206,10 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setSuccessMsg("Security credentials updated successfully.");
+      setSuccessMsg(t("settings.pwUpdated"));
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
-      setErrorMsg(err?.message || "Failed to update password. Check your current password.");
+      setErrorMsg(err?.message || t("settings.pwFailed"));
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -215,7 +220,7 @@ export default function SettingsPage() {
     e.preventDefault();
     const targetShopId = selectedShopId || activeShopId || profile?.ownedShops?.[0]?.id;
     if (!targetShopId) {
-      setErrorMsg("No active shop selected.");
+      setErrorMsg(t("settings.noActiveShop"));
       return;
     }
 
@@ -253,10 +258,10 @@ export default function SettingsPage() {
         });
       }
 
-      setSuccessMsg(`Store "${shopName.trim()}" settings saved successfully.`);
+      setSuccessMsg(t("settings.storeSaved", { name: shopName.trim() }));
       setTimeout(() => setSuccessMsg(""), 3500);
     } catch (err: any) {
-      setErrorMsg(err?.message || "Failed to update store settings.");
+      setErrorMsg(err?.message || t("settings.storeFailed"));
     } finally {
       setIsSavingShop(false);
     }
@@ -274,21 +279,21 @@ export default function SettingsPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
-              Settings &amp; Configuration
+              {t("settings.title")}
             </h1>
             <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-700">
               {profile?.role || authUser?.role || "USER"}
             </span>
           </div>
           <p className="mt-1 text-xs text-zinc-500">
-            Manage your personal profile, authentication credentials, and active store parameters
+            {t("settings.subtitle")}
           </p>
         </div>
 
         {/* Account Identity Meta */}
         <div className="flex items-center gap-2 self-start text-xs sm:self-auto">
           <div className="flex items-center gap-2 rounded-md border border-zinc-200/80 bg-white px-3 py-1.5 text-zinc-600 shadow-2xs">
-            <span className="font-mono text-[10px] font-bold uppercase text-zinc-400">Account ID:</span>
+            <span className="font-mono text-[10px] font-bold uppercase text-zinc-400">{t("settings.accountId")}</span>
             <span className="font-mono text-xs font-semibold text-zinc-800 tabular-nums">
               {(profile?.id || authUser?.id || "u-profile").slice(0, 10)}…
             </span>
@@ -296,7 +301,7 @@ export default function SettingsPage() {
               type="button"
               onClick={handleCopyAccountId}
               className="ml-1 text-zinc-400 transition-colors hover:text-zinc-700"
-              title="Copy Account ID"
+              title={t("settings.copyAccountId")}
             >
               {copiedId ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
             </button>
@@ -315,7 +320,7 @@ export default function SettingsPage() {
             type="button"
             onClick={() => setSuccessMsg("")}
             className="text-emerald-700 hover:text-emerald-900"
-            aria-label="Dismiss alert"
+            aria-label={t("settings.dismissAlert")}
           >
             <X className="size-3.5" />
           </button>
@@ -332,7 +337,7 @@ export default function SettingsPage() {
             type="button"
             onClick={() => setErrorMsg("")}
             className="text-rose-700 hover:text-rose-900"
-            aria-label="Dismiss error"
+            aria-label={t("settings.dismissError")}
           >
             <X className="size-3.5" />
           </button>
@@ -346,24 +351,24 @@ export default function SettingsPage() {
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Identity Status
+              {t("settings.identityStatus")}
             </span>
             <UserIcon className="size-3.5 text-zinc-400" />
           </div>
-          <p className="mt-2.5 text-sm font-bold text-zinc-900 truncate">{name || "Administrator"}</p>
-          <p className="mt-0.5 font-mono text-[11px] text-zinc-400 truncate">{email || "active"}</p>
+          <p className="mt-2.5 text-sm font-bold text-zinc-900 truncate">{name || t("settings.administrator")}</p>
+          <p className="mt-0.5 font-mono text-[11px] text-zinc-400 truncate">{email || t("settings.activeStatus")}</p>
         </div>
 
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-              Active Store
+              {t("settings.activeStore")}
             </span>
             <Store className="size-3.5 text-zinc-400" />
           </div>
-          <p className="mt-2.5 text-sm font-bold text-zinc-900 truncate">{activeShopName || "Default Shop"}</p>
+          <p className="mt-2.5 text-sm font-bold text-zinc-900 truncate">{activeShopName || t("settings.defaultShop")}</p>
           <p className="mt-0.5 font-mono text-[11px] text-zinc-400 truncate">
-            {currency} • {ownedShops.length} stores linked
+            {t.n("settings.storesLinked", ownedShops.length, { currency })}
           </p>
         </div>
       </div>
@@ -376,11 +381,11 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2">
             <UserIcon className="size-4 text-zinc-500" />
             <h2 className="text-xs font-bold uppercase tracking-wider font-mono text-zinc-800">
-              Personal Profile
+              {t("settings.personalProfile")}
             </h2>
           </div>
           <span className="font-mono text-[11px] text-zinc-400">
-            {profile?.createdAt ? `Joined ${new Date(profile.createdAt).toLocaleDateString()}` : "Active"}
+            {profile?.createdAt ? t("settings.joined", { date: formatDate(profile.createdAt) }) : t("settings.active")}
           </span>
         </div>
 
@@ -389,7 +394,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label htmlFor="user-name" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                  Full Display Name
+                  {t("settings.displayName")}
                 </label>
                 <input
                   id="user-name"
@@ -397,14 +402,14 @@ export default function SettingsPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Alex Owner"
+                  placeholder={t("settings.namePh")}
                   className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="user-email" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                  Account Email Address
+                  {t("settings.accountEmail")}
                 </label>
                 <input
                   id="user-email"
@@ -412,7 +417,7 @@ export default function SettingsPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. owner@example.com"
+                  placeholder={t("settings.emailPh")}
                   className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
@@ -421,10 +426,10 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between rounded-md border border-zinc-200/80 bg-zinc-50/50 px-4 py-2.5 text-xs text-zinc-500">
               <div className="flex items-center gap-2">
                 <Shield className="size-3.5 text-zinc-400" />
-                <span>Assigned Store: <strong className="font-medium text-zinc-800">{activeShopName || "Default Shop"}</strong></span>
+                <span>{t("settings.assignedStore")} <strong className="font-medium text-zinc-800">{activeShopName || t("settings.defaultShop")}</strong></span>
               </div>
               <span className="font-mono text-[11px] text-zinc-500">
-                Role: <strong className="text-zinc-800">{profile?.role || authUser?.role || "OWNER"}</strong>
+                {t("settings.role")} <strong className="text-zinc-800">{profile?.role || authUser?.role || "OWNER"}</strong>
               </span>
             </div>
           </div>
@@ -436,7 +441,7 @@ export default function SettingsPage() {
               className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
             >
               <Check className="size-3.5 text-indigo-400" />
-              <span>{isSavingProfile ? "Saving Profile..." : "Save Profile Details"}</span>
+              <span>{isSavingProfile ? t("settings.savingProfile") : t("settings.saveProfile")}</span>
             </button>
           </div>
         </form>
@@ -450,10 +455,10 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2">
             <KeyRound className="size-4 text-zinc-500" />
             <h2 className="text-xs font-bold uppercase tracking-wider font-mono text-zinc-800">
-              Security &amp; Password
+              {t("settings.securityTitle")}
             </h2>
           </div>
-          <span className="font-mono text-[11px] text-zinc-400">Min 6 characters</span>
+          <span className="font-mono text-[11px] text-zinc-400">{t("settings.min6")}</span>
         </div>
 
         <form onSubmit={handleUpdatePassword}>
@@ -461,7 +466,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <label htmlFor="current-pw" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                  Current Password
+                  {t("settings.currentPassword")}
                 </label>
                 <div className="relative">
                   <input
@@ -486,7 +491,7 @@ export default function SettingsPage() {
 
               <div className="space-y-1.5">
                 <label htmlFor="new-pw" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                  New Password
+                  {t("settings.newPassword")}
                 </label>
                 <div className="relative">
                   <input
@@ -495,7 +500,7 @@ export default function SettingsPage() {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder={t("settings.newPasswordPh")}
                     className="h-9 w-full rounded-md border border-zinc-200/80 bg-white pl-3 pr-8 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                   <button
@@ -511,7 +516,7 @@ export default function SettingsPage() {
 
               <div className="space-y-1.5">
                 <label htmlFor="confirm-pw" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                  Confirm Password
+                  {t("settings.confirmPassword")}
                 </label>
                 <input
                   id="confirm-pw"
@@ -519,7 +524,7 @@ export default function SettingsPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repeat new password"
+                  placeholder={t("settings.repeatPasswordPh")}
                   className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
@@ -528,7 +533,7 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between border-t border-zinc-200/80 bg-zinc-50/30 px-5 py-3">
             <span className="font-mono text-[11px] text-zinc-400">
-              Authenticated directly against the secure authentication service
+              {t("settings.authNote")}
             </span>
             <button
               type="submit"
@@ -536,7 +541,7 @@ export default function SettingsPage() {
               className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
             >
               <Lock className="size-3.5 text-indigo-400" />
-              <span>{isUpdatingPassword ? "Updating Password..." : "Update Password"}</span>
+              <span>{isUpdatingPassword ? t("settings.updatingPassword") : t("settings.updatePassword")}</span>
             </button>
           </div>
         </form>
@@ -552,9 +557,9 @@ export default function SettingsPage() {
               <Store className="size-4 text-zinc-500" />
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider font-mono text-zinc-800">
-                  Store &amp; Fiscal Configuration
+                  {t("settings.storeFiscal")}
                 </h2>
-                <p className="text-[11px] text-zinc-500">Trading name, business type, and currency</p>
+                <p className="text-[11px] text-zinc-500">{t("settings.storeFiscalSub")}</p>
               </div>
             </div>
 
@@ -587,7 +592,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2 space-y-1.5">
                   <label htmlFor="shop-name-input" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                    Store Legal / Trading Name <span className="text-rose-500">*</span>
+                    {t("settings.legalName")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="shop-name-input"
@@ -595,14 +600,14 @@ export default function SettingsPage() {
                     required
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
-                    placeholder="e.g. Apex Supermarket & Electronics"
+                    placeholder={t("settings.legalNamePh")}
                     className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="shop-industry-select" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                    Business Industry / Category
+                    {t("settings.industry")}
                   </label>
                   <select
                     id="shop-industry-select"
@@ -612,7 +617,7 @@ export default function SettingsPage() {
                   >
                     {BUSINESS_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>
-                        {type.label}
+                        {t(type.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -620,7 +625,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-1.5">
                   <label htmlFor="shop-currency" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                    Operating Currency
+                    {t("settings.operatingCurrency")}
                   </label>
                   <input
                     id="shop-currency"
@@ -635,7 +640,7 @@ export default function SettingsPage() {
 
                 <div className="space-y-1.5">
                   <label htmlFor="shop-language" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                    Receipt &amp; Interface Language
+                    {t("settings.receiptLanguage")}
                   </label>
                   <select
                     id="shop-language"
@@ -643,21 +648,21 @@ export default function SettingsPage() {
                     onChange={(e) => setLanguage(e.target.value)}
                     className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   >
-                    <option value="en">English (Default)</option>
-                    <option value="am">Amharic (አማርኛ)</option>
+                    <option value="en">{t("settings.langEnglishDefault")}</option>
+                    <option value="am">{t("settings.langAmharic")}</option>
                   </select>
                 </div>
 
                 <div className="sm:col-span-2 space-y-1.5">
                   <label htmlFor="shop-address-input" className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-600">
-                    Physical Store Address
+                    {t("settings.physicalAddress")}
                   </label>
                   <input
                     id="shop-address-input"
                     type="text"
                     value={shopAddress}
                     onChange={(e) => setShopAddress(e.target.value)}
-                    placeholder="e.g. Bole Road, Addis Ababa"
+                    placeholder={t("settings.physicalAddressPh")}
                     className="h-9 w-full rounded-md border border-zinc-200/80 bg-white px-3 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-2xs transition-colors focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
                   />
                 </div>
@@ -666,7 +671,7 @@ export default function SettingsPage() {
 
             <div className="flex items-center justify-between border-t border-zinc-200/80 bg-zinc-50/30 px-5 py-3">
               <span className="font-mono text-[11px] text-zinc-400">
-                Updating this shop updates checkout VAT and header store details
+                {t("settings.updateNote")}
               </span>
               <button
                 type="submit"
@@ -674,7 +679,7 @@ export default function SettingsPage() {
                 className="inline-flex h-8.5 items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 text-xs font-semibold text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
               >
                 <Check className="size-3.5 text-indigo-400" />
-                <span>{isSavingShop ? "Saving Store..." : "Update Store Profile"}</span>
+                <span>{isSavingShop ? t("settings.savingStore") : t("settings.updateStore")}</span>
               </button>
             </div>
           </form>

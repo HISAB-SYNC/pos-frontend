@@ -105,7 +105,7 @@ export function DashboardHeader() {
               type="button"
               onClick={toggleNotificationPanel}
               className="relative flex size-9 items-center justify-center rounded-md border border-zinc-200/90 bg-white text-zinc-600 transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-95"
-              aria-label="Notifications"
+              aria-label={t("nav.notifications")}
               aria-expanded={notifOpen}
             >
               <Bell className="size-4" />
@@ -138,16 +138,16 @@ export function DashboardHeader() {
                 </Avatar>
                 <div className="hidden flex-col text-left sm:flex">
                   <span className="text-xs font-semibold leading-none text-zinc-900">
-                    {user?.name || "Cashier"}
+                    {user?.name || t("shell.defaultCashier")}
                   </span>
                   <span className="mt-0.5 text-[10px] font-medium text-zinc-500">
                     {user?.role === "SUPER_ADMIN"
-                      ? "Platform Admin"
+                      ? t("shell.rolePlatformAdmin")
                       : user?.role === "OWNER"
-                      ? "Store Owner"
+                      ? t("shell.roleStoreOwner")
                       : user?.role === "ADMIN"
-                      ? "Shop Admin"
-                      : "Sales Operator"}
+                      ? t("shell.roleShopAdmin")
+                      : t("shell.roleSalesOperator")}
                   </span>
                 </div>
                 <ChevronDown className="hidden size-3 text-zinc-400 sm:block" />
@@ -156,17 +156,17 @@ export function DashboardHeader() {
 
             <DropdownMenuContent align="end" className="w-56 rounded-lg border-zinc-200 bg-white p-1 shadow-lg">
               <div className="px-2.5 py-2">
-                <p className="text-xs font-bold text-zinc-900">{user?.name || "User"}</p>
+                <p className="text-xs font-bold text-zinc-900">{user?.name || t("shell.defaultUser")}</p>
                 <p className="truncate text-[11px] text-zinc-500">{user?.email || "user@store.local"}</p>
                 <div className="mt-1.5">
                   <span className="inline-block rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-700">
                     {user?.role === "SUPER_ADMIN"
-                      ? "Super Admin"
+                      ? t("shell.roleSuperAdmin")
                       : user?.role === "OWNER"
-                      ? "Store Owner"
+                      ? t("shell.roleStoreOwner")
                       : user?.role === "ADMIN"
-                      ? "Shop Admin"
-                      : "Sales Operator"}
+                      ? t("shell.roleShopAdmin")
+                      : t("shell.roleSalesOperator")}
                   </span>
                 </div>
               </div>

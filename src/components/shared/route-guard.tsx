@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { AccessDenied } from "@/components/shared/access-denied";
 import { LoadingState } from "@/components/shared/loading-state";
+import { useT } from "@/lib/i18n/use-t";
 import { type AppPermission, hasPermission } from "@/lib/permissions/rbac";
 import type { Role } from "@/lib/permissions/roles";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,6 +20,7 @@ export function RouteGuard({
   requiredRole,
   requiredPermission,
 }: RouteGuardProps) {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const user = useAuthStore((state) => state.user);
 
@@ -36,8 +38,8 @@ export function RouteGuard({
     if (!user || !roles.includes(user.role)) {
       return (
         <AccessDenied
-          requiredRole={roles.join(" or ")}
-          description="Your user role does not grant access to this administrative section."
+          requiredRole={roles.join(" / ")}
+          description={t("shell.roleDenied")}
         />
       );
     }
@@ -52,7 +54,7 @@ export function RouteGuard({
       return (
         <AccessDenied
           requiredPermission={permissions.join(", ")}
-          description="You do not have the required operational permissions to perform actions on this resource."
+          description={t("shell.permissionDenied")}
         />
       );
     }

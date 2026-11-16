@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/use-t";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -18,7 +19,7 @@ export function ConfirmDialog({
   title,
   description,
   onConfirm,
-  confirmLabel = "Confirm",
+  confirmLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,6 +28,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   confirmLabel?: string;
 }) {
+  const t = useT();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -36,10 +38,10 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel asChild>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline">{t("shared.cancel")}</Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button onClick={onConfirm}>{confirmLabel}</Button>
+            <Button onClick={onConfirm}>{confirmLabel ?? t("shared.confirm")}</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

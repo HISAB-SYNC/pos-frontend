@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
 import { cn } from "@/lib/utils";
 
 export type Pagination<T> = {
@@ -62,15 +63,30 @@ const buttonClass =
 /** Footer with "Showing x to y of N", Previous / Next. Renders nothing on a single page. */
 export function TablePagination({
   pagination,
-  noun = "rows",
+  noun,
   className,
 }: {
   pagination: Pick<Pagination<unknown>, "page" | "setPage" | "totalPages" | "from" | "to" | "total">;
   noun?: string;
   className?: string;
 }) {
+  const t = useT();
   const { page, setPage, totalPages, from, to, total } = pagination;
   if (totalPages <= 1) return null;
+
+  // The message keeps {from}/{to}/{total} so each number can be styled in place.
+  const numberClass = "font-mono font-semibold tabular-nums text-zinc-900";
+  const values: Record<string, number> = { from, to, total };
+  const showing = t("shared.showing", { noun: noun ?? t("shared.rows") })
+    .split(/(\{from\}|\{to\}|\{total\})/)
+    .map((part, index) => {
+      const name = part.slice(1, -1);
+      return name in values && part.startsWith("{") ? (
+        <span key={index} className={numberClass}>{values[name]}</span>
+      ) : (
+        part
+      );
+    });
 
   return (
     <div
@@ -79,20 +95,16 @@ export function TablePagination({
         className,
       )}
     >
-      <div>
-        Showing <span className="font-mono font-semibold tabular-nums text-zinc-900">{from}</span> to{" "}
-        <span className="font-mono font-semibold tabular-nums text-zinc-900">{to}</span> of{" "}
-        <span className="font-mono font-semibold tabular-nums text-zinc-900">{total}</span> {noun}
-      </div>
+      <div>{showing}</div>
       <div className="flex items-center gap-1">
         <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className={buttonClass}>
-          Previous
+          {t("shared.previous")}
         </button>
         <span className="px-2 font-mono text-xs tabular-nums text-zinc-600">
-          {page} / {totalPages}
+          {t("shared.pageOf", { page, pages: totalPages })}
         </span>
         <button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)} className={buttonClass}>
-          Next
+          {t("shared.next")}
         </button>
       </div>
     </div>

@@ -26,21 +26,10 @@ import {
   markShopNotificationAsRead,
 } from "@/lib/api/app-data";
 import type { AppNotification, NotificationType } from "@/lib/api/types";
+import { useFormat } from "@/lib/i18n/use-format";
+import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShopStore } from "@/stores/shop-store";
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "Recently";
-  const now = new Date();
-  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffSec < 60) return "Just now";
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 function getNotificationIcon(type: NotificationType) {
   switch (type) {
@@ -62,6 +51,11 @@ function getNotificationIcon(type: NotificationType) {
   }
 }
 
+/** Kept outside the component so the clock is only read when a time is formatted. */
+function secondsSince(date: Date) {
+  return Math.floor((Date.now() - date.getTime()) / 1000);
+}
+
 export function NotificationsPanel({
   open,
   onClose,
@@ -72,6 +66,21 @@ export function NotificationsPanel({
   onUnreadCountChange?: (count: number) => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const t = useT();
+  const { formatDate } = useFormat();
+
+  function formatRelativeTime(dateStr: string): string {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return t("shell.recently");
+    const diffSec = secondsSince(date);
+
+    if (diffSec < 60) return t("shell.justNow");
+    if (diffSec < 3600) return t("shell.minutesAgo", { n: Math.floor(diffSec / 60) });
+    if (diffSec < 86400) return t("shell.hoursAgo", { n: Math.floor(diffSec / 3600) });
+    if (diffSec < 604800) return t("shell.daysAgo", { n: Math.floor(diffSec / 86400) });
+    return formatDate(date, { month: "short", day: "numeric" });
+  }
+
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const shopId = useShopStore((state) => state.activeShopId) || user?.shopId || "";
@@ -187,15 +196,15 @@ export function NotificationsPanel({
       <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
         <div className="flex items-center gap-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900">
-            Notifications
+            {t("nav.notifications")}
           </h3>
           {unreadCount > 0 ? (
             <span className="rounded-full bg-[#5B4FE9] px-2 py-0.5 text-[10px] font-bold text-white">
-              {unreadCount} unread
+              {t("shell.unreadCount", { count: unreadCount })}
             </span>
           ) : (
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
-              All caught up
+              {t("shell.allCaughtUp")}
             </span>
           )}
         </div>
@@ -206,15 +215,16 @@ export function NotificationsPanel({
               type="button"
               onClick={handleMarkAllRead}
               className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-              title="Mark all as read"
+              title={t("shell.markAllReadTitle")}
             >
               <CheckCheck className="size-3.5" />
-              <span>Mark all read</span>
+              <span>{t("shell.markAllRead")}</span>
             </button>
           )}
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("shared.close")}
             className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
           >
             <X className="size-4" />
@@ -225,11 +235,11 @@ export function NotificationsPanel({
       {/* Notification List */}
       <div className="my-2.5 max-h-80 overflow-y-auto space-y-2 pr-0.5">
         {isLoading ? (
-          <div className="py-8 text-center text-xs text-zinc-400">Loading alerts...</div>
+          <div className="py-8 text-center text-xs text-zinc-400">{t("shell.loadingAlerts")}</div>
         ) : notifications.length === 0 ? (
           <div className="py-8 text-center text-xs text-zinc-400">
             <Bell className="mx-auto mb-2 size-6 text-zinc-300" />
-            No active notifications
+            {t("shell.noNotifications")}
           </div>
         ) : (
           notifications.map((n) => (
@@ -282,7 +292,7 @@ export function NotificationsPanel({
                   type="button"
                   onClick={(e) => handleMarkRead(n.id, e)}
                   className="shrink-0 rounded-lg p-1 text-zinc-400 hover:bg-zinc-200/70 hover:text-zinc-800 transition-colors"
-                  title="Mark as read"
+                  title={t("shell.markRead")}
                 >
                   <Check className="size-3.5" />
                 </button>
@@ -299,7 +309,7 @@ export function NotificationsPanel({
           onClick={onClose}
           className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-700 hover:text-zinc-950 transition-colors"
         >
-          <span>View Notification Center</span>
+          <span>{t("shell.viewCenter")}</span>
           <ExternalLink className="size-3" />
         </Link>
       </div>

@@ -17,12 +17,14 @@ import {
 import { LoadingState } from "@/components/shared/loading-state";
 import { registerOwner } from "@/lib/api/auth";
 import type { ApiError } from "@/lib/api/types";
+import { useT } from "@/lib/i18n/use-t";
 import { useAuthStore } from "@/stores/auth-store";
 
 const emptySubscribe = () => () => {};
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useT();
   const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -59,13 +61,13 @@ export default function RegisterPage() {
 
     if (password.length < 6) {
       setStatus("error");
-      setErrorMessage("Password must be at least 6 characters long.");
+      setErrorMessage(t("auth.passwordTooShort6"));
       return;
     }
 
     if (password !== confirmPassword) {
       setStatus("error");
-      setErrorMessage("Passwords do not match.");
+      setErrorMessage(t("auth.passwordsMismatch"));
       return;
     }
 
@@ -81,16 +83,16 @@ export default function RegisterPage() {
       setStatus("success");
     } catch (error) {
       const apiError = error as ApiError;
-      setErrorMessage(apiError.message ?? "Failed to create store owner account.");
+      setErrorMessage(apiError.message ?? t("auth.registerFailed"));
       setStatus("error");
     }
   }
 
   return (
     <AuthShell backHref="/login" showMobileLogo={false} showFormLogo>
-      <h1 className={authTitleClassName}>Create Owner Account</h1>
+      <h1 className={authTitleClassName}>{t("auth.createOwnerTitle")}</h1>
       <p className={authSubtitleClassName}>
-        Sign up as a business owner to start managing your shops, inventory, and POS terminals.
+        {t("auth.registerSubtitle")}
       </p>
 
       {status === "success" ? (
@@ -99,9 +101,9 @@ export default function RegisterPage() {
             <CheckCircle2 className="size-6 stroke-[2.5]" />
           </div>
           <div>
-            <h3 className="font-bold text-base text-emerald-950">Registration Submitted!</h3>
+            <h3 className="font-bold text-base text-emerald-950">{t("auth.registrationSubmitted")}</h3>
             <p className="mt-1 text-xs text-emerald-800 leading-relaxed max-w-sm mx-auto">
-              Your store owner profile has been submitted for platform activation. A SuperAdmin will review and activate your account shortly.
+              {t("auth.registrationBody")}
             </p>
           </div>
           <div className="pt-2">
@@ -109,7 +111,7 @@ export default function RegisterPage() {
               href="/login"
               className="inline-flex items-center justify-center rounded-xl bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-900 transition-colors"
             >
-              Proceed to Sign In
+              {t("auth.proceedSignIn")}
             </Link>
           </div>
         </div>
@@ -117,12 +119,12 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-3.5">
           <div>
             <label htmlFor="name" className={authLabelClassName}>
-              Full Name*
+              {t("auth.fullName")}
             </label>
             <input
               id="name"
               type="text"
-              placeholder="e.g. Alex Owner"
+              placeholder={t("auth.fullNamePh")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -133,7 +135,7 @@ export default function RegisterPage() {
 
           <div>
             <label htmlFor="email" className={authLabelClassName}>
-              Business Email*
+              {t("auth.businessEmail")}
             </label>
             <input
               id="email"
@@ -149,12 +151,12 @@ export default function RegisterPage() {
 
           <div>
             <label htmlFor="password" className={authLabelClassName}>
-              Password*
+              {t("auth.passwordRequired")}
             </label>
             <input
               id="password"
               type="password"
-              placeholder="At least 6 characters"
+              placeholder={t("auth.passwordMin6Ph")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -165,12 +167,12 @@ export default function RegisterPage() {
 
           <div>
             <label htmlFor="confirmPassword" className={authLabelClassName}>
-              Confirm Password*
+              {t("auth.confirmPasswordRequired")}
             </label>
             <input
               id="confirmPassword"
               type="password"
-              placeholder="Confirm your password"
+              placeholder={t("auth.confirmPasswordPh")}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -184,13 +186,13 @@ export default function RegisterPage() {
           )}
 
           <button type="submit" disabled={status === "loading"} className={authButtonClassName}>
-            {status === "loading" ? "Creating Account..." : "Register as Store Owner"}
+            {status === "loading" ? t("auth.creatingAccount") : t("auth.registerButton")}
           </button>
 
           <p className="pt-2 text-center text-xs text-[#6b7280]">
-            Already have an account?{" "}
+            {t("auth.haveAccount")}{" "}
             <Link href="/login" className="font-semibold text-[#111827] hover:underline">
-              Sign In
+              {t("auth.signIn")}
             </Link>
           </p>
         </form>

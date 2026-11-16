@@ -95,6 +95,7 @@ function NavLink({
   icon: Icon,
   badge,
   count,
+  countLabel,
   active,
   collapsed,
   onNavigate,
@@ -105,6 +106,8 @@ function NavLink({
   badge?: string;
   /** Number shown on the item (e.g. unread notifications); hidden at 0. */
   count?: number;
+  /** Accessible text for the count, e.g. "3 unread". */
+  countLabel?: string;
   active: boolean;
   collapsed: boolean;
   onNavigate?: () => void;
@@ -133,7 +136,7 @@ function NavLink({
       )}
       {count !== undefined && count > 0 && (
         <span
-          aria-label={`${count} unread`}
+          aria-label={countLabel}
           className={cn(
             "flex min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 font-mono text-[10px] font-bold leading-[18px] text-white tabular-nums",
             collapsed && "absolute -right-0.5 -top-0.5 min-w-[16px] px-0.5 text-[9px] leading-4 ring-2 ring-white",
@@ -274,6 +277,7 @@ export function DashboardSidebar() {
               icon={item.icon}
               badge={item.badge ? navLabel(item.badge) : undefined}
               count={item.href === "/notifications" ? unreadNotifications : undefined}
+              countLabel={t("shell.unreadCount", { count: unreadNotifications })}
               collapsed={collapsed}
               onNavigate={closeMobileSidebar}
               active={

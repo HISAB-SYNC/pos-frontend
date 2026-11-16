@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
 import { cn } from "@/lib/utils";
 
 type OtpInputProps = {
@@ -12,6 +13,7 @@ type OtpInputProps = {
 };
 
 export function OtpInput({ length = 6, value, onChange, disabled }: OtpInputProps) {
+  const t = useT();
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const digits = value.padEnd(length, " ").slice(0, length).split("");
 
@@ -53,7 +55,7 @@ export function OtpInput({ length = 6, value, onChange, disabled }: OtpInputProp
           maxLength={1}
           value={digit.trim()}
           disabled={disabled}
-          aria-label={`Digit ${index + 1}`}
+          aria-label={t("auth.digit", { n: index + 1 })}
           onChange={(event) => updateDigit(index, event.target.value)}
           onKeyDown={(event) => handleKeyDown(index, event.key)}
           onPaste={handlePaste}

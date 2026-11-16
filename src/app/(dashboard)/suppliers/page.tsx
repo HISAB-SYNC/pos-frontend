@@ -1,468 +1,23 @@
 "use client";
 
-import {
-  ArrowUpRight,
-  Building2,
-  Download,
-  Edit2,
-  MoreHorizontal,
-  Plus,
-  RotateCcw,
-  Search,
-  SlidersHorizontal,
-  Trash2,
-  UploadCloud,
-  Wallet,
-  X,
-} from "lucide-react";
+import { ArrowUpRight, Building2, Download, Edit2, MoreHorizontal, Plus, Search, Trash2, Wallet } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
 import { SupplierDetailPanel, type SupplierDetailTarget } from "@/components/suppliers/supplier-detail-panel";
+import { AddSupplierModal, DeleteSupplierDialog, EditSupplierModal } from "@/components/suppliers/supplier-modals";
 import { useT } from "@/lib/i18n/use-t";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { RouteGuard } from "@/components/shared/route-guard";
-import {
-  createSupplier,
-  deleteSupplier,
-  getSuppliers,
-  updateSupplier,
-} from "@/lib/api";
+import { getSuppliers } from "@/lib/api";
 import { getSupplierPayables, getSupplierPayments } from "@/lib/api/app-data";
 import type { Supplier, SupplierPayables } from "@/lib/api/types";
 import { MOCK_IDS } from "@/lib/mock/data";
 import { exportToCsv } from "@/lib/utils/export";
 import { useShopStore } from "@/stores/shop-store";
-
-/* ------------------------------------------------------------------ */
-/* Modal: Add Supplier                                                */
-/* ------------------------------------------------------------------ */
-function AddSupplierModal({
-  open,
-  initialName = "",
-  onClose,
-  onCreated,
-  shopId,
-}: {
-  open: boolean;
-  /** Pre-fills the name, e.g. when adding a supplier that was only typed in on a restock */
-  initialName?: string;
-  onClose: () => void;
-  onCreated: () => void;
-  shopId: string;
-}) {
-  const t = useT();
-  const [form, setForm] = useState({
-    name: initialName,
-    product: "",
-    category: "",
-    email: "",
-    contactInfo: "",
-    type: "Taking Return" as "Taking Return" | "Not Taking Return",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewImage(url);
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      await createSupplier(shopId, {
-        name: form.name.trim(),
-        product: form.product.trim(),
-        contactInfo: form.contactInfo.trim(),
-        email: form.email.trim(),
-        type: form.type,
-        onTheWay: "-",
-      });
-      onCreated();
-      onClose();
-      setForm({
-        name: "",
-        product: "",
-        category: "",
-        email: "",
-        contactInfo: "",
-        type: "Taking Return",
-      });
-      setPreviewImage(null);
-    } catch (err) {
-      console.error(err);
-      onCreated();
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-[480px] rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
-          <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("suppliers.addTitle")}</h2>
-            <p className="text-xs text-zinc-500">{t("suppliers.addSubtitle")}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        {/* Avatar Upload Dropzone */}
-        <div className="mb-4 flex items-center gap-3.5 rounded-lg border border-zinc-200/80 bg-zinc-50/50 p-3">
-          <label className="group relative flex size-12 cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white transition-colors hover:border-[#5B4FE9]">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            {previewImage ? (
-              <img
-                src={previewImage}
-                alt={t("suppliers.logoAlt")}
-                className="size-full rounded-lg object-cover"
-              />
-            ) : (
-              <UploadCloud className="size-5 text-zinc-400 group-hover:text-[#5B4FE9] transition-colors" />
-            )}
-          </label>
-
-          <div className="text-left text-xs">
-            <p className="font-semibold text-zinc-800">{t("suppliers.logoTitle")}</p>
-            <p className="text-[11px] text-zinc-500">{t("suppliers.logoHint")}</p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-          <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">{t("suppliers.nameRequired")}</label>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              placeholder={t("suppliers.namePlaceholder")}
-              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">{t("suppliers.productLine")}</label>
-              <input
-                name="product"
-                value={form.product}
-                onChange={handleChange}
-                placeholder={t("suppliers.productPlaceholder")}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">{t("suppliers.contactNumber")}</label>
-              <input
-                name="contactInfo"
-                value={form.contactInfo}
-                onChange={handleChange}
-                placeholder={t("suppliers.phonePlaceholder")}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">{t("shared.email")}</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder={t("suppliers.emailPlaceholder")}
-              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">{t("suppliers.returnPolicy")}</label>
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-            >
-              <option value="Taking Return">{t("suppliers.policyTakingOption")}</option>
-              <option value="Not Taking Return">{t("suppliers.policyNotOption")}</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-            >
-              {t("suppliers.discard")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-slate-900 px-5 py-2 font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {isSubmitting ? t("suppliers.adding") : t("suppliers.addSupplier")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Edit Supplier                                               */
-/* ------------------------------------------------------------------ */
-function EditSupplierModal({
-  supplier,
-  onClose,
-  onUpdated,
-  shopId,
-}: {
-  supplier: Supplier | null;
-  onClose: () => void;
-  onUpdated: () => void;
-  shopId: string;
-}) {
-  const t = useT();
-  const [form, setForm] = useState({
-    name: "",
-    product: "",
-    email: "",
-    contactInfo: "",
-    type: "Taking Return" as "Taking Return" | "Not Taking Return",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (supplier) {
-      setForm({
-        name: supplier.name || "",
-        product: supplier.product || "",
-        email: supplier.email || "",
-        contactInfo: supplier.contactInfo || "",
-        type: (supplier.type as any) || "Taking Return",
-      });
-    }
-  }, [supplier]);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!supplier || !form.name.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      await updateSupplier(shopId, supplier.id, {
-        name: form.name.trim(),
-        product: form.product.trim(),
-        email: form.email.trim(),
-        contactInfo: form.contactInfo.trim(),
-        type: form.type,
-      });
-      onUpdated();
-      onClose();
-    } catch {
-      onUpdated();
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  if (!supplier) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-[480px] rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
-          <div>
-            <h2 className="text-base font-bold tracking-tight text-zinc-900">{t("suppliers.editTitle")}</h2>
-            <p className="text-xs text-zinc-500">{t("suppliers.editSubtitle")}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-          <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">{t("suppliers.nameRequired")}</label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              required
-              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">{t("suppliers.productLine")}</label>
-              <input
-                value={form.product}
-                onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="font-semibold text-zinc-700">{t("suppliers.contactNumber")}</label>
-              <input
-                value={form.contactInfo}
-                onChange={(e) => setForm((f) => ({ ...f, contactInfo: e.target.value }))}
-                className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">{t("shared.email")}</label>
-            <input
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 font-mono text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-semibold text-zinc-700">{t("suppliers.returnPolicy")}</label>
-            <select
-              value={form.type}
-              onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as any }))}
-              className="h-9 w-full rounded-md border border-zinc-200 bg-white px-3 text-zinc-900 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9] focus:outline-hidden"
-            >
-              <option value="Taking Return">{t("suppliers.policyTakingOption")}</option>
-              <option value="Not Taking Return">{t("suppliers.policyNotOption")}</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-            >
-              {t("shared.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-slate-900 px-5 py-2 font-bold text-white shadow-2xs hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {isSubmitting ? t("shared.saving") : t("suppliers.saveChanges")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal: Delete Supplier Confirmation                                */
-/* ------------------------------------------------------------------ */
-function DeleteSupplierDialog({
-  supplier,
-  onClose,
-  onDeleted,
-  shopId,
-}: {
-  supplier: Supplier | null;
-  onClose: () => void;
-  onDeleted: () => void;
-  shopId: string;
-}) {
-  const t = useT();
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  async function handleConfirm() {
-    if (!supplier) return;
-    setIsDeleting(true);
-    try {
-      await deleteSupplier(shopId, supplier.id);
-      onDeleted();
-      onClose();
-    } catch {
-      onDeleted();
-      onClose();
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
-  if (!supplier) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-rose-50 text-rose-600 ring-1 ring-rose-500/15">
-          <Trash2 className="size-5" />
-        </div>
-        <h3 className="text-base font-bold tracking-tight text-zinc-900">{t("suppliers.deleteTitle")}</h3>
-        <p className="mt-1 text-xs text-zinc-500">
-          {t("suppliers.deleteConfirm", { name: supplier.name })}
-        </p>
-
-        <div className="mt-5 flex justify-end gap-2.5 text-xs">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-zinc-200 px-4 py-2 font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-          >
-            {t("shared.cancel")}
-          </button>
-          <button
-            type="button"
-            disabled={isDeleting}
-            onClick={handleConfirm}
-            className="rounded-md bg-rose-600 px-4 py-2 font-bold text-white shadow-2xs hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-50"
-          >
-            {isDeleting ? t("suppliers.deleting") : t("suppliers.deletePermanently")}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Page Component                                                     */
-/* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
 /* Row menu: Edit / Delete                                            */
@@ -534,9 +89,6 @@ function SuppliersContent() {
 
   // Filter State
   const [view, setView] = useState<View>(searchParams.get("filter") === "owed" ? "OWE" : "ALL");
-  const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const filterRef = useDismiss<HTMLDivElement>(showFilterDropdown, () => setShowFilterDropdown(false));
 
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -601,10 +153,10 @@ function SuppliersContent() {
 
   // Client-side filtering, suppliers that are owed money first
   const matchesSearch = useCallback(
-    (name: string, product?: string, email?: string) => {
+    (name: string, contact?: string) => {
       const q = debouncedSearch.trim().toLowerCase();
       if (!q) return true;
-      return name.toLowerCase().includes(q) || !!product?.toLowerCase().includes(q) || !!email?.toLowerCase().includes(q);
+      return name.toLowerCase().includes(q) || !!contact?.toLowerCase().includes(q);
     },
     [debouncedSearch],
   );
@@ -612,14 +164,13 @@ function SuppliersContent() {
   const filteredSuppliers = useMemo(() => {
     return suppliers
       .filter((s) => {
-        if (typeFilter !== "ALL" && s.type !== typeFilter) return false;
         const owes = owedById.has(s.id);
         if (view === "OWE" && !owes) return false;
         if (view === "SETTLED" && owes) return false;
-        return matchesSearch(s.name, s.product, s.email);
+        return matchesSearch(s.name, s.contactInfo);
       })
       .sort((a, b) => (owedById.get(b.id)?.owed ?? 0) - (owedById.get(a.id)?.owed ?? 0) || a.name.localeCompare(b.name));
-  }, [suppliers, typeFilter, view, owedById, matchesSearch]);
+  }, [suppliers, view, owedById, matchesSearch]);
 
   const shownUnlisted = view === "SETTLED" ? [] : unlisted.filter((u) => matchesSearch(u.name));
 
@@ -629,12 +180,8 @@ function SuppliersContent() {
   function handleDownload() {
     exportToCsv("suppliers-directory", filteredSuppliers, [
       { header: t("suppliers.supplierName"), key: "name" },
-      { header: t("suppliers.productSupplied"), key: "product" },
-      { header: t("suppliers.contactNumber"), key: "contactInfo" },
-      { header: t("shared.email"), key: "email" },
-      { header: t("suppliers.returnPolicy"), key: "type" },
+      { header: t("suppliers.col.contact"), key: "contactInfo" },
       { header: t("suppliers.owed"), formatter: (s) => owedById.get(s.id)?.owed ?? 0 },
-      { header: t("suppliers.shipmentsOnTheWay"), key: "onTheWay" },
     ]);
   }
 
@@ -654,27 +201,30 @@ function SuppliersContent() {
       {showAddModal && (
         <AddSupplierModal
           key={addName}
-          open
           initialName={addName}
           onClose={() => setShowAddModal(false)}
-          onCreated={load}
+          onCreated={() => load()}
           shopId={shopId}
         />
       )}
 
-      <EditSupplierModal
-        supplier={supplierToEdit}
-        onClose={() => setSupplierToEdit(null)}
-        onUpdated={load}
-        shopId={shopId}
-      />
+      {supplierToEdit && (
+        <EditSupplierModal
+          supplier={supplierToEdit}
+          onClose={() => setSupplierToEdit(null)}
+          onUpdated={load}
+          shopId={shopId}
+        />
+      )}
 
-      <DeleteSupplierDialog
-        supplier={supplierToDelete}
-        onClose={() => setSupplierToDelete(null)}
-        onDeleted={load}
-        shopId={shopId}
-      />
+      {supplierToDelete && (
+        <DeleteSupplierDialog
+          supplier={supplierToDelete}
+          onClose={() => setSupplierToDelete(null)}
+          onDeleted={load}
+          shopId={shopId}
+        />
+      )}
 
       {detail && (
         <SupplierDetailPanel
@@ -877,57 +427,6 @@ function SuppliersContent() {
                   className="h-9 w-full rounded-md border border-zinc-200 bg-zinc-50/50 pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-[#5B4FE9] focus:bg-white focus:outline-hidden sm:w-56"
                 />
               </div>
-
-              <div className="relative" ref={filterRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className={`flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium shadow-2xs transition-colors ${
-                    typeFilter !== "ALL"
-                      ? "border-[#5B4FE9] bg-indigo-50 text-[#5B4FE9]"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                  }`}
-                >
-                  <SlidersHorizontal className="size-3.5 text-zinc-500" />
-                  {t("suppliers.filterPolicy")}
-                  {typeFilter !== "ALL" && <span className="size-1.5 rounded-full bg-[#5B4FE9]" />}
-                </button>
-
-                {showFilterDropdown && (
-                  <div className="absolute right-0 top-11 z-30 w-56 space-y-3 rounded-xl border border-zinc-200 bg-white p-4 text-xs shadow-xl animate-in fade-in zoom-in-95 duration-100">
-                    <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-                      <span className="font-bold text-zinc-900">{t("suppliers.returnPolicy")}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTypeFilter("ALL");
-                          setShowFilterDropdown(false);
-                        }}
-                        className="flex items-center gap-1 font-mono text-[10px] text-zinc-500 transition-colors hover:text-zinc-900"
-                      >
-                        <RotateCcw className="size-3" />
-                        {t("shared.reset")}
-                      </button>
-                    </div>
-                    <select
-                      value={typeFilter}
-                      onChange={(e) => setTypeFilter(e.target.value)}
-                      className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2.5 text-zinc-900 focus:border-[#5B4FE9] focus:outline-hidden"
-                    >
-                      <option value="ALL">{t("suppliers.allPolicies")}</option>
-                      <option value="Taking Return">{t("suppliers.policyTaking")}</option>
-                      <option value="Not Taking Return">{t("suppliers.policyNot")}</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilterDropdown(false)}
-                      className="w-full rounded-md bg-slate-900 py-1.5 font-bold text-white shadow-2xs transition-colors hover:bg-slate-800"
-                    >
-                      {t("suppliers.apply")}
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
@@ -951,7 +450,7 @@ function SuppliersContent() {
                 ) : currentSuppliers.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-zinc-400">
-                      {view === "ALL" && typeFilter === "ALL" && !debouncedSearch ? t("suppliers.empty") : t("suppliers.noOweMatch")}
+                      {view === "ALL" && !debouncedSearch ? t("suppliers.empty") : t("suppliers.noOweMatch")}
                     </td>
                   </tr>
                 ) : (
@@ -972,13 +471,11 @@ function SuppliersContent() {
                             </div>
                             <div className="min-w-0">
                               <p className="truncate font-semibold text-zinc-900">{supplier.name}</p>
-                              {supplier.product && <p className="truncate text-[11px] text-zinc-500">{supplier.product}</p>}
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <p className="font-mono text-zinc-700">{supplier.contactInfo || "—"}</p>
-                          {supplier.email && <p className="font-mono text-[11px] text-zinc-400">{supplier.email}</p>}
                         </td>
                         <td className="px-4 py-3.5 text-right">
                           {info ? (

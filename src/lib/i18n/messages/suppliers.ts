@@ -39,9 +39,9 @@ const en = {
 
   // Add / edit modals
   "suppliers.addTitle": "Add new supplier",
-  "suppliers.addSubtitle": "Save the supplier's details and return policy",
+  "suppliers.addSubtitle": "Save the supplier's name and how to reach them",
   "suppliers.editTitle": "Edit supplier",
-  "suppliers.editSubtitle": "Change the supplier's contact details and return policy",
+  "suppliers.editSubtitle": "Change the supplier's name or contact",
   "suppliers.logoTitle": "Supplier logo or photo",
   "suppliers.logoHint": "PNG or JPG, up to 2MB (optional)",
   "suppliers.logoAlt": "Supplier",
@@ -125,6 +125,10 @@ const en = {
   "suppliers.detail.payments": "Payments",
   "suppliers.detail.noPayments": "No payments yet.",
   "suppliers.detail.notListed": "Not in your supplier list yet",
+  "suppliers.contactLabel": "Phone or email",
+  "suppliers.contactPlaceholder": "e.g. +251 91 123 4567",
+  "suppliers.saveError": "Couldn't save the supplier. Please try again.",
+  "suppliers.deleteError": "Couldn't delete the supplier. Please try again.",
 } as const;
 
 export const suppliers: Area<typeof en> = {
@@ -162,9 +166,9 @@ export const suppliers: Area<typeof en> = {
     "suppliers.deleteTooltip": "አቅራቢ ሰርዝ",
 
     "suppliers.addTitle": "አዲስ አቅራቢ ጨምር",
-    "suppliers.addSubtitle": "የአቅራቢውን ዝርዝር እና የመመለሻ ደንብ ያስቀምጡ",
+    "suppliers.addSubtitle": "የአቅራቢውን ስም እና እንዴት እንደሚያገኟቸው ያስቀምጡ",
     "suppliers.editTitle": "አቅራቢ አስተካክል",
-    "suppliers.editSubtitle": "የአቅራቢውን አድራሻ እና የመመለሻ ደንብ ይቀይሩ",
+    "suppliers.editSubtitle": "የአቅራቢውን ስም ወይም አድራሻ ይቀይሩ",
     "suppliers.logoTitle": "የአቅራቢ አርማ ወይም ፎቶ",
     "suppliers.logoHint": "PNG ወይም JPG እስከ 2MB (አማራጭ)",
     "suppliers.logoAlt": "አቅራቢ",
@@ -245,6 +249,10 @@ export const suppliers: Area<typeof en> = {
     "suppliers.detail.payments": "ክፍያዎች",
     "suppliers.detail.noPayments": "እስካሁን ክፍያ የለም።",
     "suppliers.detail.notListed": "በአቅራቢዎች ዝርዝርዎ ውስጥ ገና የለም",
+    "suppliers.contactLabel": "ስልክ ወይም ኢሜይል",
+    "suppliers.contactPlaceholder": "ለምሳሌ +251 91 123 4567",
+    "suppliers.saveError": "አቅራቢውን ማስቀመጥ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+    "suppliers.deleteError": "አቅራቢውን መሰረዝ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
   },
   om: {
     "suppliers.title": "Dhiyeessitoota",
@@ -279,9 +287,9 @@ export const suppliers: Area<typeof en> = {
     "suppliers.deleteTooltip": "Dhiyeessaa haqi",
 
     "suppliers.addTitle": "Dhiyeessaa haaraa dabali",
-    "suppliers.addSubtitle": "Odeeffannoo dhiyeessaa fi seera deebisuu olkaa'i",
+    "suppliers.addSubtitle": "Maqaa dhiyeessaa fi akkamitti isa quunnamuu danda'amu olkaa'i",
     "suppliers.editTitle": "Dhiyeessaa gulaali",
-    "suppliers.editSubtitle": "Bilbila fi seera deebisuu dhiyeessaa jijjiiri",
+    "suppliers.editSubtitle": "Maqaa yookaan quunnamtii dhiyeessaa jijjiiri",
     "suppliers.logoTitle": "Mallattoo ykn suuraa dhiyeessaa",
     "suppliers.logoHint": "PNG ykn JPG hanga 2MB (filannoo)",
     "suppliers.logoAlt": "Dhiyeessaa",
@@ -363,5 +371,9 @@ export const suppliers: Area<typeof en> = {
     "suppliers.detail.payments": "Kaffaltiiwwan",
     "suppliers.detail.noPayments": "Ammaaf kaffaltiin hin jiru.",
     "suppliers.detail.notListed": "Tarree dhiyeessitootaa kee keessa hin jiru",
+    "suppliers.contactLabel": "Bilbila yookaan imeelii",
+    "suppliers.contactPlaceholder": "Fkn. +251 91 123 4567",
+    "suppliers.saveError": "Dhiyeessaa olkaa'uun hin danda'amne. Maaloo irra deebi'ii yaali.",
+    "suppliers.deleteError": "Dhiyeessaa haquun hin danda'amne. Maaloo irra deebi'ii yaali.",
   },
 };

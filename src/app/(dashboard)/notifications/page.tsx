@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { TablePagination } from "@/components/shared/table-pagination";
-import { LoadingState } from "@/components/shared/loading-state";
+import { ListSkeleton } from "@/components/shared/skeletons";
 import {
   getAdminNotifications,
   getShopNotifications,
@@ -417,9 +417,7 @@ export default function NotificationsPage() {
       {/* ------------------------------------------------------------------ */}
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-xs overflow-hidden">
         {isLoading ? (
-          <div className="py-16 text-center text-xs text-zinc-400">
-            <LoadingState />
-          </div>
+          <ListSkeleton rows={6} />
         ) : filteredNotifications.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">

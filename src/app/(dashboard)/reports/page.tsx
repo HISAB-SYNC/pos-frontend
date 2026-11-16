@@ -26,7 +26,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { LoadingState } from "@/components/shared/loading-state";
+import { TablePageSkeleton } from "@/components/shared/skeletons";
 import { LoadError } from "@/components/shared/load-error";
 import { DebtReport } from "@/components/reports/debt-report";
 import { ProductReport } from "@/components/reports/product-report";
@@ -164,7 +164,7 @@ function SalesReport() {
   }, [analytics, t]);
 
   if (loading && !analytics) {
-    return <LoadingState />;
+    return <TablePageSkeleton cards={4} actions={1} />;
   }
 
   if (loadError && !analytics) {
@@ -759,7 +759,7 @@ function ReportsContent() {
 
 export default function ReportsPage() {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense fallback={<TablePageSkeleton cards={4} actions={1} />}>
       <ReportsContent />
     </Suspense>
   );

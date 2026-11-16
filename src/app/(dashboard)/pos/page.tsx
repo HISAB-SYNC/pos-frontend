@@ -27,7 +27,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHorizontalWheel } from "@/hooks/use-horizontal-wheel";
 
-import { LoadingState } from "@/components/shared/loading-state";
+import { PosSkeleton } from "@/components/shared/skeletons";
 import { createCustomer, createSale, getCustomers, saveCreditSaleItems } from "@/lib/api/app-data";
 import { getProducts } from "@/lib/api/shops";
 import type { Customer, Product, Sale } from "@/lib/api/types";
@@ -1428,7 +1428,7 @@ export default function PosPage() {
     }
   }
 
-  if (loading) return <LoadingState />;
+  if (loading) return <PosSkeleton />;
 
   const renderOrderPanel = (isDrawer: boolean) => (
     <>

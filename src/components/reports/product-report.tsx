@@ -3,6 +3,7 @@
 import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { LoadError } from "@/components/shared/load-error";
 import { TablePagination, isOnPage, usePagination } from "@/components/shared/table-pagination";
 import { getProductReport } from "@/lib/api/app-data";
@@ -251,7 +252,7 @@ export function ProductReport({ shopId }: { shopId: string }) {
             </div>
 
             {isLoading ? (
-              <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
+              <ListSkeleton rows={6} />
             ) : rows.length === 0 ? (
               <p className="py-12 text-center text-xs text-zinc-500">{t("reports.product.empty")}</p>
             ) : (

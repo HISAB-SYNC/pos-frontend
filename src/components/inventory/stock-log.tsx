@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { getStockAdjustments } from "@/lib/api";
 import { useFormat } from "@/lib/i18n/use-format";
@@ -151,7 +152,7 @@ export function StockLogModal({ shopId, onClose }: { shopId: string; onClose: ()
 
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
-            <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
+            <ListSkeleton rows={6} />
           ) : result?.error ? (
             <p className="py-12 text-center text-xs text-zinc-500">{t("inventory.logLoadError")}</p>
           ) : !data || data.items.length === 0 ? (

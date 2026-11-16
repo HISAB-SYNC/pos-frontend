@@ -11,7 +11,7 @@ import { BreakdownPanel } from "@/components/funds/breakdown-panel";
 import { PeriodBar } from "@/components/funds/period-bar";
 import { usePeriodLines, useFundsEntries } from "@/components/funds/use-funds-entries";
 import { TransferModal } from "@/components/funds/transfer-modal";
-import { LoadingState } from "@/components/shared/loading-state";
+import { FundsSkeleton } from "@/components/shared/skeletons";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getFundsSummary } from "@/lib/api/app-data";
 import type { FundsSummary } from "@/lib/api/types";
@@ -72,7 +72,7 @@ function FundsPageContent() {
   const { entries, isLoading: entriesLoading, hasError } = useFundsEntries(shopId, filter, reloadToken);
   const period = usePeriodLines(shopId, filter, entries, funds?.lines ?? emptyLineTotals());
 
-  if (status === "loading") return <LoadingState />;
+  if (status === "loading") return <FundsSkeleton />;
 
   if (status === "error" || !funds) {
     return (
@@ -177,7 +177,7 @@ function FundsPageContent() {
 export default function FundsPage() {
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<FundsSkeleton />}>
         <FundsPageContent />
       </Suspense>
     </RouteGuard>

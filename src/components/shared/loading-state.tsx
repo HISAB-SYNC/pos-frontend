@@ -1,11 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { TablePageSkeleton } from "@/components/shared/skeletons";
 
+/** Generic page placeholder (header, cards and a table) for pages without their own skeleton. */
 export function LoadingState() {
-  return (
-    <div className="space-y-3">
-      <Skeleton className="h-8 w-40" />
-      <Skeleton className="h-24 w-full" />
-      <Skeleton className="h-24 w-full" />
-    </div>
-  );
+  return <TablePageSkeleton />;
 }

@@ -4,6 +4,7 @@ import { ArrowLeft, Download, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { PeriodBar, ReportSortTh, reportInputClass } from "@/components/reports/report-controls";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
@@ -176,7 +177,7 @@ export default function TopSellingReportPage() {
             </div>
 
             {isLoading ? (
-              <p className="py-12 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
+              <ListSkeleton rows={6} />
             ) : rows.length === 0 ? (
               <p className="py-12 text-center text-xs text-zinc-500">{t("reports.top.empty")}</p>
             ) : (

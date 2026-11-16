@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
-import { LoadingState } from "@/components/shared/loading-state";
+import { TablePageSkeleton } from "@/components/shared/skeletons";
 import { LoadError } from "@/components/shared/load-error";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { createDebt, getCustomers, getDebts, getDebtSummary, recordDebtPayment, recordBatchDebtPayments } from "@/lib/api/app-data";
@@ -2426,7 +2426,7 @@ export default function DebtsPage() {
   }
 
   if (loading) {
-    return <LoadingState />;
+    return <TablePageSkeleton cards={4} />;
   }
 
   if (loadError && debts.length === 0 && customers.length === 0) {

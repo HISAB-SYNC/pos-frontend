@@ -3,6 +3,7 @@
 import { ArrowDownLeft, ArrowUpRight, Download, SlidersHorizontal, Wallet, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
 import type { FundAccount, FundsEntries, FundsEntry, FundsLine } from "@/lib/api/types";
@@ -351,7 +352,7 @@ export function ActivityPanel({
       )}
 
       {isLoading ? (
-        <p className="py-14 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
+        <ListSkeleton rows={6} />
       ) : hasError ? (
         <p className="py-14 text-center text-xs text-zinc-500">{t("fundsPage.ledger.loadFailed")}</p>
       ) : rows.length === 0 ? (

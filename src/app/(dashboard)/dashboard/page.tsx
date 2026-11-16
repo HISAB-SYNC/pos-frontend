@@ -18,7 +18,7 @@ import { DashboardCard, SeeAllLink } from "@/components/dashboard/dashboard-widg
 import { KpiPeriodCards } from "@/components/dashboard/kpi-period-cards";
 import { MoneyLeftCard } from "@/components/dashboard/money-left-card";
 import { SalesPurchaseChart } from "@/components/dashboard/sales-purchase-chart";
-import { LoadingState } from "@/components/shared/loading-state";
+import { DashboardSkeleton } from "@/components/shared/skeletons";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { getDashboardMetrics, getProductReport } from "@/lib/api/app-data";
@@ -147,13 +147,13 @@ export default function DashboardPage() {
     };
   }, [shopId, reloadKey]);
 
-  if (authUser?.role === "SALES") return <LoadingState />;
+  if (authUser?.role === "SALES") return <DashboardSkeleton />;
 
   if (!isLoading && loadError && !metrics) {
     return <LoadError what={t("dashboard.whatDashboard")} onRetry={() => setReloadKey((k) => k + 1)} />;
   }
 
-  if (isLoading || !metrics) return <LoadingState />;
+  if (isLoading || !metrics) return <DashboardSkeleton />;
 
   const totalCollected =
     metrics.paymentBreakdown.cash +

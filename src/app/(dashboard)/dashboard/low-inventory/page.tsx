@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpDown, ChevronDown, ChevronUp, Search } from "lucide-r
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
@@ -137,9 +138,9 @@ export default function LowInventoryPage() {
                 <tbody className="divide-y divide-zinc-100">
                   {!products ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-10 text-center text-zinc-500">
-                        {t("shared.loading")}
-                      </td>
+                      <td colSpan={4} className="p-0">
+<ListSkeleton rows={5} avatar={false} />
+</td>
                     </tr>
                   ) : rows.length === 0 ? (
                     <tr>

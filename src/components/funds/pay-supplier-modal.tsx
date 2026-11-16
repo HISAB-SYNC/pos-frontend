@@ -1,5 +1,6 @@
 "use client";
 
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { Banknote, Landmark, Smartphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -203,7 +204,7 @@ export function PaySupplierModal({
         {loadError ? (
           <p className="py-8 text-center text-xs text-zinc-500">{t("payments.loadError")}</p>
         ) : !payables ? (
-          <p className="py-8 text-center text-xs text-zinc-400">{t("shared.loading")}</p>
+          <ListSkeleton rows={3} />
         ) : suppliers.length === 0 ? (
           <p className="py-8 text-center text-xs text-zinc-500">{t("payments.nothingOwed")}</p>
         ) : (

@@ -18,7 +18,7 @@ import { useDismiss } from "@/hooks/use-dismiss";
 
 import { useFormat } from "@/lib/i18n/use-format";
 import { useT } from "@/lib/i18n/use-t";
-import { LoadingState } from "@/components/shared/loading-state";
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { LoadError } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
@@ -996,9 +996,9 @@ export default function ExpensesPage() {
               <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-14">
-                      <LoadingState />
-                    </td>
+                    <td colSpan={7} className="p-0">
+<ListSkeleton rows={6} />
+</td>
                   </tr>
                 ) : currentExpenses.length === 0 ? (
                   <tr>

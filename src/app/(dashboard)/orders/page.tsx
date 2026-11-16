@@ -28,7 +28,7 @@ import { useDismiss } from "@/hooks/use-dismiss";
 import { useFormat } from "@/lib/i18n/use-format";
 import { useT } from "@/lib/i18n/use-t";
 
-import { LoadingState } from "@/components/shared/loading-state";
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { getSales, processSaleReturn } from "@/lib/api/app-data";
 import type { Sale } from "@/lib/api/types";
 import {
@@ -1768,9 +1768,9 @@ export default function SalesHistoryPage() {
               <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={isCashier ? 7 : 8} className="py-12 text-center">
-                      <LoadingState />
-                    </td>
+                    <td colSpan={isCashier ? 7 : 8} className="p-0">
+<ListSkeleton rows={6} />
+</td>
                   </tr>
                 ) : currentSales.length === 0 ? (
                   <tr>

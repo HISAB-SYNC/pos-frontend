@@ -20,7 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AccessDenied } from "@/components/shared/access-denied";
-import { LoadingState } from "@/components/shared/loading-state";
+import { TablePageSkeleton } from "@/components/shared/skeletons";
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
@@ -909,7 +909,7 @@ export default function UsersPage() {
   }
 
   if (loading && members.length === 0) {
-    return <LoadingState />;
+    return <TablePageSkeleton cards={3} />;
   }
 
   if (loadError && members.length === 0) {

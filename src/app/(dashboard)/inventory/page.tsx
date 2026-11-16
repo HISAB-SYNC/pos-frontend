@@ -28,7 +28,8 @@ import { AddProductModal, DeleteProductDialog, EditProductModal } from "@/compon
 import { StockAdjustModal } from "@/components/inventory/stock-adjust-modal";
 import { StockLogModal } from "@/components/inventory/stock-log";
 import { ReportSortTh } from "@/components/reports/report-controls";
-import { LoadingState } from "@/components/shared/loading-state";
+import { TablePageSkeleton } from "@/components/shared/skeletons";
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { RouteGuard } from "@/components/shared/route-guard";
 import { TablePagination, usePagination } from "@/components/shared/table-pagination";
 import { useDismiss } from "@/hooks/use-dismiss";
@@ -489,9 +490,9 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                   <tbody className="divide-y divide-zinc-100">
                     {isLoading ? (
                       <tr>
-                        <td colSpan={colCount} className="py-10">
-                          <LoadingState />
-                        </td>
+                        <td colSpan={colCount} className="p-0">
+<ListSkeleton rows={6} />
+</td>
                       </tr>
                     ) : pager.pageItems.length === 0 ? (
                       <tr>
@@ -696,7 +697,7 @@ function InventoryFromUrl() {
 export default function InventoryPage() {
   return (
     <RouteGuard requiredRole={["OWNER", "ADMIN", "SALES", "SUPER_ADMIN", "SYSTEM_ADMIN"]}>
-      <Suspense fallback={<LoadingState />}>
+      <Suspense fallback={<TablePageSkeleton cards={4} />}>
         <InventoryFromUrl />
       </Suspense>
     </RouteGuard>

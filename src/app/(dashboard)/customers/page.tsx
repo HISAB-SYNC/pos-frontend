@@ -22,7 +22,7 @@ import { useDismiss } from "@/hooks/use-dismiss";
 import { useFormat } from "@/lib/i18n/use-format";
 import { useT } from "@/lib/i18n/use-t";
 
-import { LoadingState } from "@/components/shared/loading-state";
+import { ListSkeleton } from "@/components/shared/skeletons";
 import { ActionError, LoadError, errorMessage } from "@/components/shared/load-error";
 import {
   createCustomer,
@@ -1205,9 +1205,9 @@ export default function CustomersPage() {
               <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center">
-                      <LoadingState />
-                    </td>
+                    <td colSpan={6} className="p-0">
+<ListSkeleton rows={6} />
+</td>
                   </tr>
                 ) : filteredCustomers.length === 0 ? (
                   <tr>

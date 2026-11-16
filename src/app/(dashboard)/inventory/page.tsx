@@ -472,8 +472,81 @@ function InventoryContent({ initialTab, initialStatus, openAdd }: { initialTab: 
                 </div>
               </div>
 
+              {/* Phone: one card per product */}
+              <div className="sm:hidden">
+                {isLoading ? (
+                  <ListSkeleton rows={6} />
+                ) : pager.pageItems.length === 0 ? (
+                  <p className="py-12 text-center text-xs text-zinc-400">
+                    {products.length === 0 ? t("inventory.noProducts") : t("inventory.noProductsMatch")}
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-zinc-100">
+                    {pager.pageItems.map((p) => {
+                      const qty = p.stockQuantity || 0;
+                      const price = num(p.price);
+                      return (
+                        <li key={p.id} className="px-4 py-3.5">
+                          <div className="flex items-start gap-3">
+                            <ProductAvatar name={p.name} className="size-9 shrink-0 text-xs" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[13px] font-semibold text-zinc-900">{p.name}</p>
+                              <p className="truncate text-[11px] text-zinc-400">
+                                {p.category?.name || t("inventory.general")}
+                                {p.sku ? ` · ${p.sku}` : ""}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right font-mono tabular-nums">
+                              <p className="text-[13px] font-bold text-zinc-900">{t("inventory.etbAmount", { amount: etb(price) })}</p>
+                              <p className="text-[11px] text-zinc-500">{formatQuantity(qty, p.unit || "pcs")}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <StatusBadge quantity={qty} threshold={p.lowStockThreshold || 5} />
+                              <ExpiryBadge expiryDate={p.expiryDate} />
+                            </div>
+                            {!isCashier && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  disabled={!isOnline}
+                                  onClick={() => setProductToAdjust(p)}
+                                  className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <SlidersHorizontal className="size-3 text-zinc-500" />
+                                  {t("inventory.adjustStock")}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!isOnline}
+                                  aria-label={t("inventory.editProduct")}
+                                  onClick={() => setProductToEdit(p)}
+                                  className="rounded p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Edit2 className="size-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!isOnline}
+                                  aria-label={t("inventory.deleteProduct")}
+                                  onClick={() => setProductToDelete(p)}
+                                  className="rounded p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
               {/* Table */}
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full min-w-[820px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase tracking-wider text-zinc-500">

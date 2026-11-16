@@ -954,7 +954,7 @@ export default function CustomersPage() {
 
       <div className="space-y-4">
         {/* Top KPI Summary Cards */}
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
               {t("customers.totalCustomers")}
@@ -1141,8 +1141,84 @@ export default function CustomersPage() {
             </div>
           </div>
 
+          {/* Phone: one card per customer */}
+          <div className="sm:hidden">
+            {isLoading ? (
+              <ListSkeleton rows={6} />
+            ) : filteredCustomers.length === 0 ? (
+              <div className="px-4 py-12 text-center">
+                <p className="text-xs font-bold text-zinc-800">{t("customers.noMatch")}</p>
+                <p className="mt-1 text-[11px] text-zinc-400">{t("customers.noMatchHint")}</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-zinc-100">
+                {paginatedCustomers.map((customer) => {
+                  const debt = parseFloat(customer.debtBalance || "0");
+                  const [statusText, statusCls] =
+                    customer.status === "Overdue"
+                      ? [t("customers.statusOverdue"), "border-red-200/70 bg-red-50/80 text-red-700"]
+                      : debt > 0
+                        ? [t("customers.withDebt"), "border-amber-200/70 bg-amber-50/80 text-amber-800"]
+                        : [t("customers.zeroDebt"), "border-emerald-200/70 bg-emerald-50/80 text-emerald-800"];
+                  return (
+                    <li key={customer.id} className="space-y-2.5 px-4 py-3.5">
+                      <button type="button" onClick={() => handleOpenCustomer(customer)} className="flex w-full items-start gap-3 text-left">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-zinc-200/80 bg-zinc-100 font-mono text-[11px] font-bold text-zinc-700">
+                          {customer.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-zinc-900">{customer.name}</p>
+                          <p className="truncate font-mono text-[11px] text-zinc-400">{customer.phone || "—"}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className={`font-mono text-[13px] font-bold tabular-nums ${debt > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                            {debt.toLocaleString()} {t("shared.etb")}
+                          </p>
+                          <p className="font-mono text-[10px] text-zinc-400">{t("customers.creditLimit")}: {parseFloat(String(customer.creditLimit || "5000")).toLocaleString()}</p>
+                        </div>
+                      </button>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className={`inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase ${statusCls}`}>
+                          {statusText}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCustomer(customer)}
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs"
+                          >
+                            <FileText className="size-3 text-zinc-500" />
+                            <span>{t("customers.profile")}</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={t("customers.editCustomer")}
+                            onClick={() => setCustomerToEdit(customer)}
+                            className="rounded-md border border-zinc-200/80 bg-white p-2 text-zinc-600 shadow-2xs"
+                          >
+                            <Edit2 className="size-3.5" />
+                          </button>
+                          {!isCashier && (
+                            <button
+                              type="button"
+                              aria-label={t("customers.deleteCustomer")}
+                              onClick={() => setCustomerToDelete(customer)}
+                              className="rounded-md border border-zinc-200/80 bg-white p-2 text-zinc-500 shadow-2xs"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
           {/* Directory Table */}
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-left text-xs text-zinc-600">
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>

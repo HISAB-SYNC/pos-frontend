@@ -1420,7 +1420,7 @@ export default function SalesHistoryPage() {
         )}
 
         {/* Top KPI Summary Cards */}
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-3.5 lg:grid-cols-4">
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4.5 sm:p-5 shadow-2xs">
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
               {t("orders.totalRevenueRange", { range: dateLabel })}
@@ -1746,8 +1746,96 @@ export default function SalesHistoryPage() {
             )}
           </div>
 
+          {/* Phone: one card per sale */}
+          <div className="sm:hidden">
+            {isLoading ? (
+              <ListSkeleton rows={6} />
+            ) : currentSales.length === 0 ? (
+              <div className="px-4 py-12 text-center">
+                <p className="text-xs font-bold text-zinc-800">{t("orders.noMatch")}</p>
+                <p className="mt-1 text-[11px] text-zinc-400">{t("orders.noMatchHint")}</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-zinc-100">
+                {currentSales.map((sale) => {
+                  const f = computeSaleFinancials(sale);
+                  const totalVal = parseFloat(String(sale.totalAmount || "0"));
+                  const voided = isSaleCancelled(sale.status);
+                  const refunded = isSaleReturned(sale.status);
+                  const partial = isSalePartiallyReturned(sale.status);
+                  const [statusText, statusCls] = voided
+                    ? [t("orders.statusVoided"), "border-red-200/70 bg-red-50/80 text-red-700"]
+                    : refunded
+                      ? [t("orders.statusRefunded"), "border-purple-200/70 bg-purple-50/80 text-purple-700"]
+                      : partial
+                        ? [t("orders.statusPartRefunded"), "border-amber-200/70 bg-amber-50/80 text-amber-700"]
+                        : sale.status === "PENDING"
+                          ? [t("orders.statusPending"), "border-amber-300 bg-amber-50 text-amber-800"]
+                          : [t("orders.statusCompleted"), "border-emerald-200/70 bg-emerald-50/80 text-emerald-700"];
+                  return (
+                    <li key={sale.id} className="space-y-2.5 px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-semibold text-zinc-900">
+                            {sale.customer?.name || t("orders.walkInCustomer")}
+                          </p>
+                          <p className="font-mono text-[11px] text-zinc-400">
+                            #RCP-{sale.id.slice(0, 8).toUpperCase()} ·{" "}
+                            {formatDateTime(sale.createdAt, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right font-mono tabular-nums">
+                          <p className="text-[13px] font-bold text-zinc-900">
+                            {totalVal.toLocaleString()} {t("shared.etb")}
+                          </p>
+                          {!isCashier && !voided && !refunded && f.netProfit !== undefined && (
+                            <p className={`text-[11px] font-semibold ${f.netProfit < 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                              {f.netProfit >= 0 ? "+" : ""}
+                              {f.netProfit.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="truncate text-[11px] text-zinc-500">
+                        {sale.items && sale.items.length > 0
+                          ? sale.items.map((it) => `${it.quantity}x ${it.product?.name || it.name || t("orders.item")}`).join(", ")
+                          : t("orders.generalSale")}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className={`inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase ${statusCls}`}>
+                          {statusText}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setActiveReceipt(sale)}
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs"
+                          >
+                            <Eye className="size-3.5 text-zinc-500" />
+                            <span>{t("orders.receipt")}</span>
+                          </button>
+                          {!isCashier && !voided && !refunded && (
+                            <button
+                              type="button"
+                              disabled={!isOnline || sale.status === "PENDING"}
+                              onClick={() => setReturnTargetSale(sale)}
+                              className="inline-flex items-center gap-1 rounded-md border border-purple-200/80 bg-purple-50/70 px-2.5 py-1.5 text-xs font-semibold text-purple-800 shadow-2xs disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <RotateCcw className="size-3 text-purple-600" />
+                              <span>{t("orders.returnBtn")}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
           {/* Sales History Table */}
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-left text-xs text-zinc-600">
               <thead className="border-b border-zinc-200/80 bg-zinc-50/60 font-mono text-[10px] uppercase font-bold tracking-wider text-zinc-500">
                 <tr>

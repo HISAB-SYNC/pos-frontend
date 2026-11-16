@@ -1,12 +1,12 @@
 "use client";
 
 import { ArrowUpRight, Building2, Download, Edit2, MoreHorizontal, Plus, Search, Trash2, Wallet } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useDismiss } from "@/hooks/use-dismiss";
 
 import { PaySupplierModal, supplierKey } from "@/components/funds/pay-supplier-modal";
-import { SupplierDetailPanel, type SupplierDetailTarget } from "@/components/suppliers/supplier-detail-panel";
 import { AddSupplierModal, DeleteSupplierDialog, EditSupplierModal } from "@/components/suppliers/supplier-modals";
 import { useT } from "@/lib/i18n/use-t";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -81,6 +81,7 @@ function SuppliersContent() {
   const shopId = activeShopId ?? MOCK_IDS.shop;
   const t = useT();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +101,6 @@ function SuppliersContent() {
   const [payables, setPayables] = useState<SupplierPayables | null>(null);
   const [paidLast30, setPaidLast30] = useState(0);
   const [payKey, setPayKey] = useState<string | null>(null);
-  const [detail, setDetail] = useState<SupplierDetailTarget | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -226,19 +226,6 @@ function SuppliersContent() {
         />
       )}
 
-      {detail && (
-        <SupplierDetailPanel
-          shopId={shopId}
-          target={detail}
-          payable={payables?.suppliers.find((p) => supplierKey(p) === detail.key) ?? null}
-          onClose={() => setDetail(null)}
-          onPay={setPayKey}
-          onEdit={(s) => setSupplierToEdit(s)}
-          onDelete={(s) => setSupplierToDelete(s)}
-          onAddToList={(name) => openAdd(name)}
-        />
-      )}
-
       {payKey !== null && (
         <PaySupplierModal
           shopId={shopId}
@@ -359,14 +346,13 @@ function SuppliersContent() {
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-amber-50 font-mono text-[11px] font-bold text-amber-800 ring-1 ring-amber-200">
                     {u.name.slice(0, 2).toUpperCase()}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setDetail({ key: u.key, supplier: null, name: u.name })}
+                  <Link
+                    href={`/suppliers/unlisted?name=${encodeURIComponent(u.name)}`}
                     className="min-w-0 flex-1 text-left"
                   >
                     <p className="truncate text-sm font-semibold text-zinc-900 hover:underline">{u.name}</p>
                     <p className="text-[11px] text-zinc-500">{t.n("suppliers.unpaidRestocks", u.restocks)}</p>
-                  </button>
+                  </Link>
                   <span className="font-mono text-sm font-bold tabular-nums text-amber-800">
                     {u.owed.toLocaleString("en-US", { maximumFractionDigits: 2 })} {t("shared.etb")}
                   </span>
@@ -459,9 +445,7 @@ function SuppliersContent() {
                     return (
                       <tr
                         key={supplier.id}
-                        onClick={() =>
-                          setDetail({ key: supplierKey({ supplierId: supplier.id, supplierName: supplier.name }), supplier, name: supplier.name })
-                        }
+                        onClick={() => router.push(`/suppliers/${supplier.id}`)}
                         className="cursor-pointer transition-colors hover:bg-zinc-50/60"
                       >
                         <td className="px-5 py-3.5">
@@ -470,7 +454,13 @@ function SuppliersContent() {
                               {supplier.name.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate font-semibold text-zinc-900">{supplier.name}</p>
+                              <Link
+                                href={`/suppliers/${supplier.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="block truncate font-semibold text-zinc-900 hover:underline"
+                              >
+                                {supplier.name}
+                              </Link>
                             </div>
                           </div>
                         </td>

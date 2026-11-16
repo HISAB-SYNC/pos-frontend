@@ -129,6 +129,12 @@ const en = {
   "suppliers.contactPlaceholder": "e.g. +251 91 123 4567",
   "suppliers.saveError": "Couldn't save the supplier. Please try again.",
   "suppliers.deleteError": "Couldn't delete the supplier. Please try again.",
+  "suppliers.backToList": "Suppliers",
+  "suppliers.notFoundTitle": "Supplier not found",
+  "suppliers.notFoundHint": "It may have been deleted, or its debts were moved to a supplier you added.",
+  "suppliers.detail.colRestock": "Restock",
+  "suppliers.detail.colRemaining": "Still owed",
+  "suppliers.detail.noContact": "No contact details saved.",
 } as const;
 
 export const suppliers: Area<typeof en> = {
@@ -253,6 +259,12 @@ export const suppliers: Area<typeof en> = {
     "suppliers.contactPlaceholder": "ለምሳሌ +251 91 123 4567",
     "suppliers.saveError": "አቅራቢውን ማስቀመጥ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
     "suppliers.deleteError": "አቅራቢውን መሰረዝ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+    "suppliers.backToList": "አቅራቢዎች",
+    "suppliers.notFoundTitle": "አቅራቢው አልተገኘም",
+    "suppliers.notFoundHint": "ተሰርዞ ሊሆን ይችላል፣ ወይም ዕዳዎቹ ወደ ጨመሩት አቅራቢ ተዛውረው ሊሆን ይችላል።",
+    "suppliers.detail.colRestock": "ግዢ",
+    "suppliers.detail.colRemaining": "ገና የሚቀረው",
+    "suppliers.detail.noContact": "የተቀመጠ አድራሻ የለም።",
   },
   om: {
     "suppliers.title": "Dhiyeessitoota",
@@ -375,5 +387,11 @@ export const suppliers: Area<typeof en> = {
     "suppliers.contactPlaceholder": "Fkn. +251 91 123 4567",
     "suppliers.saveError": "Dhiyeessaa olkaa'uun hin danda'amne. Maaloo irra deebi'ii yaali.",
     "suppliers.deleteError": "Dhiyeessaa haquun hin danda'amne. Maaloo irra deebi'ii yaali.",
+    "suppliers.backToList": "Dhiyeessitoota",
+    "suppliers.notFoundTitle": "Dhiyeessaan hin argamne",
+    "suppliers.notFoundHint": "Haqamee ta'uu danda'a, yookaan liqiin isaa dhiyeessaa ati dabalte tti dabarfameera ta'a.",
+    "suppliers.detail.colRestock": "Bittaa",
+    "suppliers.detail.colRemaining": "Kan hafe",
+    "suppliers.detail.noContact": "Odeeffannoon quunnamtii hin olkaa'amne.",
   },
 };

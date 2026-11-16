@@ -7,22 +7,11 @@ const en = {
   "suppliers.subtitle": "Manage your suppliers, their return policies, contacts and incoming deliveries.",
   "suppliers.noun": "suppliers",
   "suppliers.exportDirectory": "Export list",
-  "suppliers.owedAmount": "{amount} owed",
   "suppliers.addSupplier": "Add supplier",
 
   // Summary cards
   "suppliers.totalSuppliers": "Total suppliers",
-  "suppliers.count_one": "{count} supplier",
-  "suppliers.count_other": "{count} suppliers",
   "suppliers.registeredHint": "Registered suppliers",
-  "suppliers.acceptingReturns": "Accept returns",
-  "suppliers.acceptingHint": "Damaged or expired stock can go back",
-  "suppliers.noReturns": "No returns",
-  "suppliers.noReturnsHint": "Final sale only",
-  "suppliers.productCategories": "Product types",
-  "suppliers.categories_one": "{count} type",
-  "suppliers.categories_other": "{count} types",
-  "suppliers.categoriesHint": "Products your suppliers cover",
 
   // Return policy
   "suppliers.policyTaking": "Takes returns",
@@ -35,7 +24,6 @@ const en = {
   "suppliers.apply": "Apply",
 
   // Directory and table
-  "suppliers.directory": "Suppliers ({count})",
   "suppliers.searchPlaceholder": "Search suppliers or products...",
   "suppliers.supplierName": "Supplier name",
   "suppliers.productLine": "Products",
@@ -137,7 +125,6 @@ const en = {
   "suppliers.detail.payments": "Payments",
   "suppliers.detail.noPayments": "No payments yet.",
   "suppliers.detail.notListed": "Not in your supplier list yet",
-  "suppliers.detail.noContact": "No contact details saved.",
 } as const;
 
 export const suppliers: Area<typeof en> = {
@@ -147,21 +134,10 @@ export const suppliers: Area<typeof en> = {
     "suppliers.subtitle": "አቅራቢዎችዎን፣ የመመለሻ ደንባቸውን፣ አድራሻቸውን እና የሚመጡ እቃዎችን ያስተዳድሩ።",
     "suppliers.noun": "አቅራቢዎች",
     "suppliers.exportDirectory": "ዝርዝር ላክ",
-    "suppliers.owedAmount": "{amount} ዕዳ",
     "suppliers.addSupplier": "አቅራቢ ጨምር",
 
     "suppliers.totalSuppliers": "ጠቅላላ አቅራቢዎች",
-    "suppliers.count_one": "{count} አቅራቢ",
-    "suppliers.count_other": "{count} አቅራቢዎች",
     "suppliers.registeredHint": "የተመዘገቡ አቅራቢዎች",
-    "suppliers.acceptingReturns": "ዕቃ የሚመልሱ",
-    "suppliers.acceptingHint": "የተበላሸ ወይም ያለፈበት ዕቃ መመለስ ይቻላል",
-    "suppliers.noReturns": "መመለስ የሌለባቸው",
-    "suppliers.noReturnsHint": "የተሸጠ አይመለስም",
-    "suppliers.productCategories": "የምርት ዓይነቶች",
-    "suppliers.categories_one": "{count} ዓይነት",
-    "suppliers.categories_other": "{count} ዓይነቶች",
-    "suppliers.categoriesHint": "አቅራቢዎችዎ የሚያቀርቧቸው ምርቶች",
 
     "suppliers.policyTaking": "መመለስ ይቻላል",
     "suppliers.policyNot": "መመለስ አይቻልም",
@@ -172,7 +148,6 @@ export const suppliers: Area<typeof en> = {
     "suppliers.filterPolicy": "በደንብ አጣራ",
     "suppliers.apply": "ተግብር",
 
-    "suppliers.directory": "አቅራቢዎች ({count})",
     "suppliers.searchPlaceholder": "አቅራቢ ወይም ምርት ፈልግ...",
     "suppliers.supplierName": "የአቅራቢ ስም",
     "suppliers.productLine": "ምርቶች",
@@ -270,28 +245,16 @@ export const suppliers: Area<typeof en> = {
     "suppliers.detail.payments": "ክፍያዎች",
     "suppliers.detail.noPayments": "እስካሁን ክፍያ የለም።",
     "suppliers.detail.notListed": "በአቅራቢዎች ዝርዝርዎ ውስጥ ገና የለም",
-    "suppliers.detail.noContact": "የተቀመጠ አድራሻ የለም።",
   },
   om: {
     "suppliers.title": "Dhiyeessitoota",
     "suppliers.subtitle": "Dhiyeessitoota, seera deebisuu, bilbila fi meeshaalee dhufaa jiran bulchi.",
     "suppliers.noun": "dhiyeessitoota",
     "suppliers.exportDirectory": "Tarree ergi",
-    "suppliers.owedAmount": "{amount} liqii",
     "suppliers.addSupplier": "Dhiyeessaa dabali",
 
     "suppliers.totalSuppliers": "Dhiyeessitoota waliigalaa",
-    "suppliers.count_one": "Dhiyeessaa {count}",
-    "suppliers.count_other": "Dhiyeessitoota {count}",
     "suppliers.registeredHint": "Dhiyeessitoota galmaa'an",
-    "suppliers.acceptingReturns": "Deebisanii fudhatan",
-    "suppliers.acceptingHint": "Meeshaan miidhame ykn yeroon darbe deebi'uu danda'a",
-    "suppliers.noReturns": "Deebii hin qaban",
-    "suppliers.noReturnsHint": "Gurgurtaa xumuraa qofa",
-    "suppliers.productCategories": "Gosa meeshaa",
-    "suppliers.categories_one": "Gosa {count}",
-    "suppliers.categories_other": "Gosoota {count}",
-    "suppliers.categoriesHint": "Meeshaalee dhiyeessitoonni keessan dhiyeessan",
 
     "suppliers.policyTaking": "Deebisanii fudhata",
     "suppliers.policyNot": "Deebii hin qabu",
@@ -302,7 +265,6 @@ export const suppliers: Area<typeof en> = {
     "suppliers.filterPolicy": "Seeraan calali",
     "suppliers.apply": "Fayyadami",
 
-    "suppliers.directory": "Dhiyeessitoota ({count})",
     "suppliers.searchPlaceholder": "Dhiyeessaa ykn meeshaa barbaadi...",
     "suppliers.supplierName": "Maqaa dhiyeessaa",
     "suppliers.productLine": "Meeshaalee",
@@ -401,6 +363,5 @@ export const suppliers: Area<typeof en> = {
     "suppliers.detail.payments": "Kaffaltiiwwan",
     "suppliers.detail.noPayments": "Ammaaf kaffaltiin hin jiru.",
     "suppliers.detail.notListed": "Tarree dhiyeessitootaa kee keessa hin jiru",
-    "suppliers.detail.noContact": "Odeeffannoon quunnamtii hin olkaa'amne.",
   },
 };

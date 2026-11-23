@@ -3,7 +3,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import type { ApiError, ApiResponse } from "./types";
 
 export function getApiBaseUrl() {
-  const url = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-0fzk.onrender.com";
+  const url = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-a1en.onrender.com";
   return url.replace(/\/$/, "");
 }
 

@@ -18,7 +18,7 @@ export default function AdminMonitoringPage() {
     setIsPinging(true);
     const start = performance.now();
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-0fzk.onrender.com";
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://pos-backend-a1en.onrender.com";
       const res = await fetch(`${baseUrl.replace(/\/$/, "")}/health`);
       const duration = Math.round(performance.now() - start);
       setLatency(duration > 0 ? duration : 120);
